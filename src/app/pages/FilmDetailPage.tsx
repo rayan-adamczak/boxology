@@ -279,7 +279,7 @@ export function FilmDetailPage() {
       </div>
 
       {/* Hero */}
-      <div className="relative w-full overflow-hidden" style={{ minHeight: "520px" }}>
+      <div className="relative w-full" style={{ minHeight: "520px" }}>
         {film.affiche_url && (
           <div className="absolute inset-0 overflow-hidden">
             <img
