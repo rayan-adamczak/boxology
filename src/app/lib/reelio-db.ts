@@ -1,0 +1,95 @@
+import { supabase } from "./supabase";
+
+/* ---- Row types ---- */
+
+export interface Film {
+  id: number;
+  titre: string;
+  realisateur: string | null;
+  duree: string | null;
+  note: string | number | null;
+  annee: string | number | null;
+  synopsis: string | null;
+  affiche_url: string | null;
+  genres: string | null;
+  cast_principal: unknown | null;
+  scenariste: string | null;
+}
+
+export interface Edition {
+  id: number;
+  film_id: number;
+  titre: string | null;
+  formats_extraits: string | null;
+  prix_fnac_extrait: string | null;
+  image_url: string | null;
+  pays: string | null;
+  date_sortie: string | null;
+  region: string | null;
+}
+
+export type StatutValue = "envie" | "possede";
+
+/** An edition joined with its parent film — used by the list pages. */
+export interface EditionWithFilm extends Edition {
+  film: Pick<Film, "id" | "titre" | "affiche_url"> | null;
+}
+
+/* ---- Films ---- */
+
+export async function searchFilms(query: string): Promise<Film[]> {
+  let req = supabase.from("films").select("*").order("titre", { ascending: true }).limit(50);
+  if (query.trim()) req = req.ilike("titre", `%${query.trim()}%`);
+  const { data, error } = await req;
+  if (error) throw new Error(`Erreur lors de la recherche de films: ${error.message}`);
+  return (data ?? []) as Film[];
+}
+
+export async function getFilm(id: number): Promise<Film | null> {
+  const { data, error } = await supabase.from("films").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(`Erreur lors du chargement du film ${id}: ${error.message}`);
+  return (data as Film) ?? null;
+}
+
+/** Find all films where a person appears as director or in cast_principal. */
+export async function searchFilmsByPerson(name: string): Promise<Film[]> {
+  const escaped = name.replace(/[%_]/g, "\\$&");
+
+  const [byDirector, byCast] = await Promise.all([
+    supabase.from("films").select("*").ilike("realisateur", `%${escaped}%`),
+    supabase.from("films").select("*").filter("cast_principal", "cs", JSON.stringify([{ nom: name }])),
+  ]);
+
+  if (byDirector.error) throw new Error(`Erreur réalisateur: ${byDirector.error.message}`);
+  if (byCast.error) throw new Error(`Erreur cast: ${byCast.error.message}`);
+
+  const seen = new Set<number>();
+  const merged: Film[] = [];
+  for (const film of [...(byDirector.data ?? []), ...(byCast.data ?? [])] as Film[]) {
+    if (!seen.has(film.id)) { seen.add(film.id); merged.push(film); }
+  }
+  return merged.sort((a, b) => a.titre.localeCompare(b.titre));
+}
+
+/* ---- Editions ---- */
+
+export async function getEditionsForFilm(filmId: number): Promise<Edition[]> {
+  const { data, error } = await supabase
+    .from("editions")
+    .select("*")
+    .eq("film_id", filmId)
+    .order("id", { ascending: true });
+  if (error) throw new Error(`Erreur lors du chargement des éditions du film ${filmId}: ${error.message}`);
+  return (data ?? []) as Edition[];
+}
+
+/** Fetch a list of editions by their IDs, joined with their parent film. */
+export async function getEditionsByIds(ids: number[]): Promise<EditionWithFilm[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from("editions")
+    .select("*, film:films(id, titre, affiche_url)")
+    .in("id", ids);
+  if (error) throw new Error(`Erreur lors du chargement des éditions: ${error.message}`);
+  return (data ?? []) as EditionWithFilm[];
+}
