@@ -361,7 +361,7 @@ export function FilmDetailPage() {
               <div className="flex items-center gap-[6px]">
                 <Star size={18} color="#2e7dff" fill="#2e7dff" />
                 <span style={{ fontSize: "15px", fontWeight: 600, color: "#e8e8e8" }}>{film.note}</span>
-                <span style={{ fontSize: "13px", color: "#8a8f98" }}>/ 5</span>
+                <span style={{ fontSize: "13px", color: "#8a8f98" }}>/ 10</span>
               </div>
             )}
 
