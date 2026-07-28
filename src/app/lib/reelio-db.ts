@@ -74,13 +74,15 @@ export async function searchFilmsByPerson(name: string): Promise<Film[]> {
 /* ---- Editions ---- */
 
 export async function getEditionsForFilm(filmId: number): Promise<Edition[]> {
+  // Les éditions passent par edition_films : un coffret contient plusieurs films,
+  // il doit donc apparaître sur la fiche de chacun d'eux.
   const { data, error } = await supabase
     .from("editions")
-    .select("*")
-    .eq("film_id", filmId)
+    .select("*, edition_films!inner(film_id)")
+    .eq("edition_films.film_id", filmId)
     .order("id", { ascending: true });
   if (error) throw new Error(`Erreur lors du chargement des éditions du film ${filmId}: ${error.message}`);
-  return (data ?? []) as Edition[];
+  return (data ?? []).map(({ edition_films: _ignored, ...edition }) => edition) as Edition[];
 }
 
 /** Fetch a list of editions by their IDs, joined with their parent film. */
