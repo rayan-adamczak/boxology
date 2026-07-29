@@ -3,8 +3,16 @@ import { Link } from "react-router";
 import { Search, Loader2 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { searchFilms, type Film } from "../lib/reelio-db";
+import { useSeo } from "../lib/seo";
 
 export function BrowsePage() {
+  useSeo({
+    titre: "Jaquette — Le catalogue des éditions Blu-ray et 4K françaises",
+    description:
+      "Retrouvez toutes les éditions physiques d’un film : steelbook, coffret collector, 4K, digibook. Comparez formats et contenus, et gardez la trace de votre collection.",
+    racine: true,
+  });
+
   const [query, setQuery] = useState("");
   const [films, setFilms] = useState<Film[]>([]);
   const [loading, setLoading] = useState(true);

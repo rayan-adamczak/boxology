@@ -14,7 +14,9 @@ export function AProposPage() {
   return (
     <PageStatique
       titre="À propos de Jaquette"
+      titreSeo="À propos"
       sousTitre="Un catalogue des éditions physiques de films, pensé pour celles et ceux qui collectionnent."
+      description="Pourquoi Jaquette existe, d’où viennent les données et comment le catalogue est construit."
     >
       <Section titre="L’idée">
         <p>

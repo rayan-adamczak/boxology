@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router";
 import { ArrowLeft, Loader2, Star, CheckCircle2, Heart, ChevronDown, Plus } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
@@ -17,6 +17,7 @@ import {
   setStatutLocal,
   removeStatutLocal,
 } from "../lib/local-statuts";
+import { useSeo, extrait, type Seo } from "../lib/seo";
 
 /* ---- helpers ---- */
 
@@ -177,6 +178,34 @@ export function FilmDetailPage() {
     })();
     return () => { cancelled = true; };
   }, [filmId]);
+
+  /*
+   * Titre et description propres à la fiche. Tant que le film n'est pas chargé
+   * on passe null : useSeo laisse alors le <head> intact plutôt que d'écrire un
+   * canonical sur une page qui n'existe peut-être pas.
+   */
+  const seo = useMemo<Seo | null>(() => {
+    if (!film) return null;
+
+    const annee = film.annee ? ` (${film.annee})` : "";
+    const nb = editions.length;
+    // Le synopsis décrit le film ; à défaut on décrit ce que la page apporte
+    // vraiment, c'est-à-dire le nombre d'éditions recensées.
+    const description = film.synopsis
+      ? extrait(film.synopsis)
+      : nb > 0
+      ? `${nb} édition${nb > 1 ? "s" : ""} de ${film.titre}${annee} recensée${nb > 1 ? "s" : ""} : formats, zones, dates de sortie et codes-barres.`
+      : `Les éditions Blu-ray, 4K et coffrets de ${film.titre}${annee}.`;
+
+    return {
+      titre: `${film.titre}${annee} — éditions Blu-ray, 4K et coffrets`,
+      description,
+      image: film.affiche_url,
+      type: "video.movie",
+    };
+  }, [film, editions.length]);
+
+  useSeo(seo);
 
   const onStatusChange = (editionId: number, status: StatutValue | null) => {
     setStatuts((prev) => {

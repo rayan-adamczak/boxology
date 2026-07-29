@@ -4,6 +4,7 @@ import { Loader2, Heart, CheckCircle2 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { getEditionsByIds, type EditionWithFilm, type StatutValue } from "../lib/reelio-db";
 import { getEditionIdsByStatut } from "../lib/local-statuts";
+import { useSeo } from "../lib/seo";
 
 interface StatusListPageProps {
   statut: StatutValue;
@@ -24,6 +25,15 @@ const CONFIG: Record<StatutValue, { title: string; empty: string; icon: React.Re
 
 export function StatusListPage({ statut }: StatusListPageProps) {
   const cfg = CONFIG[statut];
+
+  // Liste propre au visiteur, vide pour tout le monde d'autre : rien à indexer.
+  // « follow » laisse quand même les liens vers les fiches films être suivis.
+  useSeo({
+    titre: cfg.title,
+    description: cfg.empty,
+    noindex: true,
+  });
+
   const [editions, setEditions] = useState<EditionWithFilm[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

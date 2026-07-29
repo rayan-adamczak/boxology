@@ -1,5 +1,7 @@
+import type { ReactNode } from "react";
 import { BrowserRouter, Routes, Route } from "react-router";
 import { Layout } from "./components/Layout";
+import { useSeo } from "./lib/seo";
 import { BrowsePage } from "./pages/BrowsePage";
 import { FilmDetailPage } from "./pages/FilmDetailPage";
 import { StatusListPage } from "./pages/StatusListPage";
@@ -10,6 +12,16 @@ import { MovieDetailPage } from "./pages/MovieDetailPage";
 import { AProposPage } from "./pages/AProposPage";
 import { MentionsLegalesPage } from "./pages/MentionsLegalesPage";
 import { ConfidentialitePage } from "./pages/ConfidentialitePage";
+
+/**
+ * Écrans du prototype d'origine : ils affichent des données factices. Les
+ * laisser indexer donnerait des résultats de recherche pointant vers des faux
+ * profils et des faux prix.
+ */
+function Prototype({ titre, children }: { titre: string; children: ReactNode }) {
+  useSeo({ titre, description: "Écran de démonstration du prototype.", noindex: true });
+  return <>{children}</>;
+}
 
 export default function App() {
   return (
@@ -26,10 +38,10 @@ export default function App() {
           <Route path="/confidentialite" element={<ConfidentialitePage />} />
 
           {/* Previous mock-data prototype screens, kept for reference */}
-          <Route path="/dashboard" element={<HomePage />} />
-          <Route path="/wishlist" element={<WishlistPage />} />
-          <Route path="/movie/:id" element={<MovieDetailPage />} />
-          <Route path="/u/:handle" element={<ProfilePage />} />
+          <Route path="/dashboard" element={<Prototype titre="Tableau de bord"><HomePage /></Prototype>} />
+          <Route path="/wishlist" element={<Prototype titre="Wishlist"><WishlistPage /></Prototype>} />
+          <Route path="/movie/:id" element={<Prototype titre="Fiche film"><MovieDetailPage /></Prototype>} />
+          <Route path="/u/:handle" element={<Prototype titre="Profil"><ProfilePage /></Prototype>} />
         </Route>
       </Routes>
     </BrowserRouter>

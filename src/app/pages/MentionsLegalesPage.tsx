@@ -2,7 +2,11 @@ import { PageStatique, Section, Encadre } from "../components/PageStatique";
 
 export function MentionsLegalesPage() {
   return (
-    <PageStatique titre="Mentions légales" sousTitre="Dernière mise à jour : juillet 2026">
+    <PageStatique
+      titre="Mentions légales"
+      sousTitre="Dernière mise à jour : juillet 2026"
+      description="Éditeur, hébergement, propriété intellectuelle et signalement pour le site Jaquette."
+    >
       <Section titre="Éditeur du site">
         <p>
           Jaquette est un site personnel édité par <strong style={{ color: "var(--reel-text)" }}>Rayan

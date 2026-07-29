@@ -5,6 +5,7 @@ export function ConfidentialitePage() {
     <PageStatique
       titre="Politique de confidentialité"
       sousTitre="Dernière mise à jour : juillet 2026"
+      description="Aucun compte, aucun tracker, aucune donnée personnelle envoyée à un serveur : votre collection reste dans votre navigateur."
     >
       <Section titre="En résumé">
         <Encadre>
