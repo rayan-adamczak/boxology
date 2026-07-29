@@ -27,6 +27,8 @@ jobs:
       - run: npm run build
         env:
           NODE_ENV: production
+          # Sous-chemin + copie 404.html : specifique a GitHub Pages.
+          DEPLOY_TARGET: github
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

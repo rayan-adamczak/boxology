@@ -17,14 +17,17 @@ function figmaAssetResolver() {
   }
 }
 
-// GitHub Pages serves a SPA under a sub-path and has no server-side rewrite,
-// so a copy of index.html at 404.html lets deep links (e.g. /boxology/films/1)
-// boot the app and let react-router resolve the route client-side.
+// GitHub Pages has no server-side rewrite: a copy of index.html at 404.html is
+// the only way deep links boot the app there. The cost is that every deep link
+// answers with an HTTP 404 status, which keeps search engines from indexing it.
+// Hosts that support rewrites (Cloudflare Pages, Netlify) use public/_redirects
+// instead and answer 200, so this copy is only emitted for GitHub Pages.
 function spaFallback() {
   return {
     name: 'spa-404-fallback',
     apply: 'build' as const,
     closeBundle() {
+      if (process.env.DEPLOY_TARGET !== 'github') return
       const dist = path.resolve(__dirname, 'dist')
       const index = path.join(dist, 'index.html')
       if (fs.existsSync(index)) {
@@ -34,9 +37,12 @@ function spaFallback() {
   }
 }
 
+// GitHub Pages serves the site from a project sub-path; every other host serves
+// it from the domain root. DEPLOY_TARGET=github selects the sub-path build.
+const BASE = process.env.DEPLOY_TARGET === 'github' ? '/boxology/' : '/'
+
 export default defineConfig(({ command }) => ({
-  // Served from https://<user>.github.io/boxology/ in production, from / in dev.
-  base: command === 'build' ? '/boxology/' : '/',
+  base: command === 'build' ? BASE : '/',
   plugins: [
     figmaAssetResolver(),
     spaFallback(),

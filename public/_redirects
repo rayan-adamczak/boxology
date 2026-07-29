@@ -1,0 +1,4 @@
+# Réécriture SPA : toute URL inconnue sert index.html avec un statut 200.
+# Sans cette règle, /films/560 renverrait 404 et ne serait pas indexé.
+# Lu par Cloudflare Pages et Netlify.
+/*    /index.html   200
