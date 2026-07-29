@@ -39,7 +39,7 @@ function spaFallback() {
 
 // GitHub Pages serves the site from a project sub-path; every other host serves
 // it from the domain root. DEPLOY_TARGET=github selects the sub-path build.
-const BASE = process.env.DEPLOY_TARGET === 'github' ? '/boxology/' : '/'
+const BASE = process.env.DEPLOY_TARGET === 'github' ? '/jaquette/' : '/'
 
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? BASE : '/',
