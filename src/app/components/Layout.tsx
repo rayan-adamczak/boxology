@@ -5,6 +5,7 @@ import { Outlet, useLocation, useNavigate } from "react-router";
 import { TopBar } from "./TopBar";
 import { RightSidebar } from "./RightSidebar";
 import { BottomTabBar } from "./BottomTabBar";
+import { Footer } from "./Footer";
 
 type MobileTab = "home" | "collection" | "wishlist" | "profile";
 
@@ -39,6 +40,8 @@ export function Layout() {
       <TopBar showDiscoverButton onOpenDiscover={() => setDiscoverOpen(true)} />
 
       <Outlet />
+
+      <Footer />
 
       {/* Discover slide-over — tablet fallback for the collapsed right sidebar */}
       {discoverOpen && (

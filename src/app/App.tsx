@@ -7,6 +7,9 @@ import { HomePage } from "./pages/HomePage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { WishlistPage } from "./pages/WishlistPage";
 import { MovieDetailPage } from "./pages/MovieDetailPage";
+import { AProposPage } from "./pages/AProposPage";
+import { MentionsLegalesPage } from "./pages/MentionsLegalesPage";
+import { ConfidentialitePage } from "./pages/ConfidentialitePage";
 
 export default function App() {
   return (
@@ -17,6 +20,10 @@ export default function App() {
           <Route path="/films/:id" element={<FilmDetailPage />} />
           <Route path="/mes-envies" element={<StatusListPage statut="envie" />} />
           <Route path="/ma-collection" element={<StatusListPage statut="possede" />} />
+
+          <Route path="/a-propos" element={<AProposPage />} />
+          <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
+          <Route path="/confidentialite" element={<ConfidentialitePage />} />
 
           {/* Previous mock-data prototype screens, kept for reference */}
           <Route path="/dashboard" element={<HomePage />} />
