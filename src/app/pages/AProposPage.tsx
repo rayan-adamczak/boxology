@@ -1,7 +1,16 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { PageStatique, Section, Encadre } from "../components/PageStatique";
+import { getStatsCatalogue, type StatsCatalogue } from "../lib/stats";
+
+const nb = (n: number) => n.toLocaleString("fr-FR");
 
 export function AProposPage() {
+  const [stats, setStats] = useState<StatsCatalogue | null>(null);
+  useEffect(() => {
+    getStatsCatalogue().then(setStats);
+  }, []);
+
   return (
     <PageStatique
       titre="À propos de Boxology"
@@ -45,11 +54,14 @@ export function AProposPage() {
           compilées et vérifiées à partir de sources publiques spécialisées. Il s’agit de données
           factuelles de catalogage.
         </p>
-        <p>
-          Le catalogue compte aujourd’hui <strong style={{ color: "var(--reel-text)" }}>1 756
-          œuvres</strong> et <strong style={{ color: "var(--reel-text)" }}>3 180 éditions</strong>,
-          et s’enrichit régulièrement.
-        </p>
+        {stats && (
+          <p>
+            Le catalogue compte aujourd’hui{" "}
+            <strong style={{ color: "var(--reel-text)" }}>{nb(stats.films)} œuvres</strong> et{" "}
+            <strong style={{ color: "var(--reel-text)" }}>{nb(stats.editions)} éditions</strong>,
+            et s’enrichit régulièrement.
+          </p>
+        )}
       </Section>
 
       <Section titre="Ce que le site n’est pas">
