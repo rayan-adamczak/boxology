@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X } from "lucide-react";
+import { Suspense, useState } from "react";
+import { Loader2, X } from "lucide-react";
 import { Toaster } from "sonner";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { TopBar } from "./TopBar";
@@ -8,6 +8,15 @@ import { BottomTabBar } from "./BottomTabBar";
 import { Footer } from "./Footer";
 
 type MobileTab = "home" | "collection" | "wishlist" | "profile";
+
+/** Attente pendant le téléchargement d'un fragment de page. */
+function AttentePage() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <Loader2 size={22} className="animate-spin" color="var(--reel-muted)" />
+    </div>
+  );
+}
 
 export function Layout() {
   const [mobileTab, setMobileTab] = useState<MobileTab>("home");
@@ -39,7 +48,13 @@ export function Layout() {
     >
       <TopBar showDiscoverButton onOpenDiscover={() => setDiscoverOpen(true)} />
 
-      <Outlet />
+      {/* Les pages chargées à la demande passent par ici. La frontière est
+          placée autour de l'Outlet et non autour du routeur, pour que la barre
+          du haut et le pied de page restent affichés pendant le chargement du
+          fragment plutôt que de laisser un écran vide. */}
+      <Suspense fallback={<AttentePage />}>
+        <Outlet />
+      </Suspense>
 
       <Footer />
 

@@ -1,17 +1,32 @@
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { BrowserRouter, Routes, Route } from "react-router";
 import { Layout } from "./components/Layout";
 import { useSeo } from "./lib/seo";
 import { BrowsePage } from "./pages/BrowsePage";
 import { FilmDetailPage } from "./pages/FilmDetailPage";
 import { StatusListPage } from "./pages/StatusListPage";
-import { HomePage } from "./pages/HomePage";
-import { ProfilePage } from "./pages/ProfilePage";
-import { WishlistPage } from "./pages/WishlistPage";
-import { MovieDetailPage } from "./pages/MovieDetailPage";
-import { AProposPage } from "./pages/AProposPage";
-import { MentionsLegalesPage } from "./pages/MentionsLegalesPage";
-import { ConfidentialitePage } from "./pages/ConfidentialitePage";
+
+/*
+ * Pages chargées à la demande. Les trois pages éditoriales sont rarement
+ * visitées, et les quatre écrans du prototype ne le sont quasiment jamais :
+ * les embarquer dans le bundle initial faisait payer leur poids à chaque
+ * visiteur d'une fiche film, qui est le chemin d'entrée réel du site.
+ */
+const AProposPage = lazy(() =>
+  import("./pages/AProposPage").then((m) => ({ default: m.AProposPage })));
+const MentionsLegalesPage = lazy(() =>
+  import("./pages/MentionsLegalesPage").then((m) => ({ default: m.MentionsLegalesPage })));
+const ConfidentialitePage = lazy(() =>
+  import("./pages/ConfidentialitePage").then((m) => ({ default: m.ConfidentialitePage })));
+
+const HomePage = lazy(() =>
+  import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
+const ProfilePage = lazy(() =>
+  import("./pages/ProfilePage").then((m) => ({ default: m.ProfilePage })));
+const WishlistPage = lazy(() =>
+  import("./pages/WishlistPage").then((m) => ({ default: m.WishlistPage })));
+const MovieDetailPage = lazy(() =>
+  import("./pages/MovieDetailPage").then((m) => ({ default: m.MovieDetailPage })));
 
 /**
  * Écrans du prototype d'origine : ils affichent des données factices. Les
