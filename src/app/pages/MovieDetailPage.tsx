@@ -475,7 +475,7 @@ function EditionDrawer({ edition, onClose }: { edition: Edition; onClose: () => 
           ))}
         </ul>
         <p className="mt-2" style={{ fontSize: "11px", color: "var(--reel-muted)" }}>
-          Prices are set by third-party sellers. Links out are affiliate links; Boxology may earn a commission.
+          Prices are set by third-party sellers. Links out are affiliate links; Jaquette may earn a commission.
         </p>
 
         <div className="mt-5 flex gap-2.5">

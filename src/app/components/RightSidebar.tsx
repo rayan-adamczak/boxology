@@ -48,7 +48,7 @@ export function RightSidebar() {
       </div>
 
       <p className="mt-3 px-1" style={{ fontSize: "11px", color: "var(--reel-muted)", lineHeight: 1.5 }}>
-        Price links may be affiliate links. Boxology may earn a commission on purchases made through
+        Price links may be affiliate links. Jaquette may earn a commission on purchases made through
         marketplaces. Prices are indicative and set by third-party sellers.
       </p>
     </aside>

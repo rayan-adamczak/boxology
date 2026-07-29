@@ -27,7 +27,7 @@ export function TopBar({ onOpenDiscover, showDiscoverButton }: TopBarProps) {
         <Link
           to="/"
           className="flex shrink-0 items-center gap-2"
-          aria-label="Boxology home"
+          aria-label="Accueil Jaquette"
         >
           <span
             className="flex h-8 w-8 items-center justify-center rounded-[8px]"
@@ -39,7 +39,7 @@ export function TopBar({ onOpenDiscover, showDiscoverButton }: TopBarProps) {
             className="hidden sm:block"
             style={{ fontSize: "18px", fontWeight: 700, color: "var(--reel-text)" }}
           >
-            Boxology
+            Jaquette
           </span>
         </Link>
 

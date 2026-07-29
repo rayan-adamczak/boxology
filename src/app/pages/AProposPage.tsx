@@ -13,7 +13,7 @@ export function AProposPage() {
 
   return (
     <PageStatique
-      titre="À propos de Boxology"
+      titre="À propos de Jaquette"
       sousTitre="Un catalogue des éditions physiques de films, pensé pour celles et ceux qui collectionnent."
     >
       <Section titre="L’idée">
@@ -23,7 +23,7 @@ export function AProposPage() {
           collectionne — et aucune base ne les recense correctement en français.
         </p>
         <p>
-          Boxology sert à ça : retrouver quelle édition existe, ce qu’elle contient, et garder trace
+          Jaquette sert à ça : retrouver quelle édition existe, ce qu’elle contient, et garder trace
           de ce que l’on possède.
         </p>
       </Section>
@@ -66,7 +66,7 @@ export function AProposPage() {
 
       <Section titre="Ce que le site n’est pas">
         <p>
-          Boxology ne vend rien et ne permet aucun achat. C’est un catalogue informatif, sans
+          Jaquette ne vend rien et ne permet aucun achat. C’est un catalogue informatif, sans
           transaction ni intermédiation.
         </p>
         <p>
@@ -77,7 +77,7 @@ export function AProposPage() {
 
       <Section titre="Qui est derrière">
         <p>
-          Boxology est un projet personnel de Rayan Adamczak, designer. Il est né d’un besoin
+          Jaquette est un projet personnel de Rayan Adamczak, designer. Il est né d’un besoin
           simple : savoir quelle édition d’un film on possède déjà avant d’en acheter une autre.
         </p>
         <p>

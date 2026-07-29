@@ -8,7 +8,7 @@ export function ConfidentialitePage() {
     >
       <Section titre="En résumé">
         <Encadre>
-          Boxology ne crée aucun compte, n’utilise aucun outil de mesure d’audience et ne transmet
+          Jaquette ne crée aucun compte, n’utilise aucun outil de mesure d’audience et ne transmet
           aucune donnée personnelle à un serveur. Votre collection et vos envies sont enregistrées
           uniquement dans votre navigateur.
         </Encadre>
@@ -32,7 +32,7 @@ export function ConfidentialitePage() {
         <p>
           Vos listes (collection, envies) sont conservées via le stockage local
           (<code>localStorage</code>) de votre navigateur, sous la clé{" "}
-          <code style={{ color: "var(--reel-text)" }}>boxology_statuts</code>. Ces informations
+          <code style={{ color: "var(--reel-text)" }}>jaquette_statuts</code>. Ces informations
           restent sur votre appareil et ne sont jamais transmises.
         </p>
         <p>
@@ -61,8 +61,8 @@ export function ConfidentialitePage() {
             catalogue, consultée en lecture seule.
           </li>
           <li>
-            <strong style={{ color: "var(--reel-text)" }}>GitHub Pages</strong> — hébergement des
-            pages.
+            <strong style={{ color: "var(--reel-text)" }}>Cloudflare Pages</strong> — hébergement
+            des pages.
           </li>
           <li>
             <strong style={{ color: "var(--reel-text)" }}>Google Fonts</strong> — polices de

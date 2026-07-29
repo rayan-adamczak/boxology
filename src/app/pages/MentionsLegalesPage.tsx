@@ -5,7 +5,7 @@ export function MentionsLegalesPage() {
     <PageStatique titre="Mentions légales" sousTitre="Dernière mise à jour : juillet 2026">
       <Section titre="Éditeur du site">
         <p>
-          Boxology est un site personnel édité par <strong style={{ color: "var(--reel-text)" }}>Rayan
+          Jaquette est un site personnel édité par <strong style={{ color: "var(--reel-text)" }}>Rayan
           Adamczak</strong>, designer, agissant à titre non professionnel.
         </p>
         <p>
@@ -27,10 +27,10 @@ export function MentionsLegalesPage() {
 
       <Section titre="Hébergement">
         <p>
-          Le site est hébergé par <strong style={{ color: "var(--reel-text)" }}>GitHub, Inc.</strong>,
-          88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis — <a
-            href="https://github.com" target="_blank" rel="noreferrer noopener"
-            style={{ color: "var(--reel-accent)" }}>github.com</a>.
+          Le site est hébergé par <strong style={{ color: "var(--reel-text)" }}>Cloudflare,
+          Inc.</strong>, 101 Townsend St, San Francisco, CA 94107, États-Unis — <a
+            href="https://www.cloudflare.com" target="_blank" rel="noreferrer noopener"
+            style={{ color: "var(--reel-accent)" }}>cloudflare.com</a>.
         </p>
         <p>
           Les données du catalogue sont hébergées par <strong style={{ color: "var(--reel-text)" }}>
@@ -65,7 +65,7 @@ export function MentionsLegalesPage() {
 
       <Section titre="Nature du service">
         <p>
-          Boxology est un catalogue informatif d’éditions physiques de films. Le site ne vend aucun
+          Jaquette est un catalogue informatif d’éditions physiques de films. Le site ne vend aucun
           produit et ne réalise aucune transaction.
         </p>
         <Encadre>

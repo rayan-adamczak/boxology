@@ -1,9 +1,27 @@
 import type { StatutValue } from "./reelio-db";
 
-const KEY = "boxology_statuts";
+const KEY = "jaquette_statuts";
+const KEY_HISTORIQUE = "boxology_statuts";
+
+/**
+ * Reprend la collection enregistrée sous l'ancien nom du site.
+ * Sans ça, le changement de nom effacerait les listes déjà constituées.
+ */
+function migrer(): void {
+  try {
+    if (localStorage.getItem(KEY) !== null) return;
+    const ancien = localStorage.getItem(KEY_HISTORIQUE);
+    if (ancien === null) return;
+    localStorage.setItem(KEY, ancien);
+    localStorage.removeItem(KEY_HISTORIQUE);
+  } catch {
+    /* stockage indisponible : rien à migrer */
+  }
+}
 
 export function readStatuts(): Record<number, StatutValue> {
   try {
+    migrer();
     const raw = localStorage.getItem(KEY);
     return raw ? JSON.parse(raw) : {};
   } catch {
