@@ -60,6 +60,40 @@ export function MentionsLegalesPage() {
         </p>
       </Section>
 
+      <Section titre="Base de données">
+        <p>
+          Prise isolément, une donnée factuelle — un code-barres, une date de sortie, un format —
+          n’est protégée par aucun droit. Le catalogue dans son ensemble, lui, constitue une base de
+          données dont la constitution a demandé un investissement substantiel : collecte et
+          recoupement de plusieurs milliers de fiches, rattachement de chaque édition au film
+          correspondant, vérification manuelle des cas ambigus et correction des rattachements
+          erronés.
+        </p>
+        <p>
+          À ce titre, l’éditeur bénéficie du droit du producteur de base de données prévu aux
+          articles L. 341-1 et suivants du code de la propriété intellectuelle. Sont en conséquence
+          interdites, sans autorisation préalable :
+        </p>
+        <p>
+          — l’extraction de la totalité ou d’une partie qualitativement ou quantitativement
+          substantielle du contenu, par transfert sur un autre support, quel qu’en soit le moyen ;<br />
+          — la réutilisation, par mise à disposition du public, de tout ou partie substantielle du
+          contenu ;<br />
+          — l’extraction ou la réutilisation répétée et systématique de parties non substantielles,
+          lorsqu’elle excède manifestement les conditions d’utilisation normale du site.
+        </p>
+        <p>
+          Cette interdiction vise la copie du catalogue, y compris par moyen automatisé. Elle ne
+          restreint ni la consultation, ni l’usage privé, ni la citation d’une fiche accompagnée
+          d’un lien vers la page correspondante.
+        </p>
+        <Encadre>
+          Un accès aux données à des fins de recherche, de conservation ou de réutilisation peut
+          être demandé à l’adresse indiquée en tête de page. Les demandes motivées reçoivent une
+          réponse.
+        </Encadre>
+      </Section>
+
       <Section titre="Signalement">
         <p>
           Tout ayant droit estimant qu’un contenu porte atteinte à ses droits peut en demander le

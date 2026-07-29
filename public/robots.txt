@@ -1,0 +1,15 @@
+# Le catalogue est ouvert aux moteurs de recherche : c'est la raison de la
+# migration vers Cloudflare Pages, qui sert les liens profonds en HTTP 200.
+#
+# Les pages personnelles et les écrans du prototype ne sont pas bloqués ici :
+# ils portent une balise <meta name="robots" content="noindex">, qu'un moteur
+# ne peut lire que s'il a le droit de charger la page. Les interdire ici
+# empêcherait justement la consigne d'être vue.
+#
+# L'extraction massive du catalogue est interdite par les conditions du site,
+# voir /mentions-legales.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://jaquette.app/sitemap.xml
