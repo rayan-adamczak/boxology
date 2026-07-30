@@ -21,10 +21,9 @@ import { useSeo } from "../lib/seo";
  * éditions du même titre sont possédées. C'est la lecture qu'attend quelqu'un
  * qui regarde une collection — on possède *Dune*, pas trois lignes de catalogue.
  *
- * Fonctionne avec ou sans compte. Sans, les listes viennent de localStorage et
- * la page n'affiche ni avatar ni identité ; les deux anciennes pages marchaient
- * sans connexion, exiger un compte ici aurait retiré au visiteur le seul accès
- * à ses listes.
+ * Sans compte, il n'y a rien à montrer : les actions en demandent un et le site
+ * n'écrit plus dans localStorage. La page invite alors à se connecter, en
+ * expliquant ce que le compte apporte.
  *
  * Elle ne montre en revanche que *ses propres* listes : `collections` n'est
  * lisible que par son propriétaire, et la politique de confidentialité promet
@@ -103,11 +102,9 @@ export function ProfilPage() {
   });
 
   useEffect(() => {
-    // On charge aussi sans compte : `idsParStatut` lit alors localStorage
-    // (cf. lib/collections.ts). Cette page a remplacé « Ma collection » et
-    // « Mes envies », qui fonctionnaient sans connexion — exiger un compte ici
-    // retirerait au visiteur non connecté le seul accès à ses listes.
     if (session === undefined) return;
+    // Sans compte, `idsParStatut` rend du vide : inutile d'interroger le réseau.
+    if (session === null) { setChargement(false); return; }
 
     let annule = false;
     setChargement(true);
@@ -140,7 +137,7 @@ export function ProfilPage() {
     // chaque rafraîchissement de jeton.
   }, [session === undefined, session?.user.id]);
 
-  if (session === undefined || chargement) {
+  if (session === undefined || (chargement && session !== null)) {
     return (
       <Cadre>
         <div className="flex justify-center py-20">
@@ -158,15 +155,13 @@ export function ProfilPage() {
     );
   }
 
+  if (session === null) return <Invitation />;
+
   return (
     <VueProfil
-      connecte={session !== null}
-      nom={session ? nomAffiche(session) : "Ma collection"}
-      sousTitre={
-        session
-          ? session.user.email ?? ""
-          : "Enregistrée dans ce navigateur. Un compte la retrouve sur vos autres appareils."
-      }
+      connecte
+      nom={nomAffiche(session)}
+      sousTitre={session.user.email ?? ""}
       parStatut={parStatut ?? { possede: [], envie: [] }}
       statut={statut}
       onStatut={setStatut}
@@ -464,4 +459,42 @@ function Affiche({ entree }: { entree: Entree }) {
 
 function Cadre({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto w-full max-w-[1440px] px-4 pt-[88px] md:px-8 lg:px-16">{children}</div>;
+}
+
+/**
+ * Ce que voit un visiteur sans compte. On explique avant de demander : le
+ * catalogue est ouvert, c'est seulement garder des listes qui demande un compte.
+ */
+function Invitation() {
+  return (
+    <Cadre>
+      <div className="mx-auto max-w-[560px] py-20 text-center">
+        <h1 style={{ fontSize: "24px", fontWeight: 700, color: "var(--reel-text)" }}>
+          Votre collection, gardée
+        </h1>
+        <p className="pt-3" style={{ fontSize: "15px", lineHeight: "24px", color: "var(--reel-muted)" }}>
+          Marquez les éditions que vous possédez et celles qui vous font envie. Elles sont rattachées
+          à votre compte : vous les retrouvez sur votre téléphone comme sur votre ordinateur, et
+          elles survivent à un vidage du cache.
+        </p>
+        <button
+          type="button"
+          onClick={() => { void connexionGoogle("/profil"); }}
+          className="mt-6 rounded-full px-4 py-2.5 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+          style={{
+            fontSize: "15px",
+            fontWeight: 600,
+            backgroundColor: "var(--reel-accent)",
+            color: "#ffffff",
+            border: "1px solid var(--reel-accent)",
+          }}
+        >
+          S’inscrire ou se connecter avec Google
+        </button>
+        <p className="pt-3" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+          Le catalogue reste consultable sans compte.
+        </p>
+      </div>
+    </Cadre>
+  );
 }

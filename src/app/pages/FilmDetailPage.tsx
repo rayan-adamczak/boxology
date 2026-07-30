@@ -12,7 +12,8 @@ import {
   type Edition,
   type StatutValue,
 } from "../lib/reelio-db";
-import { basculerStatut, chargerStatuts } from "../lib/collections";
+import { basculerStatut, chargerStatuts, CompteRequis } from "../lib/collections";
+import { ModaleConnexion } from "../components/ModaleConnexion";
 import { useSession } from "../lib/auth";
 import { useSeo, extrait, type Seo } from "../lib/seo";
 
@@ -73,8 +74,8 @@ function FormatTag({ label }: { label: string }) {
 interface CircleStatusButtonsProps {
   editionId: number;
   status: StatutValue | undefined;
-  /** La page tient la bascule : selon qu'un compte est connecté ou non, elle
-   *  part en base ou dans localStorage, et ce composant n'a pas à le savoir. */
+  /** La page tient la bascule : elle écrit en base, ou ouvre la modale de
+   *  connexion s'il n'y a pas de compte. Ce composant n'a pas à le savoir. */
   onToggle: (editionId: number, value: StatutValue) => void;
 }
 
@@ -141,12 +142,13 @@ export function FilmDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>("Editions");
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [formatFilter, setFormatFilter] = useState<string | null>(null);
+  const [modaleOuverte, setModaleOuverte] = useState(false);
   const session = useSession();
 
   useEffect(() => {
     // Tant que la session n'est pas résolue, on ne charge pas les statuts : on
-    // les lirait dans localStorage pour les remplacer aussitôt par ceux du
-    // compte, et les boutons changeraient d'état sous le curseur.
+    // les lirait vides pour les remplacer aussitôt par ceux du compte, et les
+    // boutons changeraient d'état sous le curseur.
     if (session === undefined) return;
 
     let cancelled = false;
@@ -158,7 +160,7 @@ export function FilmDetailPage() {
         if (cancelled) return;
         setFilm(f);
         setEditions(eds);
-        // Base ou localStorage selon qu'un compte est connecté (cf. lib/collections.ts).
+        // Vide sans compte (cf. lib/collections.ts).
         const st = await chargerStatuts(eds.map((e) => e.id));
         if (!cancelled) setStatuts(st);
       } catch (e) {
@@ -224,7 +226,10 @@ export function FilmDetailPage() {
           : value === "possede" ? "Ajouté à votre collection" : "Ajouté à vos envies"
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Enregistrement impossible");
+      // Sans compte, on explique au lieu d'afficher une erreur : le visiteur
+      // n'a rien fait de mal, il lui manque juste un compte.
+      if (e instanceof CompteRequis) setModaleOuverte(true);
+      else toast.error(e instanceof Error ? e.message : "Enregistrement impossible");
     }
   };
 
@@ -749,6 +754,13 @@ export function FilmDetailPage() {
       {selectedPerson && (
         <PersonModal name={selectedPerson} onClose={() => setSelectedPerson(null)} />
       )}
+
+      <ModaleConnexion
+        ouverte={modaleOuverte}
+        onFermer={() => setModaleOuverte(false)}
+        retourVers={`/films/${filmId}`}
+      />
+
     </div>
   );
 }

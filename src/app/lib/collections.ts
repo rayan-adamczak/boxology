@@ -1,38 +1,41 @@
 import { identiteCourante } from "./auth";
-import {
-  getEditionIdsByStatut,
-  getStatusForEditions,
-  readStatuts,
-  toggleStatutLocal,
-  viderStatutsLocaux,
-} from "./local-statuts";
+import { readStatuts, viderStatutsLocaux } from "./local-statuts";
 import type { StatutValue } from "./reelio-db";
 import { clientAuthentifie } from "./supabase";
 
 /**
- * Collection et envies, quel que soit l'endroit où elles vivent.
+ * Collection et envies, rattachées à un compte.
  *
- * Deux dépôts, une seule interface : la table `collections` quand un compte est
- * connecté, localStorage sinon. Les pages n'ont pas à savoir lequel des deux
- * répond — c'est ce qui permet au site de rester pleinement utilisable sans
- * compte, ce qui était le cas avant l'authentification et doit le rester.
+ * Le catalogue se consulte sans compte — c'est ce qui permet aux fiches films
+ * d'être indexées. Mais toute action en demande un : une liste doit appartenir
+ * à quelqu'un pour survivre à un vidage de cache et suivre d'un appareil à
+ * l'autre.
  *
- * Toutes les fonctions sont asynchrones même quand elles finissent dans
- * localStorage : sinon chaque appelant porterait deux chemins de code.
+ * Sans session, les lectures rendent donc du vide et les écritures lèvent
+ * `CompteRequis`, que l'interface intercepte pour ouvrir la modale de connexion
+ * plutôt que d'échouer en silence.
  */
 
 /** PostgREST ne renvoie jamais plus de 1 000 lignes d'un coup. */
 const PAGE = 1000;
 
+/** Levée quand une action est tentée sans compte. */
+export class CompteRequis extends Error {
+  constructor() {
+    super("Un compte est nécessaire pour cette action.");
+    this.name = "CompteRequis";
+  }
+}
+
 /**
- * Reprise des listes constituées avant la création du compte.
+ * Reprise des listes constituées avant les comptes.
  *
- * Sans cette étape, se connecter donnerait l'impression d'avoir tout perdu :
- * les listes locales resteraient invisibles côté serveur, et le premier
- * décochage les écraserait pour de bon.
+ * Le site n'écrit plus dans localStorage, mais des listes y dorment encore chez
+ * ceux qui ont utilisé le site avant. Sans cette reprise, se connecter donnerait
+ * l'impression d'avoir tout perdu.
  *
- * En cas de désaccord sur une même édition, **le local gagne** : il reflète le
- * dernier geste de l'utilisateur, sur l'appareil qu'il a sous la main.
+ * En cas de désaccord sur une même édition, le local gagne : il reflète le
+ * dernier geste posé, sur l'appareil qu'on a en main.
  */
 async function fusionner(jeton: string, userId: string): Promise<void> {
   const locaux = readStatuts();
@@ -52,17 +55,14 @@ async function fusionner(jeton: string, userId: string): Promise<void> {
     .upsert(lignes, { onConflict: "user_id,edition_id" });
   if (error) throw new Error(`Reprise des listes locales impossible : ${error.message}`);
 
-  // Une fois les listes en base, la copie locale devient un doublon qui
-  // divergerait en silence : elle serait encore affichée après déconnexion,
-  // figée à l'état du jour de la connexion.
   viderStatutsLocaux();
 }
 
 /**
- * Garantit que la fusion a eu lieu une fois par session de navigation.
+ * Garantit que la reprise a eu lieu une fois par session de navigation.
  *
- * Placée ici plutôt que dans un composant : la reprise n'a d'intérêt qu'au
- * moment où l'on touche vraiment aux listes, et aucun écran n'a à s'en occuper.
+ * Placée ici plutôt que dans un composant : elle n'a d'intérêt qu'au moment où
+ * l'on touche vraiment aux listes, et aucun écran n'a à s'en occuper.
  */
 let fusionEnCours: Promise<void> | null = null;
 
@@ -79,14 +79,14 @@ async function connexion(): Promise<{ jeton: string; userId: string } | null> {
   return identite;
 }
 
-/** Statuts des éditions demandées, pour une fiche film. */
+/** Statuts des éditions demandées, pour une fiche film. Vide sans compte. */
 export async function chargerStatuts(
   editionIds: number[],
 ): Promise<Record<number, StatutValue>> {
   if (editionIds.length === 0) return {};
 
   const identite = await connexion();
-  if (!identite) return getStatusForEditions(editionIds);
+  if (!identite) return {};
 
   const { data, error } = await clientAuthentifie(identite.jeton)
     .from("collections")
@@ -103,14 +103,14 @@ export async function chargerStatuts(
 
 /**
  * Pose le statut, ou le retire s'il était déjà celui-là. Renvoie l'état obtenu,
- * `null` signifiant « plus dans aucune liste ».
+ * `null` signifiant « plus dans aucune liste ». Lève `CompteRequis` sans compte.
  */
 export async function basculerStatut(
   editionId: number,
   statut: StatutValue,
 ): Promise<StatutValue | null> {
   const identite = await connexion();
-  if (!identite) return toggleStatutLocal(editionId, statut);
+  if (!identite) throw new CompteRequis();
 
   const client = clientAuthentifie(identite.jeton);
   const actuel = await chargerStatuts([editionId]);
@@ -131,17 +131,16 @@ export async function basculerStatut(
   return statut;
 }
 
-/** Toutes les éditions portant ce statut, pour les pages de liste. */
+/** Toutes les éditions portant ce statut. Vide sans compte. */
 export async function idsParStatut(statut: StatutValue): Promise<number[]> {
   const identite = await connexion();
-  if (!identite) return getEditionIdsByStatut(statut);
+  if (!identite) return [];
 
   const client = clientAuthentifie(identite.jeton);
   const ids: number[] = [];
 
-  // Une collection au-delà de 1 000 éditions est rare mais parfaitement
-  // possible, et une troncature silencieuse ferait disparaître des titres de la
-  // liste sans rien signaler.
+  // Une collection au-delà de 1 000 éditions est rare mais possible, et une
+  // troncature silencieuse ferait disparaître des titres de la liste.
   for (let debut = 0; ; debut += PAGE) {
     const { data, error } = await client
       .from("collections")

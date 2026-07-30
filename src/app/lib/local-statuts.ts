@@ -1,5 +1,17 @@
 import type { StatutValue } from "./reelio-db";
 
+/**
+ * Vestige en lecture seule des listes constituées avant les comptes.
+ *
+ * Le site n'écrit plus rien ici : toute action demande désormais un compte, et
+ * les listes vivent dans `public.collections`. Ce module ne sert plus qu'à
+ * reprendre une fois ce qui existait, à la première connexion
+ * (cf. `fusionner` dans lib/collections.ts), puis à l'effacer.
+ *
+ * À supprimer le jour où plus personne n'a de reliquat — c'est-à-dire jamais
+ * avec certitude, d'où le maintien.
+ */
+
 const KEY = "jaquette_statuts";
 const KEY_HISTORIQUE = "boxology_statuts";
 
@@ -29,43 +41,6 @@ export function readStatuts(): Record<number, StatutValue> {
   }
 }
 
-function write(data: Record<number, StatutValue>): void {
-  localStorage.setItem(KEY, JSON.stringify(data));
-}
-
-export function getStatusForEditions(editionIds: number[]): Record<number, StatutValue> {
-  const all = readStatuts();
-  const result: Record<number, StatutValue> = {};
-  for (const id of editionIds) {
-    if (all[id] !== undefined) result[id] = all[id];
-  }
-  return result;
-}
-
-export function setStatutLocal(editionId: number, statut: StatutValue): void {
-  const all = readStatuts();
-  all[editionId] = statut;
-  write(all);
-}
-
-export function removeStatutLocal(editionId: number): void {
-  const all = readStatuts();
-  delete all[editionId];
-  write(all);
-}
-
-export function toggleStatutLocal(editionId: number, statut: StatutValue): StatutValue | null {
-  const all = readStatuts();
-  if (all[editionId] === statut) {
-    delete all[editionId];
-    write(all);
-    return null;
-  }
-  all[editionId] = statut;
-  write(all);
-  return statut;
-}
-
 /**
  * Efface la copie locale, une fois qu'elle a été reprise dans un compte
  * (cf. `fusionner` dans lib/collections.ts). Laisser les deux dépôts en place
@@ -80,9 +55,3 @@ export function viderStatutsLocaux(): void {
   }
 }
 
-export function getEditionIdsByStatut(statut: StatutValue): number[] {
-  const all = readStatuts();
-  return Object.entries(all)
-    .filter(([, v]) => v === statut)
-    .map(([k]) => Number(k));
-}

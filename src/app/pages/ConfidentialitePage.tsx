@@ -6,32 +6,30 @@ export function ConfidentialitePage() {
     <PageStatique
       titre="Politique de confidentialité"
       sousTitre="Dernière mise à jour : juillet 2026"
-      description="Aucun tracker, aucune publicité. Le compte est optionnel : sans lui, votre collection ne quitte pas votre navigateur."
+      description="Aucun tracker, aucune publicité. Le catalogue se consulte sans compte ; un compte n’est demandé que pour garder des listes."
     >
       <Section titre="En résumé">
         <Encadre>
-          Jaquette s’utilise sans compte : votre collection et vos envies restent alors dans votre
-          navigateur, et rien n’est transmis. Créer un compte — uniquement possible via Google — sert
-          à retrouver ces listes sur vos autres appareils. Dans les deux cas, aucun outil de mesure
-          d’audience, aucun traceur publicitaire.
+          Le catalogue se consulte librement, sans compte et sans que rien ne soit enregistré. Un
+          compte — uniquement via Google — n’est demandé que pour garder des listes : votre
+          collection et vos envies. Aucun outil de mesure d’audience, aucun traceur publicitaire.
         </Encadre>
       </Section>
 
       <Section titre="Sans compte">
         <p>
-          Vos listes (collection, envies) sont conservées via le stockage local
-          (<code>localStorage</code>) de votre navigateur, sous la clé{" "}
-          <code style={{ color: "var(--reel-text)" }}>jaquette_statuts</code>. Ces informations
-          restent sur votre appareil et ne sont jamais transmises.
+          Consulter le catalogue — parcourir, rechercher, ouvrir une fiche film — ne demande rien et
+          n’enregistre rien vous concernant. Aucune liste n’est conservée dans votre navigateur.
         </p>
         <p>
-          Conséquences : elles ne sont pas synchronisées entre vos appareils, et vider les données de
-          navigation les supprime définitivement. Vous pouvez les effacer à tout moment depuis les
-          réglages de votre navigateur.
+          Un cookie technique mémorise l’état d’affichage du menu latéral. Il ne permet aucune
+          identification et ne nécessite pas de consentement.
         </p>
         <p>
-          Un cookie technique est également utilisé pour mémoriser l’état d’affichage du menu
-          latéral. Il ne permet aucune identification et ne nécessite pas de consentement.
+          Jusqu’en juillet 2026, les listes étaient conservées dans le navigateur sous la clé{" "}
+          <code style={{ color: "var(--reel-text)" }}>jaquette_statuts</code>. Elles ne le sont plus.
+          Si une telle liste existe encore sur votre appareil, elle est reprise dans votre compte à
+          votre première connexion, puis effacée de votre navigateur.
         </p>
       </Section>
 
@@ -118,8 +116,7 @@ export function ConfidentialitePage() {
           d’effacement, de limitation, d’opposition et de portabilité.
         </p>
         <p>
-          Pour les données locales, ces droits s’exercent directement depuis les réglages de votre
-          navigateur. Pour un compte, la suppression est accessible depuis la page{" "}
+          La suppression du compte est accessible depuis la page{" "}
           <Link to="/compte" style={{ color: "var(--reel-accent)" }}>
             Mon compte
           </Link>{" "}
