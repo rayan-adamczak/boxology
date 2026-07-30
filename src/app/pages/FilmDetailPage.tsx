@@ -691,10 +691,10 @@ export function FilmDetailPage() {
           Sur écran large l'ordre d'origine tient — synopsis puis boutons — et
           l'affiche court sur les trois rangées.
         */}
-        <div className="relative mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 pb-8 sm:pb-14 pt-4 sm:pt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-4 sm:gap-x-6 items-start">
+        <div className="relative mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 pb-8 sm:pb-12 pt-4 sm:pt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-4 sm:gap-x-6 sm:grid-rows-[auto_auto_auto_1fr] items-start">
           {/* Poster */}
           <div
-            className="col-start-1 row-start-1 sm:row-span-3 shrink-0 rounded-[8px] overflow-hidden self-start"
+            className="col-start-1 row-start-1 sm:row-span-4 shrink-0 rounded-[8px] overflow-hidden self-start"
             style={{
               width: "clamp(120px, 22vw, 280px)",
               aspectRatio: "2 / 3",
@@ -711,7 +711,7 @@ export function FilmDetailPage() {
           </div>
 
           {/* Titre, réalisation, note — la colonne à droite de l'affiche */}
-          <div className="col-start-2 row-start-1 min-w-0 flex flex-col gap-2 sm:gap-3 sm:pt-2">
+          <div className="col-start-2 row-start-1 min-w-0 flex flex-col gap-2 sm:gap-1.5">
             <div>
               <h1
                 style={{
@@ -776,10 +776,10 @@ export function FilmDetailPage() {
                 <Star size={18} color="#d9a441" fill="#d9a441" />
                 {/* TMDB rend 7.901 : trois décimales suggèrent une précision
                     que la note n'a pas. Deux suffisent. */}
-                <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)" }}>
+                <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)", lineHeight: "18px" }}>
                   {Number(film.note).toFixed(2)}
                 </span>
-                <span style={{ fontSize: "13px", color: "var(--reel-muted)" }}>/ 10</span>
+                <span style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "18px" }}>/ 10</span>
               </div>
             )}
           </div>
@@ -794,7 +794,7 @@ export function FilmDetailPage() {
               en JavaScript demanderait de deviner combien de signes tiennent
               sur quatre lignes, ce qui dépend de la largeur et de la police.
             */
-            <div className="col-span-2 row-start-3 sm:col-span-1 sm:col-start-2 sm:row-start-2 max-w-[640px]">
+            <div className="col-span-2 row-start-3 sm:col-span-1 sm:col-start-2 sm:row-start-2 sm:mb-2 max-w-[640px]">
               <p
                 ref={synopsisRef}
                 className={synopsisOuvert ? "" : "line-clamp-4 sm:line-clamp-none"}
