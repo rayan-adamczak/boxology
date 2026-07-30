@@ -3,22 +3,34 @@
 :root {
   --font-size: 16px;
 
-  /* ---- Reelio physical-media catalogue palette (dark-only) ---- */
-  --reel-bg: #14181c;          /* deep charcoal page background */
-  --reel-surface: #1f242a;     /* cards / panels */
-  --reel-surface-2: #262c33;   /* hover / raised surfaces */
-  --reel-text: #e8e8e8;        /* primary off-white text */
-  --reel-muted: #8a8f98;       /* muted grey meta text */
-  --reel-border: #2a3138;      /* hairline dividers */
-  --reel-accent: #2e7dff;      /* electric blue accent */
-  --reel-accent-soft: rgba(46, 125, 255, 0.15); /* discount badge bg */
+  /* ---- Palette du catalogue (sombre uniquement) ----
+     Surfaces bleu nuit et non charbon neutre : le bleu cessait d'être la
+     couleur du site pour n'être qu'un accent posé sur du gris.
+
+     Deux bleus, parce qu'un seul ne peut pas faire les deux métiers. Rempli
+     avec du texte blanc dessus, il doit être sombre ; utilisé comme texte sur
+     fond sombre, il doit être clair. L'ancien #2e7dff tentait les deux et
+     échouait aux deux : 3,82:1 pour du blanc dessus, sous le seuil AA de 4,5
+     sur le bouton principal du site. Ratios mesurés en commentaire. */
+  --reel-bg: #101720;          /* fond de page, bleu nuit */
+  --reel-surface: #18202c;     /* cartes et panneaux */
+  --reel-surface-2: #1f2836;   /* survol, surfaces surélevées */
+  --reel-text: #e8e8e8;        /* texte principal — 14,71:1 sur le fond */
+  --reel-muted: #8a8f98;       /* texte discret — 5,55:1 sur le fond */
+  --reel-border: #263042;      /* filets */
+  --reel-accent: #1f5fd0;      /* remplissage — blanc dessus 5,82:1 */
+  --reel-accent-clair: #6ea8ff; /* texte, bordures, états actifs — 7,40:1 sur le fond */
+  --reel-accent-soft: rgba(31, 95, 208, 0.18); /* fonds de pastille */
   --reel-font: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   /* Titres et mot-symbole. Inter reste le corps de texte : une grotesque à fort
      caractère fatigue sur un synopsis de dix lignes. */
   --reel-font-titre: 'Bricolage Grotesque', 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
+  /* Le site est sombre uniquement. Ces deux jetons venaient de shadcn en clair,
+     et `body` héritait donc d'un fond blanc : invisible sous la mise en page,
+     mais montré par le rebond d'overscroll sur macOS et iOS. */
+  --background: #101720;
+  --foreground: #e8e8e8;
   --card: #ffffff;
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -153,24 +165,28 @@
   }
 
   h1 {
+    font-family: var(--reel-font-titre);
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   h2 {
+    font-family: var(--reel-font-titre);
     font-size: var(--text-xl);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   h3 {
+    font-family: var(--reel-font-titre);
     font-size: var(--text-lg);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
 
   h4 {
+    font-family: var(--reel-font-titre);
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;

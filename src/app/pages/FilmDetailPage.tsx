@@ -64,15 +64,15 @@ function CircleStatusButtons({ editionId, status, onToggle }: CircleStatusButton
         onClick={() => handle("possede")}
         aria-pressed={collectionActive}
         title={collectionActive ? "Retirer de la collection" : "Ajouter à la collection"}
-        className="flex items-center justify-center rounded-full size-[36px] transition outline-none focus-visible:ring-2 focus-visible:ring-[#2e7dff]"
+        className="flex items-center justify-center rounded-full size-[36px] transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
         style={{
-          backgroundColor: collectionActive ? "#2e7dff" : "#262c33",
-          border: collectionActive ? "1px solid #2e7dff" : "none",
+          backgroundColor: collectionActive ? "var(--reel-accent)" : "var(--reel-surface-2)",
+          border: collectionActive ? "1px solid var(--reel-accent-clair)" : "none",
         }}
       >
         {collectionActive
           ? <Library size={15} color="#fff" strokeWidth={2.2} />
-          : <Plus size={15} color="#8a8f98" strokeWidth={2} />}
+          : <Plus size={15} color="var(--reel-muted)" strokeWidth={2} />}
       </button>
 
       <button
@@ -80,15 +80,15 @@ function CircleStatusButtons({ editionId, status, onToggle }: CircleStatusButton
         onClick={() => handle("envie")}
         aria-pressed={wishlistActive}
         title={wishlistActive ? "Retirer des envies" : "Ajouter aux envies"}
-        className="flex items-center justify-center rounded-full size-[36px] transition outline-none focus-visible:ring-2 focus-visible:ring-[#2e7dff]"
+        className="flex items-center justify-center rounded-full size-[36px] transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
         style={{
-          backgroundColor: wishlistActive ? "#2e7dff" : "#262c33",
-          border: wishlistActive ? "1px solid #2e7dff" : "none",
+          backgroundColor: wishlistActive ? "var(--reel-accent)" : "var(--reel-surface-2)",
+          border: wishlistActive ? "1px solid var(--reel-accent-clair)" : "none",
         }}
       >
         <Bookmark
           size={15}
-          color={wishlistActive ? "#fff" : "#8a8f98"}
+          color={wishlistActive ? "#fff" : "var(--reel-muted)"}
           fill={wishlistActive ? "#fff" : "none"}
           strokeWidth={2}
         />
@@ -99,7 +99,7 @@ function CircleStatusButtons({ editionId, status, onToggle }: CircleStatusButton
 
 function TitreSection({ children }: { children: React.ReactNode }) {
   return (
-    <h2 style={{ fontSize: "17px", fontWeight: 600, color: "#e8e8e8" }}>{children}</h2>
+    <h2 style={{ fontSize: "17px", fontWeight: 600, color: "var(--reel-text)" }}>{children}</h2>
   );
 }
 
@@ -244,7 +244,7 @@ export function FilmDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-16 pt-[120px]" style={{ color: "#8a8f98" }}>
+      <div className="flex items-center gap-2 px-16 pt-[120px]" style={{ color: "var(--reel-muted)" }}>
         <Loader2 size={18} className="animate-spin" />
         <span style={{ fontSize: "14px" }}>Chargement…</span>
       </div>
@@ -254,10 +254,10 @@ export function FilmDetailPage() {
   if (error || !film) {
     return (
       <div className="px-16 pt-[120px]">
-        <Link to="/" className="inline-flex items-center gap-1.5 mb-6" style={{ fontSize: "14px", color: "#8a8f98" }}>
+        <Link to="/" className="inline-flex items-center gap-1.5 mb-6" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
           <ArrowLeft size={16} /> Retour
         </Link>
-        <p style={{ fontSize: "14px", color: error ? "#ff6b6b" : "#8a8f98" }}>
+        <p style={{ fontSize: "14px", color: error ? "#ff6b6b" : "var(--reel-muted)" }}>
           {error ?? "Film introuvable."}
         </p>
       </div>
@@ -281,13 +281,13 @@ export function FilmDetailPage() {
   const durationFormatted = formatDuration(film.duree);
 
   return (
-    <div className="w-full" style={{ backgroundColor: "#14181c", minHeight: "100vh" }}>
+    <div className="w-full" style={{ backgroundColor: "var(--reel-bg)", minHeight: "100vh" }}>
       {/* Back link */}
       <div className="mx-auto max-w-[1440px] px-8 lg:px-16 pt-[88px]">
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 mb-4 outline-none focus-visible:ring-2 focus-visible:ring-[#2e7dff] rounded-full"
-          style={{ fontSize: "14px", color: "#8a8f98" }}
+          className="inline-flex items-center gap-1.5 mb-4 outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] rounded-full"
+          style={{ fontSize: "14px", color: "var(--reel-muted)" }}
         >
           <ArrowLeft size={16} /> Retour
         </Link>
@@ -336,14 +336,14 @@ export function FilmDetailPage() {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to right, rgba(20,24,28,1) 0%, rgba(20,24,28,0.99) 40%, rgba(20,24,28,0.9) 58%, rgba(20,24,28,0.55) 78%, rgba(20,24,28,0.3) 100%)",
+              "linear-gradient(to right, rgba(16, 23, 32,1) 0%, rgba(16, 23, 32,0.99) 40%, rgba(16, 23, 32,0.9) 58%, rgba(16, 23, 32,0.55) 78%, rgba(16, 23, 32,0.3) 100%)",
           }}
         />
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(20,24,28,0.7) 0%, rgba(20,24,28,0.35) 30%, rgba(20,24,28,0.8) 80%, #14181c 100%)",
+              "linear-gradient(to bottom, rgba(16, 23, 32,0.7) 0%, rgba(16, 23, 32,0.35) 30%, rgba(16, 23, 32,0.8) 80%, var(--reel-bg) 100%)",
           }}
         />
 
@@ -354,8 +354,8 @@ export function FilmDetailPage() {
             style={{
               width: "clamp(160px, 18vw, 280px)",
               aspectRatio: "2 / 3",
-              backgroundColor: "#1f242a",
-              border: "1px solid #2a3138",
+              backgroundColor: "var(--reel-surface)",
+              border: "1px solid var(--reel-border)",
               boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
             }}
           >
@@ -376,7 +376,7 @@ export function FilmDetailPage() {
                   fontFamily: "var(--titre-famille, var(--reel-font-titre))",
                   fontSize: "calc(clamp(30px, 3.4vw, 44px) * var(--titre-echelle, 1))",
                   fontWeight: "var(--titre-graisse, 800)" as unknown as number,
-                  color: "#e8e8e8",
+                  color: "var(--reel-text)",
                   lineHeight: "var(--titre-interligne, 1.08)" as unknown as number,
                   letterSpacing: "var(--titre-approche, -0.02em)",
                   textTransform: "var(--titre-casse, none)" as unknown as "none",
@@ -388,7 +388,7 @@ export function FilmDetailPage() {
               {film.tagline && (
                 <p
                   className="pt-2"
-                  style={{ fontSize: "16px", fontStyle: "italic", color: "#8a8f98", lineHeight: "22px" }}
+                  style={{ fontSize: "16px", fontStyle: "italic", color: "var(--reel-muted)", lineHeight: "22px" }}
                 >
                   {film.tagline}
                 </p>
@@ -401,11 +401,11 @@ export function FilmDetailPage() {
               même poids qu'un filtre cliquable — l'œil ne pouvait plus
               distinguer ce qui se clique de ce qui se lit.
             */}
-            <p style={{ fontSize: "15px", color: "#8a8f98", lineHeight: "22.5px" }}>
+            <p style={{ fontSize: "15px", color: "var(--reel-muted)", lineHeight: "22.5px" }}>
               {[film.annee, durationFormatted, genres.join(", ")].filter(Boolean).join(" · ")}
             </p>
 
-            <p style={{ fontSize: "15px", color: "#8a8f98", lineHeight: "22.5px" }}>
+            <p style={{ fontSize: "15px", color: "var(--reel-muted)", lineHeight: "22.5px" }}>
               {film.realisateur && (
                 <>
                   Réalisé par{" "}
@@ -413,8 +413,8 @@ export function FilmDetailPage() {
                     type="button"
                     onClick={() => setSelectedPerson(film.realisateur)}
                     className="outline-none transition"
-                    style={{ color: "#e8e8e8", fontWeight: 500, textDecoration: "underline", textUnderlineOffset: "3px", textDecorationColor: "rgba(232,232,232,0.3)", cursor: "pointer" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.textDecorationColor = "#e8e8e8")}
+                    style={{ color: "var(--reel-text)", fontWeight: 500, textDecoration: "underline", textUnderlineOffset: "3px", textDecorationColor: "rgba(232,232,232,0.3)", cursor: "pointer" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.textDecorationColor = "var(--reel-text)")}
                     onMouseLeave={(e) => (e.currentTarget.style.textDecorationColor = "rgba(232,232,232,0.3)")}
                   >
                     {film.realisateur}
@@ -428,13 +428,13 @@ export function FilmDetailPage() {
             {film.note != null && film.note !== "" && (
               <div className="flex items-center gap-[6px]">
                 <Star size={18} color="#d9a441" fill="#d9a441" />
-                <span style={{ fontSize: "15px", fontWeight: 600, color: "#e8e8e8" }}>{film.note}</span>
-                <span style={{ fontSize: "13px", color: "#8a8f98" }}>/ 10</span>
+                <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)" }}>{film.note}</span>
+                <span style={{ fontSize: "13px", color: "var(--reel-muted)" }}>/ 10</span>
               </div>
             )}
 
             {film.synopsis && (
-              <p className="max-w-[640px]" style={{ fontSize: "15px", color: "#e8e8e8", lineHeight: "24px" }}>
+              <p className="max-w-[640px]" style={{ fontSize: "15px", color: "var(--reel-text)", lineHeight: "24px" }}>
                 {film.synopsis}
               </p>
             )}
@@ -446,7 +446,7 @@ export function FilmDetailPage() {
               cliquables — le lien souligné le dit mieux qu'une bulle.
             */}
             {castList.length > 0 && (
-              <p className="max-w-[640px]" style={{ fontSize: "15px", color: "#8a8f98", lineHeight: "24px" }}>
+              <p className="max-w-[640px]" style={{ fontSize: "15px", color: "var(--reel-muted)", lineHeight: "24px" }}>
                 Avec{" "}
                 {castList.map((m, i) => (
                   <span key={m.nom}>
@@ -454,15 +454,15 @@ export function FilmDetailPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedPerson(m.nom)}
-                      className="outline-none transition focus-visible:ring-2 focus-visible:ring-[#2e7dff] rounded"
+                      className="outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] rounded"
                       style={{
-                        color: "#e8e8e8",
+                        color: "var(--reel-text)",
                         textDecoration: "underline",
                         textUnderlineOffset: "3px",
                         textDecorationColor: "rgba(232,232,232,0.25)",
                         cursor: "pointer",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.textDecorationColor = "#e8e8e8")}
+                      onMouseEnter={(e) => (e.currentTarget.style.textDecorationColor = "var(--reel-text)")}
                       onMouseLeave={(e) => (e.currentTarget.style.textDecorationColor = "rgba(232,232,232,0.25)")}
                     >
                       {m.nom}
@@ -476,12 +476,12 @@ export function FilmDetailPage() {
             <div ref={dropdownRef} className="relative flex flex-wrap gap-[10px] items-center mt-1">
               {/* Add to Collection split button */}
               <div className="relative">
-                <div className="flex h-[40px] rounded-full overflow-hidden" style={{ border: "1px solid #2e7dff" }}>
+                <div className="flex h-[40px] rounded-full overflow-hidden" style={{ border: "1px solid var(--reel-accent-clair)" }}>
                   <button
                     type="button"
                     onClick={() => handleMainCta("possede")}
                     className="flex items-center gap-[6px] pl-[17px] pr-[13px] transition"
-                    style={{ backgroundColor: "#2e7dff", fontSize: "15px", fontWeight: 500, color: "#fff" }}
+                    style={{ backgroundColor: "var(--reel-accent)", fontSize: "15px", fontWeight: 500, color: "#fff" }}
                   >
                     <Library size={16} color="#fff" strokeWidth={2} />
                     Ajouter à la collection
@@ -491,7 +491,7 @@ export function FilmDetailPage() {
                     type="button"
                     onClick={() => setOpenDropdown((p) => (p === "possede" ? null : "possede"))}
                     className="flex items-center px-[9px] transition"
-                    style={{ backgroundColor: "#2e7dff" }}
+                    style={{ backgroundColor: "var(--reel-accent)" }}
                     title="Choisir une édition"
                   >
                     <ChevronDown
@@ -506,13 +506,13 @@ export function FilmDetailPage() {
                   <div
                     className="absolute left-0 mt-2 z-50 rounded-[12px] overflow-hidden py-2"
                     style={{
-                      backgroundColor: "#1f242a",
-                      border: "1px solid #2a3138",
+                      backgroundColor: "var(--reel-surface)",
+                      border: "1px solid var(--reel-border)",
                       boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
                       minWidth: "260px",
                     }}
                   >
-                    <p className="px-4 py-1.5" style={{ fontSize: "12px", fontWeight: 600, color: "#8a8f98", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    <p className="px-4 py-1.5" style={{ fontSize: "12px", fontWeight: 600, color: "var(--reel-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                       Choisir une édition
                     </p>
                     {editions.map((ed) => {
@@ -525,14 +525,14 @@ export function FilmDetailPage() {
                           className="w-full text-left flex items-center justify-between gap-3 px-4 py-2.5 transition"
                           style={{
                             fontSize: "14px",
-                            color: active ? "#2e7dff" : "#e8e8e8",
+                            color: active ? "var(--reel-accent-clair)" : "var(--reel-text)",
                             backgroundColor: active ? "rgba(46,125,255,0.08)" : "transparent",
                           }}
                           onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.04)"; }}
                           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = active ? "rgba(46,125,255,0.08)" : "transparent"; }}
                         >
                           <span className="truncate">{ed.titre ?? "Édition sans titre"}</span>
-                          {active && <Library size={15} color="#2e7dff" strokeWidth={2.2} className="shrink-0" />}
+                          {active && <Library size={15} color="var(--reel-accent-clair)" strokeWidth={2.2} className="shrink-0" />}
                         </button>
                       );
                     })}
@@ -542,17 +542,17 @@ export function FilmDetailPage() {
 
               {/* Add to Wishlist split button */}
               <div className="relative">
-                <div className="flex h-[40px] rounded-full overflow-hidden" style={{ border: "1px solid #2e7dff" }}>
+                <div className="flex h-[40px] rounded-full overflow-hidden" style={{ border: "1px solid var(--reel-accent-clair)" }}>
                   <button
                     type="button"
                     onClick={() => handleMainCta("envie")}
                     className="flex items-center gap-[6px] pl-[17px] pr-[13px] transition"
-                    style={{ backgroundColor: "transparent", fontSize: "15px", fontWeight: 500, color: "#2e7dff" }}
+                    style={{ backgroundColor: "transparent", fontSize: "15px", fontWeight: 500, color: "var(--reel-accent-clair)" }}
                   >
-                    <Bookmark size={16} color="#2e7dff" fill="none" strokeWidth={2} />
+                    <Bookmark size={16} color="var(--reel-accent-clair)" fill="none" strokeWidth={2} />
                     Ajouter aux envies
                   </button>
-                  <div style={{ width: "1px", backgroundColor: "#2e7dff", opacity: 0.3 }} />
+                  <div style={{ width: "1px", backgroundColor: "var(--reel-accent)", opacity: 0.3 }} />
                   <button
                     type="button"
                     onClick={() => setOpenDropdown((p) => (p === "envie" ? null : "envie"))}
@@ -562,7 +562,7 @@ export function FilmDetailPage() {
                   >
                     <ChevronDown
                       size={16}
-                      color="#2e7dff"
+                      color="var(--reel-accent-clair)"
                       style={{ transform: openDropdown === "envie" ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}
                     />
                   </button>
@@ -572,13 +572,13 @@ export function FilmDetailPage() {
                   <div
                     className="absolute left-0 mt-2 z-50 rounded-[12px] overflow-hidden py-2"
                     style={{
-                      backgroundColor: "#1f242a",
-                      border: "1px solid #2a3138",
+                      backgroundColor: "var(--reel-surface)",
+                      border: "1px solid var(--reel-border)",
                       boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
                       minWidth: "260px",
                     }}
                   >
-                    <p className="px-4 py-1.5" style={{ fontSize: "12px", fontWeight: 600, color: "#8a8f98", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    <p className="px-4 py-1.5" style={{ fontSize: "12px", fontWeight: 600, color: "var(--reel-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                       Choisir une édition
                     </p>
                     {editions.map((ed) => {
@@ -591,14 +591,14 @@ export function FilmDetailPage() {
                           className="w-full text-left flex items-center justify-between gap-3 px-4 py-2.5 transition"
                           style={{
                             fontSize: "14px",
-                            color: active ? "#2e7dff" : "#e8e8e8",
+                            color: active ? "var(--reel-accent-clair)" : "var(--reel-text)",
                             backgroundColor: active ? "rgba(46,125,255,0.08)" : "transparent",
                           }}
                           onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.04)"; }}
                           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = active ? "rgba(46,125,255,0.08)" : "transparent"; }}
                         >
                           <span className="truncate">{ed.titre ?? "Édition sans titre"}</span>
-                          {active && <Bookmark size={15} color="#2e7dff" fill="#2e7dff" strokeWidth={2} className="shrink-0" />}
+                          {active && <Bookmark size={15} color="var(--reel-accent-clair)" fill="var(--reel-accent-clair)" strokeWidth={2} className="shrink-0" />}
                         </button>
                       );
                     })}
@@ -613,7 +613,7 @@ export function FilmDetailPage() {
       {/* Tab bar */}
       <div
         className="sticky top-[64px] z-10"
-        style={{ backgroundColor: "#14181c", borderBottom: "1px solid #2a3138" }}
+        style={{ backgroundColor: "var(--reel-bg)", borderBottom: "1px solid var(--reel-border)" }}
       >
         <div className="mx-auto max-w-[1440px] px-8 lg:px-16 flex gap-1">
           {TABS.map((tab) => (
@@ -625,14 +625,14 @@ export function FilmDetailPage() {
               style={{
                 fontSize: "15px",
                 fontWeight: activeTab === tab ? 600 : 500,
-                color: activeTab === tab ? "#e8e8e8" : "#8a8f98",
+                color: activeTab === tab ? "var(--reel-text)" : "var(--reel-muted)",
               }}
             >
               {tab}
               {activeTab === tab && (
                 <span
                   className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
-                  style={{ backgroundColor: "#2e7dff" }}
+                  style={{ backgroundColor: "var(--reel-accent)" }}
                 />
               )}
             </button>
@@ -650,12 +650,12 @@ export function FilmDetailPage() {
                 <button
                   type="button"
                   onClick={() => setFormatFilter(null)}
-                  className="rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-[#2e7dff]"
+                  className="rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
                   style={{
-                    backgroundColor: formatFilter === null ? "#2e7dff" : "#1f242a",
-                    border: `1px solid ${formatFilter === null ? "#2e7dff" : "#2a3138"}`,
+                    backgroundColor: formatFilter === null ? "var(--reel-accent)" : "var(--reel-surface)",
+                    border: `1px solid ${formatFilter === null ? "var(--reel-accent-clair)" : "var(--reel-border)"}`,
                     fontSize: "13px", fontWeight: 500,
-                    color: formatFilter === null ? "#fff" : "#8a8f98",
+                    color: formatFilter === null ? "#fff" : "var(--reel-muted)",
                     padding: "7px 13px",
                   }}
                 >
@@ -666,12 +666,12 @@ export function FilmDetailPage() {
                     key={fmt}
                     type="button"
                     onClick={() => setFormatFilter(fmt === formatFilter ? null : fmt)}
-                    className="rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-[#2e7dff]"
+                    className="rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
                     style={{
-                      backgroundColor: formatFilter === fmt ? "#2e7dff" : "#1f242a",
-                      border: `1px solid ${formatFilter === fmt ? "#2e7dff" : "#2a3138"}`,
+                      backgroundColor: formatFilter === fmt ? "var(--reel-accent)" : "var(--reel-surface)",
+                      border: `1px solid ${formatFilter === fmt ? "var(--reel-accent-clair)" : "var(--reel-border)"}`,
                       fontSize: "13px", fontWeight: 500,
-                      color: formatFilter === fmt ? "#fff" : "#8a8f98",
+                      color: formatFilter === fmt ? "#fff" : "var(--reel-muted)",
                       padding: "7px 13px",
                     }}
                   >
@@ -682,7 +682,7 @@ export function FilmDetailPage() {
             )}
 
             {filteredEditions.length === 0 ? (
-              <p style={{ fontSize: "14px", color: "#8a8f98" }}>Aucune édition pour ce film.</p>
+              <p style={{ fontSize: "14px", color: "var(--reel-muted)" }}>Aucune édition pour ce film.</p>
             ) : (
               <div className="flex flex-col gap-3">
                 {filteredEditions.map((ed) => {
@@ -691,12 +691,12 @@ export function FilmDetailPage() {
                     <div
                       key={ed.id}
                       className="rounded-[12px] w-full"
-                      style={{ backgroundColor: "#1f242a", border: "1px solid #2a3138" }}
+                      style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
                     >
                       <div className="flex gap-3 items-center p-[13px]">
                         <div
                           className="rounded-[8px] overflow-hidden shrink-0"
-                          style={{ width: 56, height: 84, backgroundColor: "#14181c" }}
+                          style={{ width: 56, height: 84, backgroundColor: "var(--reel-bg)" }}
                         >
                           <ImageWithFallback
                             src={ed.image_url ?? ""}
@@ -708,7 +708,7 @@ export function FilmDetailPage() {
                         <div className="flex-1 min-w-0 flex flex-col gap-[6px]">
                           <p
                             className="truncate"
-                            style={{ fontSize: "15px", fontWeight: 500, color: "#e8e8e8", lineHeight: "22.5px" }}
+                            style={{ fontSize: "15px", fontWeight: 500, color: "var(--reel-text)", lineHeight: "22.5px" }}
                           >
                             {ed.titre ?? "Édition sans titre"}
                           </p>
@@ -723,11 +723,11 @@ export function FilmDetailPage() {
                                 une phrase. En texte, ça se lit d'un coup d'œil
                                 et la capsule redevient le signal d'un contrôle.
                               */}
-                              <span style={{ fontSize: "13px", color: "#8a8f98", lineHeight: "19.5px" }}>
+                              <span style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "19.5px" }}>
                                 {[...fmtTags, ed.region, ed.pays].filter(Boolean).join(" · ")}
                               </span>
                               {ed.date_sortie && (
-                                <span style={{ fontSize: "13px", color: "#8a8f98", lineHeight: "19.5px" }}>
+                                <span style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "19.5px" }}>
                                   {ed.date_sortie}
                                 </span>
                               )}
@@ -735,7 +735,7 @@ export function FilmDetailPage() {
                           )}
 
                           {ed.prix_fnac_extrait && (
-                            <p style={{ fontSize: "15px", fontWeight: 600, color: "#e8e8e8", lineHeight: "22.5px" }}>
+                            <p style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)", lineHeight: "22.5px" }}>
                               {ed.prix_fnac_extrait}
                             </p>
                           )}
@@ -776,15 +776,15 @@ export function FilmDetailPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedPerson(m.nom)}
-                          className="flex w-full items-center gap-3 rounded-[8px] px-2 py-1.5 text-left outline-none transition hover:bg-[#1f242a] focus-visible:ring-2 focus-visible:ring-[#2e7dff]"
+                          className="flex w-full items-center gap-3 rounded-[8px] px-2 py-1.5 text-left outline-none transition hover:bg-[var(--reel-surface)] focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
                         >
                           <UserAvatar name={m.nom} size={36} />
                           <span className="min-w-0">
-                            <span className="block truncate" style={{ fontSize: "15px", color: "#e8e8e8" }}>
+                            <span className="block truncate" style={{ fontSize: "15px", color: "var(--reel-text)" }}>
                               {m.nom}
                             </span>
                             {m.role && (
-                              <span className="block truncate" style={{ fontSize: "13px", color: "#8a8f98" }}>
+                              <span className="block truncate" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
                                 {m.role}
                               </span>
                             )}
@@ -801,7 +801,7 @@ export function FilmDetailPage() {
             <div className="flex flex-col gap-8">
               <section
                 className="rounded-[10px] p-5"
-                style={{ backgroundColor: "#1f242a", border: "1px solid #2a3138" }}
+                style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
               >
                 <TitreSection>Fiche technique</TitreSection>
                 <dl className="pt-3">
@@ -825,10 +825,10 @@ export function FilmDetailPage() {
                       const { label, value } = row as { label: string; value: string };
                       return (
                         <div key={label} className="flex gap-4 py-2">
-                          <dt className="shrink-0 w-[130px]" style={{ fontSize: "13px", color: "#8a8f98", lineHeight: "21px" }}>
+                          <dt className="shrink-0 w-[130px]" style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "21px" }}>
                             {label}
                           </dt>
-                          <dd style={{ fontSize: "14px", color: "#e8e8e8", lineHeight: "21px" }}>{value}</dd>
+                          <dd style={{ fontSize: "14px", color: "var(--reel-text)", lineHeight: "21px" }}>{value}</dd>
                         </div>
                       );
                     })}
@@ -843,7 +843,7 @@ export function FilmDetailPage() {
               {editions.length > 0 && (
                 <section>
                   <TitreSection>Au catalogue</TitreSection>
-                  <p className="pt-3" style={{ fontSize: "15px", color: "#e8e8e8", lineHeight: "25px" }}>
+                  <p className="pt-3" style={{ fontSize: "15px", color: "var(--reel-text)", lineHeight: "25px" }}>
                     {editions.length} édition{editions.length > 1 ? "s" : ""} recensée
                     {editions.length > 1 ? "s" : ""}
                     {allFormats.length > 0 && <> en {allFormats.join(", ")}</>}.
@@ -859,7 +859,7 @@ export function FilmDetailPage() {
         )}
 
         {(activeTab === "Critiques" || activeTab === "Listes") && (
-          <p style={{ fontSize: "14px", color: "#8a8f98" }}>Section bientôt disponible.</p>
+          <p style={{ fontSize: "14px", color: "var(--reel-muted)" }}>Section bientôt disponible.</p>
         )}
       </div>
 

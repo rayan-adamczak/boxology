@@ -361,7 +361,7 @@ function Banniere() {
         backgroundImage:
           "radial-gradient(circle at 20% 30%, rgba(46,125,255,0.25), rgba(0,0,0,0) 45%)," +
           "radial-gradient(circle at 80% 60%, rgba(120,60,200,0.18), rgba(0,0,0,0) 40%)," +
-          "linear-gradient(174deg, #1a2740 0%, #14181c 55%, #241a2e 100%)",
+          "linear-gradient(174deg, #17233a 0%, var(--reel-bg) 55%, #1e1830 100%)",
       }}
     />
     </div>
