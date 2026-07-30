@@ -1,14 +1,4 @@
-# Les règles sont évaluées dans l'ordre : la première qui correspond gagne.
-
-# Un asset absent doit échouer franchement, pas être servi par la réécriture
-# ci-dessous. Sans cette règle, /assets/index-XXXX.js manquant renvoie
-# index.html avec un statut 200 — et public/_headers, qui s'applique au chemin
-# d'URL sans regarder le contenu, estampille ce HTML d'un cache d'un an. Le
-# navigateur reçoit alors un module au type text/html, refuse de l'exécuter, et
-# conserve la mauvaise réponse. Arrivé deux fois le 30 juillet 2026.
-/assets/*    /asset-introuvable.html   404
-
-# Réécriture SPA : toute autre URL inconnue sert index.html avec un statut 200.
+# Réécriture SPA : toute URL inconnue sert index.html avec un statut 200.
 # Sans cette règle, /films/560 renverrait 404 et ne serait pas indexé.
 # Lu par Cloudflare Pages et Netlify.
-/*           /index.html   200
+/*    /index.html   200
