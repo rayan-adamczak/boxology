@@ -32,7 +32,7 @@ export function TopBar() {
           </span>
           <span
             className="hidden sm:block"
-            style={{ fontFamily: "var(--titre-famille, var(--reel-font-titre))", fontSize: "18px", fontWeight: "var(--titre-graisse, 800)" as unknown as number, letterSpacing: "var(--titre-approche, -0.02em)", color: "var(--reel-text)" }}
+            style={{ fontFamily: "var(--reel-font-titre)", fontSize: "18px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}
           >
             jaquette.app
           </span>

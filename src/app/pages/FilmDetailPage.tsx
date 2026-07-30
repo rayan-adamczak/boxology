@@ -67,7 +67,7 @@ function CircleStatusButtons({ editionId, status, onToggle }: CircleStatusButton
         className="flex items-center justify-center rounded-full size-[36px] transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
         style={{
           backgroundColor: collectionActive ? "var(--reel-accent)" : "var(--reel-surface-2)",
-          border: collectionActive ? "1px solid var(--reel-accent-clair)" : "none",
+          border: "none",
         }}
       >
         {collectionActive
@@ -83,7 +83,7 @@ function CircleStatusButtons({ editionId, status, onToggle }: CircleStatusButton
         className="flex items-center justify-center rounded-full size-[36px] transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
         style={{
           backgroundColor: wishlistActive ? "var(--reel-accent)" : "var(--reel-surface-2)",
-          border: wishlistActive ? "1px solid var(--reel-accent-clair)" : "none",
+          border: "none",
         }}
       >
         <Bookmark
@@ -373,13 +373,13 @@ export function FilmDetailPage() {
                 style={{
                   // Les variables ne sont posées que par le sélecteur d'essai,
                   // en développement. En production, les replis s'appliquent.
-                  fontFamily: "var(--titre-famille, var(--reel-font-titre))",
-                  fontSize: "calc(clamp(30px, 3.4vw, 44px) * var(--titre-echelle, 1))",
-                  fontWeight: "var(--titre-graisse, 800)" as unknown as number,
+                  fontFamily: "var(--reel-font-titre)",
+                  fontSize: "clamp(30px, 3.4vw, 44px)",
+                  fontWeight: 800,
                   color: "var(--reel-text)",
-                  lineHeight: "var(--titre-interligne, 1.08)" as unknown as number,
-                  letterSpacing: "var(--titre-approche, -0.02em)",
-                  textTransform: "var(--titre-casse, none)" as unknown as "none",
+                  lineHeight: 1.08,
+                  letterSpacing: "-0.02em",
+                  textTransform: "none",
                 }}
               >
                 {film.titre}
@@ -476,7 +476,7 @@ export function FilmDetailPage() {
             <div ref={dropdownRef} className="relative flex flex-wrap gap-[10px] items-center mt-1">
               {/* Add to Collection split button */}
               <div className="relative">
-                <div className="flex h-[40px] rounded-full overflow-hidden" style={{ border: "1px solid var(--reel-accent-clair)" }}>
+                <div className="flex h-[40px] rounded-full overflow-hidden">
                   <button
                     type="button"
                     onClick={() => handleMainCta("possede")}
@@ -526,10 +526,10 @@ export function FilmDetailPage() {
                           style={{
                             fontSize: "14px",
                             color: active ? "var(--reel-accent-clair)" : "var(--reel-text)",
-                            backgroundColor: active ? "rgba(46,125,255,0.08)" : "transparent",
+                            backgroundColor: active ? "var(--reel-accent-soft)" : "transparent",
                           }}
                           onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.04)"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = active ? "rgba(46,125,255,0.08)" : "transparent"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = active ? "var(--reel-accent-soft)" : "transparent"; }}
                         >
                           <span className="truncate">{ed.titre ?? "Édition sans titre"}</span>
                           {active && <Library size={15} color="var(--reel-accent-clair)" strokeWidth={2.2} className="shrink-0" />}
@@ -542,7 +542,7 @@ export function FilmDetailPage() {
 
               {/* Add to Wishlist split button */}
               <div className="relative">
-                <div className="flex h-[40px] rounded-full overflow-hidden" style={{ border: "1px solid var(--reel-accent-clair)" }}>
+                <div className="flex h-[40px] rounded-full overflow-hidden" style={{ border: "1px solid var(--reel-border)" }}>
                   <button
                     type="button"
                     onClick={() => handleMainCta("envie")}
@@ -592,10 +592,10 @@ export function FilmDetailPage() {
                           style={{
                             fontSize: "14px",
                             color: active ? "var(--reel-accent-clair)" : "var(--reel-text)",
-                            backgroundColor: active ? "rgba(46,125,255,0.08)" : "transparent",
+                            backgroundColor: active ? "var(--reel-accent-soft)" : "transparent",
                           }}
                           onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.04)"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = active ? "rgba(46,125,255,0.08)" : "transparent"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = active ? "var(--reel-accent-soft)" : "transparent"; }}
                         >
                           <span className="truncate">{ed.titre ?? "Édition sans titre"}</span>
                           {active && <Bookmark size={15} color="var(--reel-accent-clair)" fill="var(--reel-accent-clair)" strokeWidth={2} className="shrink-0" />}

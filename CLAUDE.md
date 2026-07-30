@@ -9,7 +9,7 @@ pour le marché français. Anciennement *Boxology*, renommé en juillet 2026.
 
 | | |
 |---|---|
-| Nom | **Jaquette**. Le mot-symbole affiche `jaquette.app` en minuscules depuis juillet 2026 — décision assumée, l'adresse *est* la marque à l'écran |
+| Nom | **jaquette.app**, en minuscules, extension comprise. Depuis juillet 2026 : « jaquette » seul est un nom commun, le `.app` est ce qui démarque. Vaut partout — mot-symbole, `<title>`, `og:site_name` |
 | Domaine | `jaquette.app` — **en ligne**, apex et `www` |
 | Dépôt | `github.com/rayan-adamczak/jaquette` (public) |
 | Éditeur | Rayan Adamczak, designer, à titre non professionnel |

@@ -13,10 +13,13 @@ import { useLocation } from "react-router";
  */
 
 export const SITE_ORIGIN = "https://jaquette.app";
-export const SITE_NAME = "Jaquette";
+/* Le `.app` fait partie du nom, ce n'est pas seulement l'adresse : « jaquette »
+   seul est un nom commun, l'extension est ce qui distingue la marque. Le
+   suffixe des titres et le mot-symbole disent donc la même chose. */
+export const SITE_NAME = "jaquette.app";
 
 export interface Seo {
-  /** Contenu de <title>. Le suffixe « | Jaquette » est ajouté sauf sur l'accueil. */
+  /** Contenu de <title>. Le suffixe « | jaquette.app » est ajouté sauf sur l'accueil. */
   titre: string;
   description: string;
   /** Image de partage (og:image). Absolue. */
@@ -25,7 +28,7 @@ export interface Seo {
   type?: string;
   /** Retire la page des moteurs : listes personnelles, écrans de prototype. */
   noindex?: boolean;
-  /** true sur l'accueil, pour ne pas produire « Jaquette | Jaquette ». */
+  /** true sur l'accueil, pour ne pas produire « jaquette.app | jaquette.app ». */
   racine?: boolean;
 }
 
