@@ -88,11 +88,24 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films` — 2 686 lignes
+### `films` — 3 556 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
 `genres` (text[]), `cast_principal` (jsonb), **`type`** (`film|serie|coffret`).
+
+Deux lignes seulement n'ont pas de `tmdb_id` — elles échappent donc à toutes
+les passes d'enrichissement, qui énumèrent `tmdb_id=not.is.null`.
+
+**Fiche technique, ajoutée le 30 juillet 2026** :
+`titres_alternatifs` (jsonb, `{"en": "…", "es": "…"}`), `pays` (text[]),
+`date_sortie` (date), `producteurs` (text[]), `budget` (bigint), `musique`.
+Migrations `20260730_titres_alternatifs.sql` et `20260730_fiche_technique.sql`.
+Alimentées par `enrichir_tmdb.py` et `champs_tmdb.py`.
+
+`cast_principal` porte désormais `{nom, role, photo}` — l'URL TMDB complète en
+`w185`, comme `affiche_url` stocke une URL en `w500`. La taille fait partie de
+l'URL chez TMDB ; la fixer à l'import évite que chaque page la recompose.
 
 ### `editions` — 5 739 lignes
 `id` (identity **ajoutée en juillet 2026** — elle manquait, toute insertion
@@ -104,18 +117,44 @@ applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 
 `source` vaut `editioncollector.fr` (3 193) ou `bluray.com` (2 546).
 
+**Specs techniques, ajoutées le 30 juillet 2026** : `codec`, `resolution`,
+`hdr` (text[]), `ratio`, `ratio_origine`, `pistes_audio` (jsonb
+`[{langue, format}]`), `sous_titres` (text[]), `disques`, `packaging`,
+`editeur`. Migration `20260730_specs_techniques.sql`, puis
+`20260730_fiche_technique.sql` pour `editeur`.
+
+Couverture, sur les 2 546 éditions blu-ray.com — les 3 193 lignes
+editioncollector n'ont aucune spec, la source n'en publie pas :
+
+| | |
+|---|---|
+| `resolution` | 2 513 |
+| `editeur` | 2 512 |
+| `pistes_audio` | 2 135 |
+| `ratio` | 1 982 |
+| `hdr` | 277 |
+
+Elles portent sur le **disque**, pas sur l'œuvre : une 4K en Dolby Vision et un
+Blu-ray 1080p du même film n'ont ni la même définition ni les mêmes pistes. La
+fiche film agrège à l'affichage — `agregerSpecs` dans `reelio-db.ts` — et se lit
+« disponible en Dolby Vision », pas « ce film est en Dolby Vision ».
+
 **Convention d'identifiant, changée en juillet 2026.** Les 3 180 premières
 lignes editioncollector portent l'id de la fiche source. Ce n'est plus
 possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com par
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films` — 4 812 liens
+### `edition_films` — 6 742 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
-Répartition : `film_id` 2 624, `bluray_tmdb` 1 037, `corrige_manuel` 648,
-`probable` 236, `collection_tmdb` 199, `corrige_annee` 68.
+Répartition : `film_id` 2 624, `bluray_page` 1 085, `bluray_tmdb` 1 037,
+`bluray_page_partiel` 845, `corrige_manuel` 648, `probable` 236,
+`collection_tmdb` 199, `corrige_annee` 68.
+
+6 742 liens pour **5 323 éditions rattachées** : l'écart, ce sont les coffrets,
+qui portent un lien par film.
 
 **`probable` marque les rattachements écrits sans relecture**, le 30 juillet
 2026, quand la file d'attente a été vidée d'un coup plutôt que validée ligne à
@@ -204,10 +243,24 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 3 556 (2 868 films, 502 séries, 2 coffrets) |
+| Films | 3 556 (3 049 films, 505 séries, 2 coffrets) |
 | Éditions | 5 739 |
 | Codes-barres | 3 428 |
+| Éditions rattachées | 5 323 |
 | Éditions sans film | 416 |
+| URL au sitemap | 3 349 |
+
+`editions.film_id` est `null` sur 858 lignes, ce qui ne veut plus rien dire :
+la colonne est un vestige, le rattachement vit dans `edition_films`. Compter
+les orphelines par `film_id is null` donne 858 au lieu de 416.
+
+**Enrichissement TMDB du 30 juillet 2026.** 3 273 films portaient un `tmdb_id`
+au lancement des passes ; les films créés depuis y échappent et devront être
+repris. Titres étrangers : **3 093 films**, 180 sans — TMDB n'en propose aucun
+dans les six langues retenues (`en`, `es`, `de`, `it`, `ja`, `pt`).
+
+Le budget est le champ le moins couvert, et c'est normal : TMDB rend `0` quand
+il l'ignore, et `0` est écrit `NULL` plutôt qu'affiché comme une mesure.
 
 Deux campagnes le 30 juillet 2026 : 1 893 → 1 256, puis **1 256 → 416**. Au
 total 1 477 éditions rendues visibles et 870 films créés.
@@ -259,6 +312,36 @@ Le compte créé sur le site implique l'acceptation de leurs conditions.
 
 ### TMDB
 Métadonnées films et séries. Rattachement par titre **et année**.
+
+Fournit aussi, dans le même appel que les crédits : titres traduits
+(`translations`, et non `alternative_titles` — le second rend des variantes
+d'écriture sans valeur pour la recherche), pays de production, budget,
+compositeur, et la **sortie salle française** via `release_dates` filtré sur
+`FR` et le type `3`. Ne pas prendre la première date française venue : sur
+*3 Billboards*, le festival de La Roche-sur-Yon précède la sortie de trois mois.
+
+Les noms de pays de `production_countries` sont en anglais quelle que soit la
+langue demandée. `/configuration/countries?language=fr-FR` donne la table de
+traduction.
+
+### IMDb — écarté, et pourquoi
+La question s'est posée le 30 juillet 2026 pour la page « technical » de leurs
+fiches, qui porte ratio, HDR et pistes audio. **Trois voies, aucune ouverte :**
+
+- **Scraper** — interdit noir sur blanc par leurs Conditions of Use, clause
+  « Robots and Screen Scraping ».
+- **Jeux de données gratuits** (`datasets.imdbws.com`) — licence *personal and
+  non-commercial use only*, incompatible avec l'ambition d'affiliation. Et ils
+  ne contiennent **aucune spec technique** : `title.basics`, `title.akas`,
+  `title.ratings`, `title.crew`, `title.principals`, `name.basics`,
+  `title.episode`, rien d'autre.
+- **Licence commerciale** — tarification entreprise, hors de proportion.
+
+Sans objet de toute façon : les specs sont déjà dans les 3 100 pages
+blu-ray.com du cache, au niveau du disque, ce qu'IMDb ne donne pas. Ne pas
+rouvrir le sujet sans raison neuve — et se rappeler qu'opposer une extraction à
+IMDb, c'est la clause « Base de données » de nos propres mentions légales
+retournée (cf. §10).
 
 ---
 
@@ -336,6 +419,43 @@ a figé l'onglet : embarquer les images en base64 impose de les redimensionner.
 `crawl/pages/` — 3 100 pages gzippées (170 Mo). Permettent de rejouer un
 parsing sans réseau. **Ne pas supprimer** tant que l'import n'est pas figé.
 
+### Fiche technique et specs (2026-07-30)
+
+Alimente les deux blocs de l'onglet Détails. Encore une fois sans une seule
+requête vers blu-ray.com : tout sort de `crawl/pages/`.
+
+| Fichier | Rôle |
+|---|---|
+| `specs.py` | Parseur des specs, sur le **HTML** et non le texte aplati |
+| `specs_1_relire.py` | Rejoue le parseur sur les 3 100 pages → `crawl/specs.jsonl` |
+| `specs_2_ecrire.py` | Écrit dans `editions` (`--apply`), apparie par `source_id` |
+| `champs_tmdb.py` | Pays, date de sortie, producteurs, budget, musique (`--apply`) |
+| `enrichir_tmdb.py` | Titres étrangers et photos d'acteurs (`--titres-seuls`, `--cast-seul`) |
+
+3 088 fiches relues sur 3 100, 12 pages gzip abîmées. 2 536 éditions écrites.
+
+**Pourquoi un second parseur** plutôt qu'étendre `parseur.py` : celui-ci
+travaille sur le texte aplati, et l'aplatissement perd la structure. Deux
+défauts mesurés sur les 3 100 fiches, invisibles jusqu'à ce qu'on regarde les
+valeurs une par une :
+
+- `Codec: MPEG-4 AVC` rendait `MPEG-4` sur **1 899 fiches**. Le lookahead
+  `[A-Z][A-Za-z ]{2,20}:` acceptait « AVC Resolution: » comme début de champ
+  suivant, donc coupait juste avant.
+- Les sous-titres sortaient doublés — `French, English French, English`. La
+  page écrit la liste deux fois, une version courte visible et une longue
+  masquée (`#shortsubs` / `#longsubs`), et l'aplatissement les colle. On lit
+  maintenant le bloc `long*`, qui porte la liste entière.
+
+**`--titres-seuls` et `--cast-seul` existent pour ne pas écraser.**
+`enrichir_tmdb.py` produit distribution *et* titres d'un même appel, mais
+`cast_principal` porte des lignes parfois corrigées à la main. Écrire les deux
+d'un bloc quand on ne veut qu'une colonne est irréversible.
+
+**`AVANCEMENT` est paramétrable par l'environnement.** Deux passes du même
+script peuvent tourner de front sur des colonnes différentes ; avec un fichier
+d'avancement partagé, la seconde saute tout ce que la première a déjà noté.
+
 ---
 
 ## 7. SEO
@@ -346,11 +466,12 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   et `og:` par page. Le canonical est **calculé depuis l'URL courante**, jamais
   passé en paramètre : une faute dans une page l'enverrait ailleurs.
 - **`index.html` ne porte ni canonical ni `og:url`.** Une valeur en dur y
-  ferait passer les 2 354 fiches pour des doublons de la racine. En l'absence
+  ferait passer les 3 345 fiches pour des doublons de la racine. En l'absence
   de canonical, un crawler retient l'URL demandée — le bon repli.
 - **`sitemap.xml`** généré au build par `scripts/generer-sitemap.mjs` depuis la
-  base. 2 105 URL. Seuls les films rattachés à une édition y figurent. Le
-  script casse le build s'il ne trouve aucun film.
+  base. 3 349 URL, dont 3 345 fiches films — contre 2 105 avant les campagnes
+  de rattachement du 30 juillet 2026. Seuls les films rattachés à une édition y
+  figurent. Le script casse le build s'il ne trouve aucun film.
 - **Search Console** — propriété Domaine validée, sitemap soumis et lu.
 - **Listes personnelles et écrans du prototype** en `noindex, follow`.
 
@@ -399,8 +520,13 @@ validation, pas la détection.
 - **Rapatrier les images** hébergées chez editioncollector
 - **Supprimer la branche `DEPLOY_TARGET=github`** de `vite.config.ts`
 - **Cinq acteurs par film au maximum**, limite de l'import TMDB et non de
-  l'affichage. En ajouter demande de réinterroger les crédits TMDB pour les
-  2 354 films.
+  l'affichage. La passe photos du 30 juillet 2026 a réinterrogé les crédits
+  sans lever la limite : `NB_ACTEURS` vaut 5 par défaut dans `enrichir_tmdb.py`
+  et se règle par l'environnement. Passer à 12 est une commande, plus un
+  chantier :
+
+      NB_ACTEURS=12 AVANCEMENT=cast12.avancement.json \
+        python3 enrichir_tmdb.py --apply --cast-seul
 - **Une quinzaine d'opéras** à écarter du catalogue. **Ne pas filtrer par
   mot-clé** : « Opération Dragon », « Opération Tonnerre » et « Nosferatu, une
   symphonie de l'horreur » sont des films. Les concerts, eux, sont gardés — TMDB
@@ -445,6 +571,37 @@ réalisation, note, synopsis, boutons. Accroche, durée, genres et distribution
 sont dans l'onglet Détails. Empilés dans le héros, ils repoussaient les boutons
 hors du premier écran.
 
+L'année est en graisse **300** et séparée du titre par deux espaces insécables :
+à 44 px, l'espace ordinaire du titre est trop serrée et l'année colle au dernier
+mot. Plus l'écart de graisse est net, moins elle se lit comme un morceau du
+titre.
+
+**Onglet Détails, arrêté le 30 juillet 2026.** Distribution en grille pleine
+largeur en tête, puis deux fiches côte à côte : « L'œuvre » à gauche,
+« Image et son » à droite.
+
+Une fiche unique mélangeait ce qui relève de l'œuvre — réalisation, année,
+genres, titres étrangers, identiques quel que soit le disque — et ce qui relève
+du support — définition, HDR, pistes audio, qui changent d'une édition à
+l'autre. Les séparer dit d'où vient chaque ligne.
+
+L'ordre et le vocabulaire de « L'œuvre » sont calqués sur la fiche technique de
+**SensCritique**, prise comme référence : titre original, titres alternatifs,
+genres, année, pays, durée, dates de sortie, réalisateur, scénariste,
+producteurs, distributeur, budget, bande originale. Leur page ne contient
+**aucune spec technique** — leur « fiche technique » est notre bloc de gauche,
+et le bloc de droite n'a pas d'équivalent chez eux.
+
+Le distributeur manque et manquera : **TMDB ne le publie pas.**
+`production_companies` liste les sociétés de production, qui ne sont le
+distributeur que par coïncidence. L'éditeur vidéo de blu-ray.com le remplace, et
+il est dans le bloc de droite — il qualifie le disque, pas l'œuvre.
+
+La distribution est en grille de portraits et non en liste : empilée, elle
+tenait dans une demi-colonne mais lisait comme un annuaire, et les visages se
+réduisaient à des pastilles d'initiales de 36 px. Le rapport 2/3 est imposé même
+sans photo, sinon les cartes sans image remontent et désalignent les noms.
+
 **Note à deux décimales** partout. TMDB rend `7.901` ; trois décimales suggèrent
 une précision que la note n'a pas.
 
@@ -479,6 +636,24 @@ Documentés parce qu'ils se reproduiront.
   y compris une figurine Amiibo et No Man's Sky. Inexploitable. `supports`
   (Blu-ray, 4K) est fiable quand il est renseigné, mais vide sur des disques
   réels : croiser avec un vocabulaire de formats relevé dans le titre.
+- **blu-ray.com sert de l'ISO-8859-1**, comme l'annonce son `<meta charset>`.
+  Décodé en UTF-8, `TF1 Vidéo` devient `TF1 Vid<?>o`. Le défaut est resté
+  invisible tant qu'aucun champ accentué n'était extrait — il est apparu le
+  jour où la colonne `editeur` a existé. Lire le `charset` du document, ne pas
+  le supposer.
+- **Ne pas prendre `Mot: texte` pour une donnée.** Les blocs Audio et Subtitles
+  contiennent des lignes qui en ont la forme sans être des pistes :
+  `Note: Confirmed from disc on the player`, `Music:`, et des titres de films à
+  deux-points — `X-Men: Days of Future Past`, `Mission: Impossible`. Sur
+  107 « langues » audio relevées, une trentaine étaient de ce genre. Filtrer
+  par un vocabulaire de langues, pas par la forme.
+- **Un champ peut porter plusieurs valeurs dans une seule chaîne** :
+  `2.41:1, 2.40:1, 1.85:1` sur un coffret à trois montages,
+  `MPEG-4 AVC, VC-1` sur un disque à deux encodages. Sans découpage, chaque
+  combinaison devient une valeur distincte et l'agrégat affiche
+  `1.85:1 · 2.41:1, 2.40:1, 1.85:1`, où la même valeur paraît deux fois. Le
+  débit entre parenthèses produit le même effet :
+  `HEVC / H.265` et `HEVC / H.265 (50.53 Mbps)` sont le même codec.
 
 ### Appariement TMDB
 - Exiger le **titre exact**. Un repli « année seule » donne
@@ -571,6 +746,17 @@ Documentés parce qu'ils se reproduiront.
   silencieux : il ne se voit qu'au moment où une série heurte un film existant.
 - **`ON CONFLICT` ignore les index partiels.**
 - **`editions.id` n'avait pas d'identity** — insertion impossible.
+- **`gzip.open(...).read()` lève `zlib.error` sur une page tronquée**, et
+  `zlib.error` n'est ni `EOFError` ni `OSError`. Une passe sur 3 100 fichiers
+  est tombée à la 2 000ᵉ. Rattraper les trois, et garder ce qui a été lu.
+- **Tailwind 4 a changé son preflight** : les `<button>` reçoivent
+  `cursor: default` là où Tailwind 3 posait `cursor: pointer`. Toute
+  l'interface bâtie sur des boutons — onglets, capsules de format, cartes
+  d'acteurs — a cessé de signaler qu'elle était cliquable, sans que rien ne
+  casse. Réglé une fois dans `theme.css`, pas composant par composant.
+- **Une couleur en `style` inline gagne contre toute règle de survol.** Un
+  `group-hover:text-…` posé à côté d'un `style={{ color }}` ne s'applique
+  jamais. Passer la couleur par une classe dès qu'un état la fait changer.
 - **`noindex, nofollow`** traînait dans `index.html` depuis Figma Make.
 - **La réécriture SPA masque les fichiers manquants.** `/* /index.html 200`
   fait répondre **200** à `/sitemap.xml` même absent : on reçoit du HTML avec
