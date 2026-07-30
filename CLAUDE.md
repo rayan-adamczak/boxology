@@ -204,15 +204,26 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 2 686 (2 267 films, 417 séries, 2 coffrets) |
+| Films | 3 556 (2 868 films, 502 séries, 2 coffrets) |
 | Éditions | 5 739 |
 | Codes-barres | 3 428 |
-| Éditions sans film | 1 256 |
+| Éditions sans film | 416 |
 
-Les orphelines sont passées de 1 893 à 1 256 le 30 juillet 2026 : **637
-éditions rendues visibles**, dont 106 coffrets rattachés à plusieurs films.
-Ce qui reste est majoritairement composé de coffrets et compilations dont le
-contenu n'est écrit nulle part — ni dans le titre, ni dans la fiche d'origine.
+Deux campagnes le 30 juillet 2026 : 1 893 → 1 256, puis **1 256 → 416**. Au
+total 1 477 éditions rendues visibles et 870 films créés.
+
+La seconde campagne est partie d'une relecture des pages blu-ray.com brutes
+conservées dans `crawl/pages/`. Le parseur d'origine n'en gardait que le codec,
+la résolution et les disques ; la page portait aussi un bandeau structuré —
+studio, plage d'années, **nombre de films**, durée — et, sur les coffrets, la
+liste de leur contenu avec un lien par film. C'est ce qui a débloqué le lot :
+le nombre de films tranche entre édition simple et coffret sans avoir à
+interpréter le titre, là où « Intégrale » ou « Collection » mentent une fois
+sur deux.
+
+Reste 416 orphelines : 195 editioncollector, 159 coffrets blu-ray.com sans
+liste de contenu, 37 films et 25 séries — ces derniers surtout des opéras et
+des concerts que TMDB ne référence pas.
 
 ---
 
@@ -290,6 +301,31 @@ Métadonnées films et séries. Rattachement par titre **et année**.
 
 Résultat cumulé : 1 893 → 1 256 orphelines, 637 rattachées, 332 films créés.
 
+### Seconde campagne orphelines — `orphelines_2026_07_30/`
+
+1 256 → 416 orphelines, 840 rattachées, 870 films créés, en six passes de
+résolution toutes en **lecture seule**, séparées de l'écriture.
+
+| Fichier | Rôle |
+|---|---|
+| `extraire.py` | Relit les pages brutes : bandeau, nombre de films, liste de contenu |
+| `resoudre.py` | Passe 1 — normalisation, appariement par titre exact |
+| `resoudre2.py` | Passe 2 — mono-œuvres : deux catalogues, sous-titre français |
+| `resoudre3.py` | Passe 3 — coffrets sans liste : découpage du titre, collection TMDB |
+| `reparer_genre.py` | Rejoue en série ce qui a été résolu en film à tort |
+| `resoudre4.py` | Passe 4 — troncature du titre par la tête, pour les séries |
+| `resoudre5.py` | Passe 5 — coffrets restants, contrainte d'années assouplie |
+| `resoudre6.py` | Passe 6 — découpage accepté même partiel, les deux sources |
+| `resoudre_ec2.py` | editioncollector : bloc « Contenu : », préfixes d'édition |
+| `controler.py` | Trie en « sûr » et « à relire » avant écriture |
+| `filtrer6.py` | Durcit la passe 6, la moins étayée |
+| `ecrire.py` | Écriture (`--apply`), quatre garde-fous |
+
+Les liens portent une source qui les rend isolables : `bluray_page` quand le
+contenu du coffret est entièrement résolu, `bluray_page_partiel` sinon.
+
+    GET /edition_films?source=eq.bluray_page_partiel
+
 **La relecture s'est faite par lots de dix**, présentés dans des artifacts avec
 le visuel du boîtier à gauche et l'affiche TMDB à droite. Le verdict revient
 par un fichier que la page enregistre — `window.claude.downloads` — et non par
@@ -328,15 +364,23 @@ côté serveur — écartée pour l'instant.
 ## 8. Chantiers ouverts
 
 ### Décisions en attente sur les orphelines
-Il reste **1 256 éditions sans film**, dont la composition a été mesurée :
+Il reste **416 éditions sans film**, après la campagne du 30 juillet 2026 :
 
-- **~830 coffrets et compilations** — `Charles Bronson - Coffret n°2`,
-  `Trésors du fantastique Vol 1`. Aucune source ne dit ce qu'ils contiennent :
-  ni le titre, ni la fiche d'origine, ni les pages archivées. Sur 240 examinés,
-  **onze seulement** portaient une liste exploitable dans `contenu_brut`.
-- **~240 coffrets thématiques** dont TMDB n'a pas la collection, ou dont le
-  nombre de films annoncé ne correspond pas à celle qu'il propose.
-- **236 rattachements `probable`** à vérifier au fil de la navigation.
+- **159 coffrets blu-ray.com sans liste de contenu** — `Ozu en 20 films`,
+  `Douglas Sirk - Les Mélodrames allemands`. La page annonce le nombre de films
+  mais ne les nomme pas, et le titre ne les nomme pas non plus. Le seul chemin
+  restant serait la filmographie TMDB du réalisateur filtrée par la plage
+  d'années ; elle déborde toujours le contenu du boîtier, donc le contrôle par
+  le nombre ne peut pas trancher. Écarté pour cette raison.
+- **195 editioncollector** — pas de page brute conservée, et `contenu_brut`
+  mêle packaging et œuvres dans la même liste à puces.
+- **37 films et 25 séries** — surtout des opéras, des concerts et des captations
+  que TMDB ne référence pas. Recoupe le chantier « une quinzaine d'opéras à
+  écarter » : ces fiches n'ont pas d'œuvre à laquelle se rattacher.
+- **236 rattachements `probable`** à vérifier au fil de la navigation, plus
+  **845 liens `bluray_page_partiel`** : coffrets rattachés à une partie
+  seulement de leur contenu. Chaque lien est exact, c'est la liste qui est
+  incomplète.
 
 Les scripts trouvent des candidats pour la plupart ; ce qui manque est la
 validation, pas la détection.
@@ -475,6 +519,39 @@ Documentés parce qu'ils se reproduiront.
 - **Séparer les résultats en deux niveaux** — écriture directe et relecture — a
   attrapé 100 % des faux positifs connus. Sans ce tri, le taux d'erreur du lot
   « résolu » était de 20 %.
+- **L'article initial ne peut pas être effacé sans repli.** Le normaliser rend
+  `Batman` et `The Batman` identiques : un coffret des quatre Batman des années
+  90 s'est retrouvé sous *The Batman* (2022). L'égalité stricte passe d'abord,
+  la variante sans article ne sert qu'en second — elle reste utile pour
+  rapprocher un titre français d'un titre anglais.
+- **Un exposant disparaît dans un repli ASCII.** `Alien³` devenait `alien`,
+  donc *Alien* (1979) — un doublon à l'intérieur du même coffret, ce qui est le
+  signe qu'il faut chercher. Traduire `¹²³` en chiffres avant de normaliser.
+- **La popularité ne départage que des homonymes.** Employée comme seuil
+  absolu, elle vide précisément les coffrets qu'on veut sauver : un Tavernier
+  ou un Iosseliani est fait de films à 0,4. Elle ne s'applique que si plusieurs
+  titres exacts se disputaient le rattachement.
+- **L'année d'un bandeau est celle du contenu du disque, pas de l'œuvre.** Sur
+  un coffret « saison 4 » elle vaut 2008 quand la série a commencé en 2005 : la
+  poser en `first_air_date_year` élimine la bonne réponse. Pour une série
+  l'année est un plafond, pas un filtre.
+- **Tronquer par la tête, jamais par la queue.** `Sword Art Online II - Arc 1 :
+  Phantom Bullet` se résout en gardant le début ; chercher la queue seule avait
+  donné `Star Trek 3 : Sans Limites` → « Sans limites » (2022). Mais garder la
+  tête ne vaut que si la queue retirée nomme un lot d'épisodes : sans cette
+  condition, `Puccini: Tosca` devient *Puccini* (1973) et
+  `The Fantastic Four: First Steps` la série animée de 1994.
+- **Un morceau de titre découpé peut n'être qu'un support.**
+  `Evolution + Innocence – DigiPack` se découpait en cinq, dont « DVD », qui a
+  trouvé un *Where is my DVD?* (2013).
+- **Une parenthèse en tête de titre est une enseigne, pas un titre d'origine.**
+  `(Leclerc) Aquaman 2 et le Royaume perdu` s'est rattaché au film *Leclerc*
+  (1949). En fin de titre, en revanche, elle porte bien l'original :
+  `Stalingrad (Enemy At The Gates)`.
+- **editioncollector met le vocabulaire d'édition devant, blu-ray.com derrière.**
+  Des coupes en fin de chaîne ne mordent sur rien côté editioncollector, et
+  celle qui part d'« Intégrale » emporte tout le titre :
+  `Coffret intégrale de The Big Bang Theory`.
 
 ### Infrastructure
 - **`npm run build` lance `tsc --noEmit` d'abord.** Sans lui, rien ne relisait le
@@ -527,11 +604,18 @@ Ce qui a évité le plus d'erreurs :
 1. **Séparer résolution et écriture.** Chaque passe en lecture seule a révélé
    un bug avant qu'il n'atteigne la base.
 2. **Conserver les pages brutes.** Trois corrections de parseur rejouées sans
-   une requête réseau.
+   une requête réseau. Et surtout : la seconde campagne orphelines n'a rien
+   crawlé du tout. Ce qui manquait était déjà dans `crawl/pages/`, jeté par le
+   parseur — le nombre de films et la liste de contenu des coffrets. **Avant de
+   déclarer une donnée absente de la source, relire la page, pas le champ
+   qu'on en avait extrait.**
 3. **Vérifier qu'un scan qui renvoie « rien » fonctionne.** Un scan cassé
    ressemble à un scan négatif.
 4. **Relire un échantillon avant d'écrire.** Chaque passe de relecture a
    révélé une famille de faux positifs que la précédente ne voyait pas.
+5. **Écrire par lots successifs plutôt qu'en une fois.** Six passes, trois
+   écritures : chaque lot écrit a servi de mesure au suivant, et les passes
+   tardives n'ont eu à traiter que ce qui restait vraiment.
 
 ---
 
