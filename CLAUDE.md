@@ -74,15 +74,21 @@ Dans `~/.config/boxology.env` (hors dépôt, à renommer un jour) :
 
 Chargement : `set -a; . ~/.config/boxology.env; set +a`
 
-⚠️ `jaquette-scraping/import_supabase.py` et `export_transcript.py` contiennent
-encore la clé `service_role` **en clair**. Le dossier n'est pas un dépôt git,
-donc rien n'a fuité, mais cette clé contourne toute la RLS. À déplacer.
+La clé `service_role` a été **retirée du code et tournée** le 30 juillet 2026.
+`import_supabase.py` la lisait en dur ; il lit désormais l'environnement et
+sort avec un message d'aide si la variable manque. `export_transcript.py`
+n'était pas concerné — il contient une regex `sb_secret_[A-Za-z0-9_\-]+` qui
+*caviarde* la clé, motif qu'un grep confond avec la chose elle-même.
+
+L'ancienne clé du script était déjà révoquée (401) ; celle en service, dans le
+fichier d'environnement, a été remplacée par `import_scripts_2026_07` et
+l'ancienne supprimée du tableau de bord.
 
 ---
 
 ## 3. Modèle de données
 
-### `films` — 2 354 lignes
+### `films` — 2 686 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -104,12 +110,19 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films` — 4 187 liens
+### `edition_films` — 4 812 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
-Répartition : `film_id` 2 656, `bluray_tmdb` 1 037, `corrige_manuel` 227,
-`collection_tmdb` 199, `corrige_annee` 68.
+Répartition : `film_id` 2 624, `bluray_tmdb` 1 037, `corrige_manuel` 648,
+`probable` 236, `collection_tmdb` 199, `corrige_annee` 68.
+
+**`probable` marque les rattachements écrits sans relecture**, le 30 juillet
+2026, quand la file d'attente a été vidée d'un coup plutôt que validée ligne à
+ligne. Environ 15 % sont faux d'après les sondages. Ils sont isolables en une
+requête, ce qui permet de les corriger au fil des signalements :
+
+    GET /edition_films?source=eq.probable
 
 **L'app lit les éditions via cette table**, pas via `editions.film_id`
 (cf. `getEditionsForFilm` dans `src/app/lib/reelio-db.ts`).
@@ -191,10 +204,15 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 2 354 (2 032 films, 320 séries, 2 coffrets) |
+| Films | 2 686 (2 267 films, 417 séries, 2 coffrets) |
 | Éditions | 5 739 |
 | Codes-barres | 3 428 |
-| Éditions sans film | 1 685 |
+| Éditions sans film | 1 256 |
+
+Les orphelines sont passées de 1 893 à 1 256 le 30 juillet 2026 : **637
+éditions rendues visibles**, dont 106 coffrets rattachés à plusieurs films.
+Ce qui reste est majoritairement composé de coffrets et compilations dont le
+contenu n'est écrit nulle part — ni dans le titre, ni dans la fiche d'origine.
 
 ---
 
@@ -264,7 +282,20 @@ Métadonnées films et séries. Rattachement par titre **et année**.
 | `controle_surs.py` | Six règles anti-faux-positifs sur le niveau « sûr » |
 | `ecrire_orphelines.py` | Écriture (`--apply`), trois garde-fous |
 
-Résultat : 1 893 → 1 685 orphelines, 208 rattachées, 118 films créés.
+| `auto_corriger.py` | Applique les règles évidentes sans relecture |
+| `relire.py` | Relecture au clavier, verdict sauvegardé à chaque touche |
+| `corriger_prefixes.py` | Redresse les éditions rattachées au mauvais film |
+| `coffrets.py` | Découpe un coffret et résout chaque film |
+| `ecrire_coffrets.py` | Pose plusieurs liens par édition (`--apply`) |
+
+Résultat cumulé : 1 893 → 1 256 orphelines, 637 rattachées, 332 films créés.
+
+**La relecture s'est faite par lots de dix**, présentés dans des artifacts avec
+le visuel du boîtier à gauche et l'affiche TMDB à droite. Le verdict revient
+par un fichier que la page enregistre — `window.claude.downloads` — et non par
+le presse-papiers, que l'iframe d'un artifact n'autorise pas de façon fiable.
+Deux tentatives ont été perdues avant d'y arriver, dont une page de 2,6 Mo qui
+a figé l'onglet : embarquer les images en base64 impose de les redimensionner.
 
 `crawl/pages/` — 3 100 pages gzippées (170 Mo). Permettent de rejouer un
 parsing sans réseau. **Ne pas supprimer** tant que l'import n'est pas figé.
@@ -297,12 +328,18 @@ côté serveur — écartée pour l'instant.
 ## 8. Chantiers ouverts
 
 ### Décisions en attente sur les orphelines
-Fichiers produits par `resoudre_orphelines3.py`, à trancher :
+Il reste **1 256 éditions sans film**, dont la composition a été mesurée :
 
-- **~330 coffrets multi-films** — plusieurs liens chacun
-- **~158 homonymes** — la popularité ne départage pas
-- **~227 à relire** — appariements par préfixe ou popularité
-- **~914 sans correspondance** — le vrai gisement, non décomposé
+- **~830 coffrets et compilations** — `Charles Bronson - Coffret n°2`,
+  `Trésors du fantastique Vol 1`. Aucune source ne dit ce qu'ils contiennent :
+  ni le titre, ni la fiche d'origine, ni les pages archivées. Sur 240 examinés,
+  **onze seulement** portaient une liste exploitable dans `contenu_brut`.
+- **~240 coffrets thématiques** dont TMDB n'a pas la collection, ou dont le
+  nombre de films annoncé ne correspond pas à celle qu'il propose.
+- **236 rattachements `probable`** à vérifier au fil de la navigation.
+
+Les scripts trouvent des candidats pour la plupart ; ce qui manque est la
+validation, pas la détection.
 
 ### Fonctionnel
 - **Authentification en ligne depuis le 30 juillet 2026.** Google uniquement,
@@ -417,6 +454,24 @@ Documentés parce qu'ils se reproduiront.
 - **Le segment après deux-points ne peut pas chercher seul.** Il a donné
   `Star Trek 3 : Sans Limites → « Sans limites » (2022)`, une série sans
   rapport. À garder en second niveau, jamais en écriture directe.
+- **Ne pas effacer les mots qui portent le sens.** `le film`, `la série`,
+  `saison`, `N films` ont d'abord été rangés dans le vocabulaire d'édition à
+  retirer, alors qu'ils sont le seul indice du type de l'œuvre. Résultats :
+  `South Park, le film` rattaché à la série, `Sword Art Online – The Movie`
+  aussi. Même faute que « Coffret 8 films » effacé par la regex de bruit.
+- **`Open Season - Trilogy` devenu « Open »** parce que la regex de saison a
+  mangé le mot « Season » du titre. Il s'agissait des *Rebelles de la forêt*,
+  la recherche a rendu *Open House*.
+- **Une année dans le titre de l'édition est une contrainte, pas un ornement.**
+  `Thelma et Louise (1991)` a été proposé vers un documentaire de 2025.
+- **Un disque ne peut pas contenir une œuvre postérieure à sa sortie.**
+  `date_sortie` sert de plafond — couverture faible, 28 éditions sur 297, mais
+  décisive quand elle existe.
+- **Le titre retenu doit partager un mot significatif avec celui de
+  l'édition.** Contrôle appliqué a posteriori sur 230 rattachements : quatre
+  suspects, dont `Heroes: Season 3` → *Speed 2* et `Gremlins` → *Paris, Texas*.
+  Les deux autres étaient des traductions correctes — `Ulysses` → *Ulysse* —
+  d'où une relecture plutôt qu'un rejet automatique.
 - **Séparer les résultats en deux niveaux** — écriture directe et relecture — a
   attrapé 100 % des faux positifs connus. Sans ce tri, le taux d'erreur du lot
   « résolu » était de 20 %.
@@ -430,6 +485,13 @@ Documentés parce qu'ils se reproduiront.
   signal sous des centaines d'erreurs de nullité.
 - **PostgREST plafonne à 1 000 lignes.** Paginer, toujours. Le piège s'est
   reproduit : un `limit=1893` a silencieusement traité 1 000 lignes.
+- **TMDB numérote films et séries séparément.** Le film 1639 est *Speed 2*, la
+  série 1639 est *Heroes*. `films.tmdb_id` était unique à lui seul : les deux
+  ne pouvaient pas coexister, et une recherche par `tmdb_id` seul renvoyait
+  l'œuvre du mauvais catalogue — une édition de *Heroes* s'est retrouvée sous
+  *Speed 2*. L'unicité porte désormais sur `(tmdb_id, type)`,
+  cf. `supabase/migrations/20260730_tmdb_id_par_type.sql`. Le défaut est
+  silencieux : il ne se voit qu'au moment où une série heurte un film existant.
 - **`ON CONFLICT` ignore les index partiels.**
 - **`editions.id` n'avait pas d'identity** — insertion impossible.
 - **`noindex, nofollow`** traînait dans `index.html` depuis Figma Make.
