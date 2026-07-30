@@ -9,8 +9,8 @@ pour le marché français. Anciennement *Boxology*, renommé en juillet 2026.
 
 | | |
 |---|---|
-| Nom | Jaquette |
-| Domaine | `jaquette.app` (acheté, à brancher) |
+| Nom | **Jaquette** — le `.app` est l'adresse, pas le nom |
+| Domaine | `jaquette.app` — **en ligne**, apex et `www` |
 | Dépôt | `github.com/rayan-adamczak/jaquette` (public) |
 | Éditeur | Rayan Adamczak, designer, à titre non professionnel |
 | Contact | rayan.adamczak@gmail.com |
@@ -27,18 +27,45 @@ informatif, aucun partenariat actif.
 |---|---|
 | Front | React 18 + Vite 6 + Tailwind 4 + react-router 7 |
 | Données | Supabase (projet `rndyusuyfkrojpazjsll`) |
-| Hébergement actuel | GitHub Pages — **renvoie 404 sur les deep links** |
-| Hébergement cible | Cloudflare Pages (en cours de configuration) |
+| Hébergement | **Cloudflare Pages**, projet `jaquette`, déploiement sur `main` |
 | Images films | TMDB (attribution obligatoire, présente en pied de page) |
 
-### Bascule d'hébergement
+### Hébergement
 
-`vite.config.ts` gère deux cibles via `DEPLOY_TARGET` :
+GitHub Pages a été **supprimé** en juillet 2026 : il renvoyait 404 sur les
+liens profonds, ce qui interdisait toute indexation, et publiait un doublon du
+site. Le workflow et le site GitHub Pages sont retirés.
 
-- **absent** (Cloudflare) → base `/`, lit `public/_redirects` → **HTTP 200**
-- **`github`** → base `/jaquette/`, génère `404.html` → HTTP 404
+Cloudflare Pages sert `public/_redirects` (`/* /index.html 200`), donc
+`/films/560` répond **200**. `vite.config.ts` garde une branche
+`DEPLOY_TARGET=github` désormais morte — sous-chemin `/jaquette/` et copie
+`404.html`. À supprimer un jour.
 
-Le 404 empêche toute indexation. C'est la raison de la migration.
+`public/_headers` marque `/assets/*` en `immutable` : Cloudflare revalidait à
+chaque visite (`cf-cache-status: REVALIDATED` au lieu de `HIT`), soit un
+aller-retour avant le premier octet. `index.html` reste volontairement hors de
+la règle, sinon un déploiement ne serait pas vu des visiteurs déjà venus.
+
+DNS géré par Cloudflare, domaine acheté chez Spaceship (nameservers
+`anna`/`lloyd.ns.cloudflare.com`). Un enregistrement `TXT` valide la propriété
+Google Search Console — **ne pas le supprimer**, la validation tomberait.
+
+### Poids du bundle
+
+Deux réductions successives, mesurées en production :
+
+| | brut | compressé |
+|---|---|---|
+| départ | 580,9 Ko | 158,4 Ko |
+| pages en `lazy()` | 494,8 Ko | 142,0 Ko |
+| PostgREST au lieu de supabase-js | 294,6 Ko | 90,6 Ko |
+
+`createClient` de `@supabase/supabase-js` instancie auth, realtime et storage
+même inutilisés, et le build ne peut pas les éliminer : 180 Ko bruts. Le site
+parle donc directement à `@supabase/postgrest-js`. L'API de requête est
+identique, seul `lib/supabase.ts` change.
+
+TTFB passé de 1 313 ms à ~210 ms, page prête de 2 621 ms à ~400 ms.
 
 ### Secrets
 
@@ -47,31 +74,51 @@ Dans `~/.config/boxology.env` (hors dépôt, à renommer un jour) :
 
 Chargement : `set -a; . ~/.config/boxology.env; set +a`
 
+⚠️ `jaquette-scraping/import_supabase.py` et `export_transcript.py` contiennent
+encore la clé `service_role` **en clair**. Le dossier n'est pas un dépôt git,
+donc rien n'a fuité, mais cette clé contourne toute la RLS. À déplacer.
+
 ---
 
 ## 3. Modèle de données
 
-### `films` — 2 227 lignes
+### `films` — 2 354 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
 `genres` (text[]), `cast_principal` (jsonb), **`type`** (`film|serie|coffret`).
 
-### `editions` — 5 726 lignes
+### `editions` — 5 739 lignes
 `id` (identity **ajoutée en juillet 2026** — elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `formats_extraits` (text[]), `url_source`, `contenu_brut`, `image_url`,
+`images_secondaires`, `slug`, `type`, `prix_editeur`, `univers`, `supports`,
+`langues`, `nb_commentaires`, `nb_wishlist`, `prix_fnac_extrait`,
 `film_id` (film principal), **`source`**, **`source_id`**.
 
-`source` vaut `editioncollector.fr` (3 180) ou `bluray.com` (2 546).
+`source` vaut `editioncollector.fr` (3 193) ou `bluray.com` (2 546).
 
-### `edition_films` — 3 966 liens
+**Convention d'identifiant, changée en juillet 2026.** Les 3 180 premières
+lignes editioncollector portent l'id de la fiche source. Ce n'est plus
+possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com par
+la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
+laissent la séquence décider et rangent l'id source dans `source_id`.
+
+### `edition_films` — 4 187 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
-`edition_id`, `film_id`, `source` (`film_id|collection_tmdb|bluray_tmdb|
-corrige_annee|corrige_manuel`).
+`edition_id`, `film_id`, `source`.
+
+Répartition : `film_id` 2 656, `bluray_tmdb` 1 037, `corrige_manuel` 227,
+`collection_tmdb` 199, `corrige_annee` 68.
 
 **L'app lit les éditions via cette table**, pas via `editions.film_id`
 (cf. `getEditionsForFilm` dans `src/app/lib/reelio-db.ts`).
+
+### `collections` — **écrite, pas encore appliquée**
+`supabase/migrations/20260730_collections.sql` crée la table des listes
+utilisateur (`user_id`, `edition_id`, `statut`, clé primaire composite, RLS par
+`auth.uid()`). **La table n'existe pas en base** : PostgREST répond `PGRST205`.
+À exécuter dans l'éditeur SQL Supabase, aucune CLI n'est configurée.
 
 ### `bluray_import` — table de transit
 3 100 fiches crawlées, avec statut : `promu` (2 546), `a_verifier` (464),
@@ -82,8 +129,18 @@ corrige_annee|corrige_manuel`).
 
 ### Sécurité
 RLS activé partout. Policies `anon` en **lecture seule** sur `films`,
-`editions`, `edition_films`. `statuts` et `kv_store_38e4ee68` fermées.
-Vérifié : écriture anon refusée (401).
+`editions`, `edition_films`. `statuts`, `bluray_import`, `kv_store_38e4ee68` et
+les tables de sauvegarde renvoient `[]` en anon.
+
+Attention en vérifiant : PostgREST répond **200 avec un tableau vide** quand une
+policy bloque un SELECT, pas 401. Un 200 ne prouve rien.
+
+La clé `anon` du bundle est publique par nature — ce n'est pas une fuite.
+Vérifié : aucune `service_role` dans `dist/` ni dans l'historique git.
+
+**Non vérifié à ce jour** : le refus d'écriture anon. Un `PATCH` sur un filtre
+vide renvoie 204 que la policy accepte ou refuse ; seul un `INSERT` réel
+tranche.
 
 ---
 
@@ -91,19 +148,29 @@ Vérifié : écriture anon refusée (401).
 
 | | |
 |---|---|
-| Films | 2 227 (1 997 films, 228 séries, 2 coffrets) |
-| Éditions | 5 726 |
-| Codes-barres | 3 042 |
-| Éditions sans film | 1 892 |
-| Films sans édition | ~700 |
+| Films | 2 354 (2 032 films, 320 séries, 2 coffrets) |
+| Éditions | 5 739 |
+| Codes-barres | 3 428 |
+| Éditions sans film | 1 685 |
 
 ---
 
 ## 5. Sources de données
 
-### editioncollector.fr — 3 180 éditions
+### editioncollector.fr — 3 193 éditions
 Source d'origine. **Seule à fournir des visuels** (`image_url` pointant vers
 leur S3 — hotlink, donc fragile : ils peuvent couper à tout moment).
+
+Leur `robots.txt` ne contient aucune règle `User-agent: *`, seulement deux
+entrées SiteAuditBot. Rien n'interdit un crawl poli.
+
+**Mise à jour incrémentale** : énumérer `/collectors?univers=films-series`
+(89 pages, ~3 200 fiches), comparer aux `url_source` déjà en base. En juillet
+2026 : 29 URL nouvelles, dont 10 liens de navigation et 6 produits dérivés,
+soit 13 éditions réelles.
+
+Ne pas se fier au sitemap : il annonçait 1 201 nouveautés, mais mêle figurines,
+jeux et livres, et ne couvre que 1 477 URL sur 3 193.
 
 ### blu-ray.com — 2 546 éditions
 Crawlé en juillet 2026. **Accès désormais bloqué (HTTP 403)** sur le
@@ -125,6 +192,8 @@ Métadonnées films et séries. Rattachement par titre **et année**.
 
 ## 6. Scripts — `~/Documents/jaquette-scraping/`
 
+### Import blu-ray.com (2026-07)
+
 | Fichier | Rôle |
 |---|---|
 | `enum_fr.py` | Énumère le catalogue FR via les listings |
@@ -135,29 +204,74 @@ Métadonnées films et séries. Rattachement par titre **et année**.
 | `import_3_ecrire.py` | Création films + éditions + liens |
 | `import_4_titres.py` | Nettoyage des titres (`--apply` pour écrire) |
 
+### Mise à jour editioncollector (2026-07-30)
+
+| Fichier | Rôle |
+|---|---|
+| `enum_ec.py` | Énumère le listing, sort le delta vs base |
+| `tri_ec.py` | Sépare éditions disque et produits dérivés |
+| `resoudre_ec.py` | Résolution TMDB, **lecture seule** |
+| `ecrire_ec.py` | Écriture (`--apply`), décisions manuelles en dur |
+
+### Rattachement des éditions orphelines (2026-07-30)
+
+| Fichier | Rôle |
+|---|---|
+| `resoudre_orphelines3.py` | Appariement TMDB, deux niveaux de confiance |
+| `controle_surs.py` | Six règles anti-faux-positifs sur le niveau « sûr » |
+| `ecrire_orphelines.py` | Écriture (`--apply`), trois garde-fous |
+
+Résultat : 1 893 → 1 685 orphelines, 208 rattachées, 118 films créés.
+
 `crawl/pages/` — 3 100 pages gzippées (170 Mo). Permettent de rejouer un
 parsing sans réseau. **Ne pas supprimer** tant que l'import n'est pas figé.
 
 ---
 
-## 7. Chantiers ouverts
+## 7. SEO
 
-### Immédiat
-- **Cloudflare Pages** — configuration en cours. Sans variable
-  `DEPLOY_TARGET`. Puis brancher `jaquette.app`.
-- **Visuels** des 2 546 nouvelles éditions — bloqué sur Awin.
+Chantier ouvert jusqu'en juillet 2026, désormais en place.
 
-### Décisions en attente
-- **212 résolutions TMDB ambiguës** — homonymes, popularité faible
-- **464 fiches `a_verifier`** — même film qu'une édition existante
-- **1 380 fiches non résolues** — surtout des coffrets multi-films
+- **`src/app/lib/seo.ts`** — hook `useSeo`, pose titre, description, canonical
+  et `og:` par page. Le canonical est **calculé depuis l'URL courante**, jamais
+  passé en paramètre : une faute dans une page l'enverrait ailleurs.
+- **`index.html` ne porte ni canonical ni `og:url`.** Une valeur en dur y
+  ferait passer les 2 354 fiches pour des doublons de la racine. En l'absence
+  de canonical, un crawler retient l'URL demandée — le bon repli.
+- **`sitemap.xml`** généré au build par `scripts/generer-sitemap.mjs` depuis la
+  base. 2 105 URL. Seuls les films rattachés à une édition y figurent. Le
+  script casse le build s'il ne trouve aucun film.
+- **Search Console** — propriété Domaine validée, sitemap soumis et lu.
+- **Listes personnelles et écrans du prototype** en `noindex, follow`.
+
+**Limite connue** : les scrapers de Facebook, iMessage et Discord n'exécutent
+pas le JavaScript. Ils voient donc les `og:` génériques d'`index.html`, pas
+ceux de la fiche. Le correctif serait une Pages Function injectant les balises
+côté serveur — écartée pour l'instant.
+
+---
+
+## 8. Chantiers ouverts
+
+### Décisions en attente sur les orphelines
+Fichiers produits par `resoudre_orphelines3.py`, à trancher :
+
+- **~330 coffrets multi-films** — plusieurs liens chacun
+- **~158 homonymes** — la popularité ne départage pas
+- **~227 à relire** — appariements par préfixe ou popularité
+- **~914 sans correspondance** — le vrai gisement, non décomposé
 
 ### Fonctionnel
-- **Authentification** — les listes sont en `localStorage`
-  (clé `jaquette_statuts`, migration depuis `boxology_statuts` en place).
-  Perte des données si le cache est vidé, aucune synchronisation.
-- **SEO** — titres et meta identiques sur toutes les pages
+- **Authentification** — code écrit (`lib/auth.ts`, `auth-client.ts`,
+  `auth-config.ts`, Google uniquement, auth-js chargé à la demande), mais la
+  table `collections` n'est pas créée. Sans compte, les listes restent en
+  `localStorage` sous `jaquette_statuts`.
 - **Rapatrier les images** hébergées chez editioncollector
+- **Supprimer la branche `DEPLOY_TARGET=github`** de `vite.config.ts`
+- **Une quinzaine d'opéras** à écarter du catalogue. **Ne pas filtrer par
+  mot-clé** : « Opération Dragon », « Opération Tonnerre » et « Nosferatu, une
+  symphonie de l'horreur » sont des films. Les concerts, eux, sont gardés — TMDB
+  les référence.
 
 ### Awin
 4 programmes en attente : Fnac, E.Leclerc, Cultura, Zavvi — **tous avec flux
@@ -166,7 +280,7 @@ tant qu'aucun n'a validé (« Feed not found »).
 
 ---
 
-## 8. Pièges rencontrés
+## 9. Pièges rencontrés
 
 Documentés parce qu'ils se reproduiront.
 
@@ -178,20 +292,56 @@ Documentés parce qu'ils se reproduiront.
 - **19,7 % des titres d'édition portent l'année** entre parenthèses. La jeter
   fait perdre la désambiguïsation : `Dune (1985)` rattaché à Dune 2021.
   111 rattachements faux corrigés grâce à elle.
+- **L'année n'est pas toujours seule dans sa parenthèse** : `(Mondwest 1974)`.
+  Une regex `\((\d{4})\)` la manque et rattache le film de 1974 à la série.
 - **Séparateurs** : les titres mélangent `-` et `–` (cadratin). Ne découper
   que sur l'un fausse tout.
 - **Accents en majuscules** : `translate()` s'applique avant `lower()`.
+- **Le champ `universes` d'editioncollector vaut « Films/Séries » pour tout**,
+  y compris une figurine Amiibo et No Man's Sky. Inexploitable. `supports`
+  (Blu-ray, 4K) est fiable quand il est renseigné, mais vide sur des disques
+  réels : croiser avec un vocabulaire de formats relevé dans le titre.
 
 ### Appariement TMDB
 - Exiger le **titre exact**. Un repli « année seule » donne
   `Ça (1990) → Living To Die`.
 - Sur homonymes, la popularité départage mal quand elle est sous 1.
+- **Ne pas supprimer les indices avant de chercher.** Une regex de « bruit »
+  effaçait « Coffret 8 films » — précisément la preuve qu'il s'agit d'un
+  coffret. Résultat : `Clint Eastwood - Coffret 8 films → « Clint Eastwood »`,
+  un documentaire homonyme.
+- **Un coffret dont le titre est un nom propre** tombe sur une fiche TMDB
+  homonyme et confidentielle : Jean Vigo 0.1, Marcel Pagnol 0.2, Bruce Lee 0.4.
+  Les rattachements corrects du même lot sont tous au-dessus de 1,3.
+- **« Intégrale » n'a pas le même sens selon le type.** Sur une série, elle
+  désigne l'œuvre entière — c'est juste. Sur un film, elle désigne la saga :
+  `John Wick - L'intégrale` rattaché au seul premier épisode est faux.
+- **Une saison annoncée dans le titre exclut un film.**
+- **Le segment après deux-points ne peut pas chercher seul.** Il a donné
+  `Star Trek 3 : Sans Limites → « Sans limites » (2022)`, une série sans
+  rapport. À garder en second niveau, jamais en écriture directe.
+- **Séparer les résultats en deux niveaux** — écriture directe et relecture — a
+  attrapé 100 % des faux positifs connus. Sans ce tri, le taux d'erreur du lot
+  « résolu » était de 20 %.
 
 ### Infrastructure
-- **PostgREST plafonne à 1 000 lignes.** Paginer, toujours.
+- **PostgREST plafonne à 1 000 lignes.** Paginer, toujours. Le piège s'est
+  reproduit : un `limit=1893` a silencieusement traité 1 000 lignes.
 - **`ON CONFLICT` ignore les index partiels.**
 - **`editions.id` n'avait pas d'identity** — insertion impossible.
 - **`noindex, nofollow`** traînait dans `index.html` depuis Figma Make.
+- **La réécriture SPA masque les fichiers manquants.** `/* /index.html 200`
+  fait répondre **200** à `/sitemap.xml` même absent : on reçoit du HTML avec
+  un code de succès. Vérifier le contenu, pas le statut.
+- **Basculer les nameservers casse DNSSEC.** Un enregistrement `DS` au registre
+  signe la zone de l'ancien hébergeur ; si le nouveau répond à sa place, la
+  validation échoue et le domaine devient injoignable — SERVFAIL, pas lent.
+  Spaceship l'a retiré de lui-même, mais c'est à vérifier avant, pas après.
+- **Cloudflare fusionne `robots.txt`**, il ne l'écrase pas : son bloc managed
+  passe en premier, le fichier du dépôt suit.
+- **Le résolveur DNS local garde en cache les échecs.** Après la bascule,
+  `curl` répondait `Could not resolve host` alors que le site fonctionnait.
+  Tester avec `--resolve` avant de conclure à une panne.
 - Deux crawlers lancés en parallèle produisent des doublons exacts. Un test
   d'existence de fichier ne suffit pas : `flock`.
 
@@ -203,17 +353,31 @@ Ce qui a évité le plus d'erreurs :
    une requête réseau.
 3. **Vérifier qu'un scan qui renvoie « rien » fonctionne.** Un scan cassé
    ressemble à un scan négatif.
+4. **Relire un échantillon avant d'écrire.** Chaque passe de relecture a
+   révélé une famille de faux positifs que la précédente ne voyait pas.
 
 ---
 
-## 9. Juridique
+## 10. Juridique
 
 - Mentions légales, confidentialité et à propos en ligne
 - Éditeur non professionnel (LCEN art. 6) — **à compléter dès que le site
   devient commercial**
 - Attribution TMDB en pied de page (exigée par leur licence)
 - Aucune image reprise de blu-ray.com
+- **Clause « Base de données »** dans les mentions légales : articles L. 341-1
+  et suivants du code de la propriété intellectuelle, interdiction d'extraction
+  substantielle et d'extraction répétée de parties non substantielles, réserve
+  explicite pour la consultation, l'usage privé et la citation avec lien.
+  La clause ne crée pas le droit : c'est l'investissement de constitution qui
+  le fonde, et il se documente.
+- Le `Content-Signal: ai-train=no` posé par Cloudflare dans `robots.txt` vaut
+  réservation de droits au titre de l'article 4 de la directive UE 2019/790.
+- **Position asymétrique à connaître** : la base a été constituée par
+  extraction chez editioncollector et blu-ray.com. Opposer la clause à un tiers
+  exposerait à ce rappel.
 - Données factuelles uniquement (EAN, dates, formats) — non protégeables
   individuellement, mais le droit *sui generis* protège l'extraction d'une
   partie substantielle d'une base
-- Aucun tracker, aucun compte, aucune donnée personnelle serveur
+- Aucun tracker. Compte optionnel via Google uniquement, aucune donnée
+  personnelle serveur tant que `collections` n'existe pas.
