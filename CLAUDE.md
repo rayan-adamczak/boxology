@@ -305,26 +305,70 @@ Fichiers produits par `resoudre_orphelines3.py`, à trancher :
 - **~914 sans correspondance** — le vrai gisement, non décomposé
 
 ### Fonctionnel
-- **Authentification** — écrite et la table est en place, mais **non
-  déployée** : le tout vit sur la branche `compte-google`, non poussée et non
-  fusionnée dans `main`. Google uniquement, `auth-js` chargé à la demande.
-  `/compte` porte la suppression du compte, `TopBar` y mène.
-  La base est donc en avance sur le site en ligne, sans effet visible : le
-  bundle déployé ne connaît pas `collections`. Sans compte, les listes restent
-  en `localStorage` sous `jaquette_statuts`, ce qui reste le cas de tous les
-  visiteurs jusqu'à la fusion.
-  **Jamais exercé de bout en bout** : la connexion Google et la reprise des
-  statuts `localStorage` vers `collections` à la première connexion n'ont pas
-  été essayées.
-- **Vestiges du prototype dans `BottomTabBar`** — libellés anglais (« Home »,
-  « Collection », « Wishlist », « Profile ») et un onglet menant au faux profil
-  `/u/:handle`. `TopBar` a été nettoyé, celui-ci pas.
+- **Authentification en ligne depuis le 30 juillet 2026.** Google uniquement,
+  `auth-js` seul et chargé à la demande — +0,75 Ko compressé au bundle initial,
+  le reste dans un morceau séparé de 24,5 Ko. Parcours exercé de bout en bout en
+  production : connexion, écriture, cloisonnement entre comptes, suppression.
+- **Toute action demande un compte.** `collections.ts` lève `CompteRequis`,
+  l'interface ouvre `ModaleConnexion`. Le site n'écrit plus rien dans
+  localStorage : `local-statuts.ts` ne garde que lecture et effacement, pour
+  reprendre une fois les listes d'avant à la première connexion.
+- **La consultation reste publique** — c'est la condition de l'indexation, donc
+  de la migration Cloudflare. Ne pas fermer le catalogue.
 - **Rapatrier les images** hébergées chez editioncollector
 - **Supprimer la branche `DEPLOY_TARGET=github`** de `vite.config.ts`
+- **Cinq acteurs par film au maximum**, limite de l'import TMDB et non de
+  l'affichage. En ajouter demande de réinterroger les crédits TMDB pour les
+  2 354 films.
 - **Une quinzaine d'opéras** à écarter du catalogue. **Ne pas filtrer par
   mot-clé** : « Opération Dragon », « Opération Tonnerre » et « Nosferatu, une
   symphonie de l'horreur » sont des films. Les concerts, eux, sont gardés — TMDB
   les référence.
+
+### Direction artistique — arrêtée le 30 juillet 2026
+
+Le diagnostic de départ était « ça fait IA ». La cause n'était pas le nombre de
+badges mais qu'**une seule forme servait à tout** : genres, acteurs, formats,
+zones, filtres, tous la même capsule. L'œil ne pouvait plus distinguer ce qui se
+clique de ce qui se lit.
+
+**Règle : la capsule est réservée à ce qui se clique.** Les filtres de format la
+gardent ; genres, distribution et métadonnées d'édition sont du texte à points
+médians. Ne pas la réintroduire pour décorer.
+
+**Typographie.** Bricolage Grotesque (`--reel-font-titre`) sur les titres et le
+mot-symbole, Inter pour le corps — une grotesque à fort caractère fatigue sur un
+synopsis. Space Grotesk a été écartée : c'est devenue la police par défaut du
+branding des produits d'IA, exactement ce qu'on fuyait.
+
+**Deux bleus, pas un.** Un seul ne peut pas faire les deux métiers : rempli avec
+du blanc dessus il doit être sombre, en texte sur fond sombre il doit être clair.
+L'ancien `#2e7dff` tentait les deux et donnait 3,82:1 sur le bouton principal,
+sous le seuil AA.
+
+    --reel-accent        #1f5fd0   blanc dessus 5,82:1
+    --reel-accent-clair  #6ea8ff   sur le fond 7,40:1
+
+Surfaces en bleu nuit (`#101720`, `#18202c`, `#1f2836`) et non charbon neutre :
+le bleu cesse d'être un accent posé sur du gris. **Mesurer avant de changer une
+couleur** — c'est ainsi qu'on a trouvé l'échec AA.
+
+**L'image de l'œuvre porte l'identité.** Le héros de la fiche film affiche le
+`backdrop_url` TMDB, traité en atmosphère et non en illustration : opacité 0,38,
+léger flou, saturation réduite, plus deux dégradés — un horizontal qui donne au
+texte un fond franc à gauche, un vertical qui fond le bas. Un seul dégradé
+vertical laissait le texte illisible sur un ciel clair.
+
+**Héros de la fiche film : cinq éléments.** Titre avec l'année en graisse fine,
+réalisation, note, synopsis, boutons. Accroche, durée, genres et distribution
+sont dans l'onglet Détails. Empilés dans le héros, ils repoussaient les boutons
+hors du premier écran.
+
+**Note à deux décimales** partout. TMDB rend `7.901` ; trois décimales suggèrent
+une précision que la note n'a pas.
+
+Le mot-symbole est le seul élément de marque : la pastille bleue à icône de
+pellicule a été retirée, l'emplacement attend un vrai logo.
 
 ### Awin
 4 programmes en attente : Fnac, E.Leclerc, Cultura, Zavvi — **tous avec flux
@@ -378,6 +422,12 @@ Documentés parce qu'ils se reproduiront.
   « résolu » était de 20 %.
 
 ### Infrastructure
+- **`npm run build` lance `tsc --noEmit` d'abord.** Sans lui, rien ne relisait le
+  code : esbuild ne vérifie pas les types, et un identifiant JSX dont l'import a
+  été retiré devient une référence globale résolue à l'exécution. Un `Search`
+  ainsi perdu a fait écran blanc sur tout le site sans que le build bronche.
+  `strict` reste désactivé — les écrans hérités de Figma Make noieraient le
+  signal sous des centaines d'erreurs de nullité.
 - **PostgREST plafonne à 1 000 lignes.** Paginer, toujours. Le piège s'est
   reproduit : un `limit=1893` a silencieusement traité 1 000 lignes.
 - **`ON CONFLICT` ignore les index partiels.**
