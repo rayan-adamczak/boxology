@@ -381,6 +381,18 @@ Documentés parce qu'ils se reproduiront.
 - **La réécriture SPA masque les fichiers manquants.** `/* /index.html 200`
   fait répondre **200** à `/sitemap.xml` même absent : on reçoit du HTML avec
   un code de succès. Vérifier le contenu, pas le statut.
+- **`_headers` estampille selon l'URL, pas selon ce qui est servi.** La règle
+  `/assets/*` en `max-age=31536000, immutable` s'applique donc aussi à la
+  réécriture SPA. Demander l'URL d'un asset avant qu'il soit servi met
+  `index.html` en cache **pour un an** sous ce nom : le site ne démarre plus,
+  un navigateur refusant d'exécuter un module en `text/html`, et le cache ne se
+  répare pas de lui-même. Arrivé le 30 juillet 2026 juste après la mise en
+  production de l'authentification, déclenché par une requête de vérification.
+  Ne jamais valider un déploiement en interrogeant une URL d'asset — charger la
+  page, qui demande ses assets au même déploiement. Signature : la même URL
+  renvoie `text/html` sans paramètre et `application/javascript` avec `?x=1`,
+  ce qui prouve que le fichier existe et que seul le cache est en cause.
+  Correctif : purge du cache Cloudflare.
 - **Basculer les nameservers casse DNSSEC.** Un enregistrement `DS` au registre
   signe la zone de l'ancien hébergeur ; si le nouveau répond à sa place, la
   validation échoue et le domaine devient injoignable — SERVFAIL, pas lent.
