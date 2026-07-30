@@ -88,7 +88,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films` — 3 569 lignes
+### `films` — 3 606 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -152,15 +152,15 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films` — 6 787 liens
+### `edition_films` — 6 898 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
-Répartition : `film_id` 2 622, `bluray_page` 1 130, `bluray_tmdb` 1 037,
-`bluray_page_partiel` 845, `corrige_manuel` 650, `probable` 236,
+Répartition : `film_id` 2 622, `bluray_page` 1 153, `bluray_tmdb` 1 037,
+`bluray_page_partiel` 933, `corrige_manuel` 650, `probable` 236,
 `collection_tmdb` 199, `corrige_annee` 68.
 
-6 787 liens pour **5 333 éditions rattachées** : l'écart, ce sont les coffrets,
+6 898 liens pour **5 362 éditions rattachées** : l'écart, ce sont les coffrets,
 qui portent un lien par film.
 
 **`probable` marque les rattachements écrits sans relecture**, le 30 juillet
@@ -250,11 +250,11 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 3 569 (3 062 films, 505 séries, 2 coffrets) |
+| Films | 3 606 (3 099 films, 505 séries, 2 coffrets) |
 | Éditions | 5 739 |
 | Codes-barres | 3 428 |
-| Éditions rattachées | 5 333 |
-| Éditions sans film | 406 |
+| Éditions rattachées | 5 362 |
+| Éditions sans film | 377 |
 | URL au sitemap | 3 349 |
 
 `editions.film_id` est `null` sur 858 lignes, ce qui ne veut plus rien dire :
@@ -269,8 +269,8 @@ dans les six langues retenues (`en`, `es`, `de`, `it`, `ja`, `pt`).
 Le budget est le champ le moins couvert, et c'est normal : TMDB rend `0` quand
 il l'ignore, et `0` est écrit `NULL` plutôt qu'affiché comme une mesure.
 
-Deux campagnes le 30 juillet 2026 : 1 893 → 1 256, puis **1 256 → 406**. Au
-total 1 487 éditions rendues visibles et 883 films créés.
+Deux campagnes le 30 juillet 2026 : 1 893 → 1 256, puis **1 256 → 377**. Au
+total 1 516 éditions rendues visibles et 920 films créés.
 
 La seconde campagne est partie d'une relecture des pages blu-ray.com brutes
 conservées dans `crawl/pages/`. Le parseur d'origine n'en gardait que le codec,
@@ -281,7 +281,7 @@ le nombre de films tranche entre édition simple et coffret sans avoir à
 interpréter le titre, là où « Intégrale » ou « Collection » mentent une fois
 sur deux.
 
-Reste 406 orphelines : 195 editioncollector, 116 coffrets blu-ray.com sans
+Reste 377 orphelines : 166 editioncollector, 149 coffrets blu-ray.com sans
 liste de contenu, 37 films et 25 séries — ces derniers surtout des opéras et
 des concerts que TMDB ne référence pas.
 
@@ -393,7 +393,7 @@ Résultat cumulé : 1 893 → 1 256 orphelines, 637 rattachées, 332 films cré�
 
 ### Seconde campagne orphelines — `orphelines_2026_07_30/`
 
-1 256 → 406 orphelines, 850 rattachées, 883 films créés, en huit passes de
+1 256 → 377 orphelines, 879 rattachées, 920 films créés, en neuf passes de
 résolution toutes en **lecture seule**, séparées de l'écriture.
 
 | Fichier | Rôle |
@@ -410,6 +410,9 @@ résolution toutes en **lecture seule**, séparées de l'écriture.
 | `resoudre7.py` | Passe 7 — coffrets : `search/collection` par nom de saga |
 | `resoudre8.py` | Passe 8 — filmographie du réalisateur : **sans rendement**, gardé comme mesure |
 | `jumelle.py` | Recopie les liens d'une édition jumelle, à compte égal |
+| `contenu_ec.py` | Lit le bloc « Contenu : » d'editioncollector |
+| `resoudre_ec3.py` | Passe 9 — editioncollector : contenu relu, sagas développées |
+| `filtrer_ec3.py` | Contrôle serré, faute de plage d'années sur ces fiches |
 | `controler.py` | Trie en « sûr » et « à relire » avant écriture |
 | `filtrer6.py` | Durcit la passe 6, la moins étayée |
 | `ecrire.py` | Écriture (`--apply`), quatre garde-fous |
@@ -495,7 +498,7 @@ côté serveur — écartée pour l'instant.
 ## 8. Chantiers ouverts
 
 ### Décisions en attente sur les orphelines
-Il reste **406 éditions sans film**, après la campagne du 30 juillet 2026 :
+Il reste **377 éditions sans film**, après la campagne du 30 juillet 2026 :
 
 - **116 coffrets blu-ray.com sans liste de contenu** — `Ozu en 20 films`,
   `Douglas Sirk - Les Mélodrames allemands`. La page annonce le nombre de films
@@ -516,8 +519,10 @@ Il reste **406 éditions sans film**, après la campagne du 30 juillet 2026 :
   résultat, et choisir un sous-ensemble reviendrait à deviner — c'est ce qui a
   produit le lot `probable`, faux à 15 %. Mesuré par `resoudre8.py`, gardé pour
   ne pas refaire l'essai.
-- **195 editioncollector** — pas de page brute conservée, et `contenu_brut`
-  mêle packaging et œuvres dans la même liste à puces.
+- **166 editioncollector** — pas de page brute conservée, et `contenu_brut`
+  mêle packaging et œuvres dans la même liste à puces. La neuvième passe en a
+  repris 29 (111 liens) en lisant ce bloc autrement : voir le piège des lignes
+  de contenu plus bas.
 - **37 films et 25 séries** — surtout des opéras, des concerts et des captations
   que TMDB ne référence pas. Recoupe le chantier « une quinzaine d'opéras à
   écarter » : ces fiches n'ont pas d'œuvre à laquelle se rattacher.
@@ -746,6 +751,39 @@ Documentés parce qu'ils se reproduiront.
   `(Leclerc) Aquaman 2 et le Royaume perdu` s'est rattaché au film *Leclerc*
   (1949). En fin de titre, en revanche, elle porte bien l'original :
   `Stalingrad (Enemy At The Gates)`.
+- **Une normalisation ASCII *efface* la ponctuation non-ASCII au lieu de la
+  séparer.** `encode("ascii", "ignore")` réduisait `l’Anneau` à `lanneau` quand
+  `l'anneau` donnait `l anneau` : les deux cessaient d'être comparables, et
+  **tout titre français à apostrophe typographique échouait en silence**. Le
+  symptôme visible était un rattachement au repli — `Le Seigneur des Anneaux –
+  La Communauté de l'Anneau` tombait sur le dessin animé de Bakshi (1978), la
+  correspondance exacte ayant échoué et le fragment de tête ayant gagné.
+  Ramener `’ “ ” – — …` à leur équivalent ASCII **avant** de replier.
+- **Dans un bloc « Contenu : », le support est le suffixe des lignes qui nomment
+  une œuvre**, pas la marque des lignes à jeter : `La vie des morts (1991) en
+  blu-ray`, `Steelbook blu-ray 2D+4K de Fog`. Rejeter les lignes contenant
+  « blu-ray » revenait à jeter précisément ce qu'on cherchait. Retirer le
+  vocabulaire de support en tête et en queue, puis regarder ce qui reste — et
+  si rien ne reste sur aucune ligne, c'est une édition d'un seul film, que le
+  titre de l'édition nomme.
+- **Ne pas affiner indéfiniment un filtre à bruit.** Ce qu'un bloc « Contenu : »
+  laisse passer — `une broche La Main du Roi`, `2 art cards` — ne trouvera aucun
+  titre exact sur TMDB. La validation fait le tri ; la regex n'a qu'à
+  dégrossir.
+- **Une ligne de contenu peut nommer une saga et non un film.** Dans un coffret
+  Hobbit, `Le Seigneur des Anneaux` désigne la trilogie. Résolu comme un titre,
+  il rendait un seul film — et le mauvais. `search/collection` le développe,
+  à condition que la collection tienne dans les places restantes du boîtier.
+- **Le titre borne parfois lui-même le contenu** : `Sonic 1 & 2`, `Superman
+  I-IV`. Sans cette borne, développer la saga Sonic dans un coffret de deux
+  films y ajoutait les volets 3 et 4, dont un de 2026.
+- **Une parenthèse jamais refermée signale une ligne coupée à l'extraction.**
+  `Le Hobbit : Un voyage inattendu (1 Blu-ray du film en version longue + 3`
+  laissait « (1 » collé au titre.
+- **Sans `order`, la pagination PostgREST répète et saute des lignes.** `offset`
+  s'applique alors à un ensemble non ordonné. Symptôme silencieux : un comptage
+  d'orphelines est ressorti à 811 au lieu de 406, une page d'`edition_films`
+  ayant disparu de la lecture. Toujours passer `order=id`.
 - **editioncollector met le vocabulaire d'édition devant, blu-ray.com derrière.**
   Des coupes en fin de chaîne ne mordent sur rien côté editioncollector, et
   celle qui part d'« Intégrale » emporte tout le titre :
