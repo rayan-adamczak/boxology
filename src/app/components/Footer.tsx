@@ -65,8 +65,10 @@ export function Footer() {
             <LienInterne to="/a-propos">À propos</LienInterne>
           </Colonne>
 
-          {/* Aucun compte ouvert pour l'instant : de simples mentions, pas des
-              liens morts. À remplacer par des <a> le jour où ils existent. */}
+          {/* Aucun compte de réseau social ouvert pour l'instant : de simples
+              mentions, pas des liens morts. À remplacer par des <a> le jour où
+              ils existent. Rien à voir avec les comptes utilisateurs, qui eux
+              existent depuis juillet 2026. */}
           <Colonne titre="Réseaux">
             <li>Instagram</li>
             <li>Bluesky</li>

@@ -149,8 +149,13 @@ recrée trois lignes plus bas.
 
 ### Sécurité
 RLS activé partout. Policies `anon` en **lecture seule** sur `films`,
-`editions`, `edition_films`. `statuts`, `bluray_import`, `kv_store_38e4ee68` et
-les tables de sauvegarde renvoient `[]` en anon.
+`editions`, `edition_films`. `bluray_import`, `kv_store_38e4ee68` et les tables
+de sauvegarde renvoient `[]` en anon. `collections` est plus fermée encore :
+`revoke all` sur le rôle `anon`, donc **401** et non tableau vide.
+
+La table `statuts` a été supprimée le 30 juillet 2026 (vestige mono-utilisateur
+sans `user_id`, deux lignes de test, aucune référence) —
+cf. `supabase/migrations/20260730_drop_statuts.sql`.
 
 Attention en vérifiant : PostgREST répond **200 avec un tableau vide** quand une
 policy bloque un SELECT, pas 401. Un 200 ne prouve rien.
