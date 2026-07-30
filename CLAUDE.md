@@ -97,6 +97,13 @@ l'ancienne supprimée du tableau de bord.
 Deux lignes seulement n'ont pas de `tmdb_id` — elles échappent donc à toutes
 les passes d'enrichissement, qui énumèrent `tmdb_id=not.is.null`.
 
+**`titre` est un instantané pris à l'import, pas un miroir de TMDB.** Réaligné
+le 30 juillet 2026 : 91 des 3 554 films avaient divergé, 89 réécrits
+(`rafraichir_titres.py`, ancienne valeur conservée dans `titres_avant.json`).
+Le rapprochement se fait sur `tmdb_id` et l'écriture est refusée si l'année de
+TMDB ne colle plus à celle en base — c'est ce garde-fou qui aurait attrapé le
+cas `Terminator 2` décrit plus bas.
+
 **Fiche technique, ajoutée le 30 juillet 2026** :
 `titres_alternatifs` (jsonb, `{"en": "…", "es": "…"}`), `pays` (text[]),
 `date_sortie` (date), `producteurs` (text[]), `budget` (bigint), `musique`.
@@ -727,6 +734,30 @@ Documentés parce qu'ils se reproduiront.
   Des coupes en fin de chaîne ne mordent sur rien côté editioncollector, et
   celle qui part d'« Intégrale » emporte tout le titre :
   `Coffret intégrale de The Big Bang Theory`.
+- **TMDB est communautaire, donc ses titres bougent.** `! SOS Fantômes` a
+  longtemps été notre titre du film de 1984 : le point d'exclamation est une
+  astuce de contributeur pour faire remonter une fiche dans les listes, et TMDB
+  l'a corrigé depuis en `S.O.S. Fantômes`. Un titre en base est daté de son
+  import ; ne pas le prendre pour la vérité courante.
+- **La dérive s'était concentrée sur un seul lot** : 77 des 91 titres
+  divergents tenaient dans les ids 11000-11193, soit 194 lignes — 40 % du lot,
+  contre 0,4 % ailleurs. Ces titres avaient été écrits avec une normalisation
+  d'affichage appliquée au passage (tirets et deux-points changés en ` : `,
+  `&` changé en `and`, casse de titre forcée), donc n'avaient jamais
+  correspondu à TMDB. **Ne pas normaliser un titre à l'écriture** : la mise en
+  forme appartient à l'affichage, et un titre retouché ne se rapproche plus de
+  rien.
+- **Les caractères invisibles de TMDB cassent toute comparaison exacte.**
+  Espace insécable avant les deux-points (`X-Men : Apocalypse`, 31 lignes)
+  et marque de sens d'écriture en tête de titre (`‎Avatar Aang…`). Sans
+  effet à l'œil, mais deux titres identiques à la lecture deviennent
+  impossibles à rapprocher. `nettoyer_invisibles.py` les retire.
+- **`Terminator 2` (1989) est un décalque italien de Bruno Mattei.** Deux
+  éditions editioncollector y étaient rattachées au lieu du film de Cameron
+  (1991) — le titre d'exploitation français du décalque usurpe le sien.
+  Corrigé le 30 juillet 2026. Même motif que Jean Vigo ou Bruce Lee : un titre
+  exact tombant sur un homonyme confidentiel, ici invisible parce que l'année
+  n'avait jamais été comparée.
 
 ### Infrastructure
 - **`npm run build` lance `tsc --noEmit` d'abord.** Sans lui, rien ne relisait le
