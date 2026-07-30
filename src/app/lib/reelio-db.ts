@@ -21,6 +21,20 @@ export interface Film {
   genres: string | null;
   cast_principal: unknown | null;
   scenariste: string | null;
+  /**
+   * Titres TMDB par langue ISO 639-1, hors français : `{"en": "Arrival"}`.
+   * Alimenté par `enrichir_tmdb.py`, absent tant qu'il n'a pas tourné.
+   */
+  titres_alternatifs: Record<string, string> | null;
+  /* Fiche technique, alimentée par `champs_tmdb.py`. */
+  pays: string[] | null;
+  /** Sortie salle française quand TMDB la connaît, sortie mondiale sinon. */
+  date_sortie: string | null;
+  producteurs: string[] | null;
+  /** Budget en dollars. NULL quand TMDB l'ignore — il rend 0 dans ce cas. */
+  budget: number | null;
+  /** Compositeur de la musique originale. */
+  musique: string | null;
 }
 
 export interface Edition {
@@ -35,6 +49,27 @@ export interface Edition {
   pays: string | null;
   date_sortie: string | null;
   region: string | null;
+  /* Specs du disque, source blu-ray.com. Nulles sur les 3 193 éditions
+     editioncollector, qui ne publient pas de fiche technique. */
+  codec: string | null;
+  resolution: string | null;
+  hdr: string[] | null;
+  ratio: string | null;
+  /** Ratio de projection, quand il diffère de celui du disque. */
+  ratio_origine: string | null;
+  pistes_audio: PisteAudio[] | null;
+  sous_titres: string[] | null;
+  disques: string | null;
+  packaging: string | null;
+  /** Éditeur vidéo du disque. Remplace le distributeur, absent de TMDB. */
+  editeur: string | null;
+}
+
+export interface PisteAudio {
+  /** Nom en français : le parseur traduit et filtre à l'import. */
+  langue: string;
+  /** « DTS-HD Master Audio 5.1 », « Dolby Atmos »… */
+  format: string;
 }
 
 export type StatutValue = "envie" | "possede";
@@ -50,6 +85,123 @@ export function splitList(val: unknown): string[] {
   if (!val) return [];
   if (Array.isArray(val)) return val.map(String).filter(Boolean);
   return String(val).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+/**
+ * Agrège les specs techniques des éditions d'un film en une seule fiche.
+ *
+ * Les specs sont portées par le disque, pas par l'œuvre : une 4K en Dolby
+ * Vision et un Blu-ray 1080p du même film n'ont ni la même définition, ni le
+ * même codec, ni les mêmes pistes. La fiche film réunit donc ce qui existe
+ * *quelque part* au catalogue — « disponible en Dolby Vision », pas « ce film
+ * est en Dolby Vision ». Le décompte d'éditions renseignées est rendu avec,
+ * pour que la page dise sur quoi elle s'appuie.
+ *
+ * Chaque liste est ordonnée par fréquence décroissante : la valeur portée par
+ * le plus d'éditions passe devant. À égalité, l'ordre alphabétique tranche,
+ * sinon deux chargements de la même page pourraient différer.
+ */
+export interface SpecsFilm {
+  definitions: string[];
+  hdr: string[];
+  ratios: string[];
+  codecs: string[];
+  languesAudio: string[];
+  sousTitres: string[];
+  editeurs: string[];
+  zones: string[];
+  /** Nombre d'éditions ayant fourni au moins une valeur. */
+  sources: number;
+}
+
+/** « Native 4K (2160p) » et « 4K (2160p) » désignent la même chose. */
+function normaliserDefinition(v: string): string {
+  if (/2160p/i.test(v)) return "4K (2160p)";
+  return v;
+}
+
+/**
+ * Un champ de blu-ray.com peut porter plusieurs valeurs dans une seule chaîne
+ * — « 2.41:1, 2.40:1, 1.85:1 » sur un coffret qui réunit trois montages,
+ * « MPEG-4 AVC, VC-1 » sur un disque à deux encodages. Sans découpage, chaque
+ * combinaison devient une valeur distincte et la ligne affiche
+ * « 1.85:1 · 2.41:1, 2.40:1, 1.85:1 », où 1.85:1 apparaît deux fois.
+ *
+ * Le débit entre parenthèses est retiré au passage : « HEVC / H.265 » et
+ * « HEVC / H.265 (50.53 Mbps) » sont le même codec, et le débit relève du
+ * disque, pas du film.
+ */
+function eclater(valeur: string): string[] {
+  return valeur
+    .split(",")
+    .map((v) => v.replace(/\s*\([^)]*\)\s*$/, "").trim())
+    .filter(Boolean);
+}
+
+/**
+ * `region` arrive tel quel de blu-ray.com : « 2K Blu-ray: Region B (A, C
+ * untested) ». Seules les zones affirmées comptent — celles entre parenthèses
+ * sont marquées `untested`, donc invérifiées, et les afficher les ferait
+ * passer pour des garanties.
+ */
+function zonesDe(region: string | null): string[] {
+  if (!region) return [];
+  const affirme = region.split("(")[0];
+  return Array.from(new Set(affirme.match(/\bRegion\s+([ABC])\b/g) || []))
+    .map((m) => m.replace(/\bRegion\s+/, "Zone "));
+}
+
+export function agregerSpecs(editions: Edition[]): SpecsFilm {
+  const compteurs: Record<string, Map<string, number>> = {
+    definitions: new Map(), hdr: new Map(), ratios: new Map(),
+    codecs: new Map(), languesAudio: new Map(), sousTitres: new Map(),
+    editeurs: new Map(), zones: new Map(),
+  };
+  const ajouter = (cle: string, valeurs: (string | null | undefined)[]) => {
+    for (const v of valeurs) {
+      const s = (v || "").trim();
+      if (!s) continue;
+      compteurs[cle].set(s, (compteurs[cle].get(s) || 0) + 1);
+    }
+  };
+
+  let sources = 0;
+  for (const ed of editions) {
+    const pistes = Array.isArray(ed.pistes_audio) ? ed.pistes_audio : [];
+    const renseignee =
+      !!(ed.resolution || ed.ratio || ed.ratio_origine || ed.codec || ed.editeur) ||
+      pistes.length > 0 || splitList(ed.hdr).length > 0 || splitList(ed.sous_titres).length > 0;
+    if (renseignee) sources += 1;
+
+    ajouter("definitions", [ed.resolution && normaliserDefinition(ed.resolution)]);
+    ajouter("hdr", splitList(ed.hdr));
+    // Le ratio du disque prime ; `ratio_origine` ne sert que s'il manque, pour
+    // ne pas afficher deux fois la même valeur — les deux sont identiques sur
+    // l'écrasante majorité des fiches.
+    ajouter("ratios", eclater(ed.ratio || ed.ratio_origine || ""));
+    ajouter("codecs", eclater(ed.codec || ""));
+    ajouter("languesAudio", pistes.map((p) => p?.langue));
+    ajouter("sousTitres", splitList(ed.sous_titres));
+    ajouter("editeurs", [ed.editeur]);
+    ajouter("zones", zonesDe(ed.region));
+  }
+
+  const classer = (cle: string) =>
+    Array.from(compteurs[cle].entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr"))
+      .map(([v]) => v);
+
+  return {
+    definitions: classer("definitions"),
+    hdr: classer("hdr"),
+    ratios: classer("ratios"),
+    codecs: classer("codecs"),
+    languesAudio: classer("languesAudio"),
+    sousTitres: classer("sousTitres"),
+    editeurs: classer("editeurs"),
+    zones: classer("zones"),
+    sources,
+  };
 }
 
 /** An edition joined with its parent film — used by the list pages. */
