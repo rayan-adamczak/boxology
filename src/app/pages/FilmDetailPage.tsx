@@ -311,11 +311,24 @@ export function FilmDetailPage() {
             />
           </div>
         )}
+        {/*
+          Deux dégradés, pas un. Le vertical seul laissait le texte sur une
+          image nette : lisible sur un fond sombre, illisible sur un ciel clair
+          ou un visage. L'horizontal donne au texte un fond franc à gauche et
+          laisse l'image respirer à droite, où il n'y a rien à lire.
+        */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(20,24,28,0.5) 0%, rgba(20,24,28,0.85) 60%, #14181c 100%)",
+              "linear-gradient(to right, rgba(20,24,28,0.97) 0%, rgba(20,24,28,0.92) 38%, rgba(20,24,28,0.55) 72%, rgba(20,24,28,0.35) 100%)",
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(20,24,28,0.55) 0%, rgba(20,24,28,0.25) 35%, rgba(20,24,28,0.75) 82%, #14181c 100%)",
           }}
         />
 
