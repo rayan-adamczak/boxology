@@ -24,7 +24,13 @@ import { projectId, publicAnonKey } from "/utils/supabase/info";
 let chargement: Promise<GoTrueClient> | null = null;
 
 function charger(): Promise<GoTrueClient> {
-  chargement ??= import("./auth-client").then((m) => m.auth);
+  // L'échec n'est pas mis en cache : sans ce `catch`, une coupure réseau au
+  // premier appel condamnait la connexion pour toute la durée de la visite,
+  // puisque la promesse rejetée restait dans `chargement`.
+  chargement ??= import("./auth-client").then((m) => m.auth).catch((e) => {
+    chargement = null;
+    throw e;
+  });
   return chargement;
 }
 
@@ -149,6 +155,28 @@ export function useSession(): Session | null | undefined {
       void auth.getSession().then(({ data: courant }) => {
         if (vivant) setSession((prec) => (prec === undefined ? courant.session : prec));
       });
+    }).catch(() => {
+      /*
+        auth-js n'a pas pu être chargé — réseau coupé, morceau absent du CDN,
+        cache empoisonné. On tranche à « pas de session » plutôt que de rester
+        sur `undefined`.
+
+        C'est la différence entre un site dégradé et un site mort : tout ce qui
+        attend la session — à commencer par la fiche film, qui ne lance ses
+        requêtes qu'une fois `session` résolue — restait bloqué sur
+        « Chargement… », et le catalogue public devenait inaccessible pour une
+        bibliothèque dont il n'a pas besoin. La consultation sans compte est la
+        raison d'être du site et la condition de son indexation ; elle ne doit
+        dépendre de rien.
+
+        Arrivé en production le 30 juillet 2026 : le morceau `auth-client`
+        répondait 200 avec les bons octets, mais son import échouait. Le
+        symptôme était une page vide.
+
+        `charger()` remet `chargement` à zéro en cas d'échec, donc un clic sur
+        « Connexion » retentera le chargement.
+      */
+      if (vivant) setSession((prec) => (prec === undefined ? null : prec));
     });
 
     return () => {
