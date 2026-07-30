@@ -373,9 +373,9 @@ export function FilmDetailPage() {
                 style={{
                   // Les variables ne sont posées que par le sélecteur d'essai,
                   // en développement. En production, les replis s'appliquent.
-                  fontFamily: "var(--titre-famille, inherit)",
+                  fontFamily: "var(--titre-famille, var(--reel-font-titre))",
                   fontSize: "calc(clamp(30px, 3.4vw, 44px) * var(--titre-echelle, 1))",
-                  fontWeight: "var(--titre-graisse, 700)" as unknown as number,
+                  fontWeight: "var(--titre-graisse, 800)" as unknown as number,
                   color: "#e8e8e8",
                   lineHeight: "var(--titre-interligne, 1.08)" as unknown as number,
                   letterSpacing: "var(--titre-approche, -0.02em)",

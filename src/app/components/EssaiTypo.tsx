@@ -28,6 +28,18 @@ interface Option {
 
 const OPTIONS: Option[] = [
   {
+    // N'écrase rien : on voit le réglage réel de theme.css.
+    cle: "defaut",
+    nom: "Défaut du site",
+    pile: "",
+    graisse: 0,
+    echelle: 0,
+    interligne: 0,
+    approche: "",
+    casse: "none",
+    note: "Ce que voient les visiteurs : Bricolage Grotesque, réglée dans theme.css.",
+  },
+  {
     cle: "inter",
     nom: "Inter",
     pile: "'Inter', sans-serif",
@@ -100,6 +112,12 @@ const CLE_STOCKAGE = "jaquette_essai_typo";
 /** Applique le choix sous forme de variables CSS lues par la fiche film. */
 function appliquer(o: Option) {
   const r = document.documentElement.style;
+  if (o.cle === "defaut") {
+    for (const v of ["famille", "graisse", "echelle", "interligne", "approche", "casse"]) {
+      r.removeProperty(`--titre-${v}`);
+    }
+    return;
+  }
   r.setProperty("--titre-famille", o.pile);
   r.setProperty("--titre-graisse", String(o.graisse));
   r.setProperty("--titre-echelle", String(o.echelle));
@@ -110,7 +128,7 @@ function appliquer(o: Option) {
 
 export function EssaiTypo() {
   const [choix, setChoix] = useState<string>(
-    () => localStorage.getItem(CLE_STOCKAGE) ?? "inter",
+    () => localStorage.getItem(CLE_STOCKAGE) ?? "defaut",
   );
   const [replie, setReplie] = useState(false);
 

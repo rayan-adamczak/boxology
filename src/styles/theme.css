@@ -13,6 +13,9 @@
   --reel-accent: #2e7dff;      /* electric blue accent */
   --reel-accent-soft: rgba(46, 125, 255, 0.15); /* discount badge bg */
   --reel-font: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* Titres et mot-symbole. Inter reste le corps de texte : une grotesque à fort
+     caractère fatigue sur un synopsis de dix lignes. */
+  --reel-font-titre: 'Bricolage Grotesque', 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);

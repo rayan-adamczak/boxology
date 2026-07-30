@@ -24,6 +24,18 @@
 
       <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
 
+    <!--
+      Bricolage Grotesque porte les titres et le mot-symbole. `preconnect` évite
+      d'attendre la poignée de main TLS au moment où la police est demandée, et
+      `display=swap` affiche le texte en police système plutôt que de le laisser
+      invisible pendant le téléchargement.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap"
+      rel="stylesheet"
+    />
     </head>
 
     <body>
