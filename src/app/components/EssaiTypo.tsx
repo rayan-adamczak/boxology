@@ -36,40 +36,62 @@ const OPTIONS: Option[] = [
     interligne: 1.08,
     approche: "-0.02em",
     casse: "none",
-    note: "L’actuelle. Neutre, sans caractère.",
+    note: "L’actuelle, pour comparer. Neutre, sans caractère.",
   },
   {
-    cle: "instrument",
-    nom: "Instrument Serif",
-    pile: "'Instrument Serif', serif",
-    graisse: 400,
-    echelle: 1.34,
-    interligne: 1.02,
-    approche: "-0.01em",
-    casse: "none",
-    note: "Didone à fort contraste. Édition, collection, objet.",
-  },
-  {
-    cle: "fraunces",
-    nom: "Fraunces",
-    pile: "'Fraunces', serif",
+    cle: "bricolage",
+    nom: "Bricolage Grotesque",
+    pile: "'Bricolage Grotesque', sans-serif",
     graisse: 700,
-    echelle: 1.16,
+    echelle: 1.06,
+    interligne: 1.04,
+    approche: "-0.025em",
+    casse: "none",
+    note: "Grotesque contemporaine, dessin volontairement irrégulier. Le contraire d’une police par défaut.",
+  },
+  {
+    cle: "familjen",
+    nom: "Familjen Grotesk",
+    pile: "'Familjen Grotesk', sans-serif",
+    graisse: 700,
+    echelle: 1.08,
     interligne: 1.04,
     approche: "-0.02em",
     casse: "none",
-    note: "Serif dessinée, plus chaude. Identité la plus affirmée.",
+    note: "Grotesque suédoise, serrée, détails singuliers. Sobre mais reconnaissable.",
   },
   {
-    cle: "oswald",
-    nom: "Oswald",
-    pile: "'Oswald', sans-serif",
+    cle: "space",
+    nom: "Space Grotesk",
+    pile: "'Space Grotesk', sans-serif",
+    graisse: 700,
+    echelle: 1.06,
+    interligne: 1.05,
+    approche: "-0.03em",
+    casse: "none",
+    note: "Géométrique avec des accidents. Tranche nettement d’Inter tout en restant lisible.",
+  },
+  {
+    cle: "newsreader",
+    nom: "Newsreader",
+    pile: "'Newsreader', serif",
     graisse: 600,
+    echelle: 1.2,
+    interligne: 1.06,
+    approche: "-0.015em",
+    casse: "none",
+    note: "Serif dessinée pour l’écran. Éditoriale sans la fragilité d’une didone.",
+  },
+  {
+    cle: "bodoni",
+    nom: "Bodoni Moda",
+    pile: "'Bodoni Moda', serif",
+    graisse: 700,
     echelle: 1.24,
     interligne: 1.02,
-    approche: "0.01em",
-    casse: "uppercase",
-    note: "Affiche de cinéma. Souffre sur les titres français longs.",
+    approche: "-0.01em",
+    casse: "none",
+    note: "Contraste extrême, registre mode et affiche. Très fort en logo, exigeant en petit.",
   },
 ];
 
@@ -96,7 +118,13 @@ export function EssaiTypo() {
     const lien = document.createElement("link");
     lien.rel = "stylesheet";
     lien.href =
-      "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400;9..144,700&family=Oswald:wght@500;600&display=swap";
+      "https://fonts.googleapis.com/css2" +
+      "?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800" +
+      "&family=Familjen+Grotesk:wght@600;700" +
+      "&family=Space+Grotesk:wght@600;700" +
+      "&family=Newsreader:opsz,wght@6..72,500;6..72,600" +
+      "&family=Bodoni+Moda:opsz,wght@6..96,600;6..96,700" +
+      "&display=swap";
     document.head.appendChild(lien);
     return () => { lien.remove(); };
   }, []);

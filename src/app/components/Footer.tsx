@@ -46,7 +46,7 @@ export function Footer() {
             >
               <Film size={18} color="#ffffff" strokeWidth={2.2} />
             </span>
-            <span style={{ fontSize: "18px", fontWeight: 700, color: "var(--reel-text)" }}>
+            <span style={{ fontFamily: "var(--titre-famille, inherit)", fontSize: "18px", fontWeight: "var(--titre-graisse, 700)" as unknown as number, letterSpacing: "var(--titre-approche, 0)", color: "var(--reel-text)" }}>
               Jaquette
             </span>
           </Link>

@@ -757,12 +757,15 @@ export function FilmDetailPage() {
 
         {activeTab === "Détails" && (
           /*
-            Deux colonnes, sur le modèle de la maquette : la distribution et la
-            fiche technique à gauche, le récit à droite. L'ancienne version
+            Distribution à gauche, fiche technique à droite. L'ancienne version
             empilait tout dans une liste libellé/valeur, distribution comprise,
-            ce qui écrasait des noms de personnes dans une ligne de tableau.
+            ce qui écrasait des noms de personnes dans des lignes de tableau.
+
+            Pas de synopsis ici : il est déjà en entier dans le héros, au-dessus
+            des onglets. Le répéter deux fois sur le même écran ne renseignait
+            personne.
           */
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="flex flex-col gap-8">
               {castList.length > 0 && (
                 <section>
@@ -793,6 +796,9 @@ export function FilmDetailPage() {
                 </section>
               )}
 
+            </div>
+
+            <div className="flex flex-col gap-8">
               <section
                 className="rounded-[10px] p-5"
                 style={{ backgroundColor: "#1f242a", border: "1px solid #2a3138" }}
@@ -828,17 +834,6 @@ export function FilmDetailPage() {
                     })}
                 </dl>
               </section>
-            </div>
-
-            <div className="flex flex-col gap-8">
-              {film.synopsis && (
-                <section>
-                  <TitreSection>Synopsis</TitreSection>
-                  <p className="pt-3" style={{ fontSize: "15px", color: "#e8e8e8", lineHeight: "25px" }}>
-                    {film.synopsis}
-                  </p>
-                </section>
-              )}
 
               {/*
                 Ce que Jaquette apporte que TMDB n'a pas : le recensement des
