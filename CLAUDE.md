@@ -88,7 +88,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films` — 3 556 lignes
+### `films` — 3 569 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -98,7 +98,7 @@ Deux lignes seulement n'ont pas de `tmdb_id` — elles échappent donc à toutes
 les passes d'enrichissement, qui énumèrent `tmdb_id=not.is.null`.
 
 **`titre` est un instantané pris à l'import, pas un miroir de TMDB.** Réaligné
-le 30 juillet 2026 : 91 des 3 554 films avaient divergé, 89 réécrits
+le 30 juillet 2026 : 91 des 3 554 films alors en base avaient divergé, 89 réécrits
 (`rafraichir_titres.py`, ancienne valeur conservée dans `titres_avant.json`).
 Le rapprochement se fait sur `tmdb_id` et l'écriture est refusée si l'année de
 TMDB ne colle plus à celle en base — c'est ce garde-fou qui aurait attrapé le
@@ -152,15 +152,15 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films` — 6 742 liens
+### `edition_films` — 6 787 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
-Répartition : `film_id` 2 624, `bluray_page` 1 085, `bluray_tmdb` 1 037,
-`bluray_page_partiel` 845, `corrige_manuel` 648, `probable` 236,
+Répartition : `film_id` 2 622, `bluray_page` 1 130, `bluray_tmdb` 1 037,
+`bluray_page_partiel` 845, `corrige_manuel` 650, `probable` 236,
 `collection_tmdb` 199, `corrige_annee` 68.
 
-6 742 liens pour **5 323 éditions rattachées** : l'écart, ce sont les coffrets,
+6 787 liens pour **5 333 éditions rattachées** : l'écart, ce sont les coffrets,
 qui portent un lien par film.
 
 **`probable` marque les rattachements écrits sans relecture**, le 30 juillet
@@ -250,11 +250,11 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 3 556 (3 049 films, 505 séries, 2 coffrets) |
+| Films | 3 569 (3 062 films, 505 séries, 2 coffrets) |
 | Éditions | 5 739 |
 | Codes-barres | 3 428 |
-| Éditions rattachées | 5 323 |
-| Éditions sans film | 416 |
+| Éditions rattachées | 5 333 |
+| Éditions sans film | 406 |
 | URL au sitemap | 3 349 |
 
 `editions.film_id` est `null` sur 858 lignes, ce qui ne veut plus rien dire :
@@ -269,8 +269,8 @@ dans les six langues retenues (`en`, `es`, `de`, `it`, `ja`, `pt`).
 Le budget est le champ le moins couvert, et c'est normal : TMDB rend `0` quand
 il l'ignore, et `0` est écrit `NULL` plutôt qu'affiché comme une mesure.
 
-Deux campagnes le 30 juillet 2026 : 1 893 → 1 256, puis **1 256 → 416**. Au
-total 1 477 éditions rendues visibles et 870 films créés.
+Deux campagnes le 30 juillet 2026 : 1 893 → 1 256, puis **1 256 → 406**. Au
+total 1 487 éditions rendues visibles et 883 films créés.
 
 La seconde campagne est partie d'une relecture des pages blu-ray.com brutes
 conservées dans `crawl/pages/`. Le parseur d'origine n'en gardait que le codec,
@@ -281,7 +281,7 @@ le nombre de films tranche entre édition simple et coffret sans avoir à
 interpréter le titre, là où « Intégrale » ou « Collection » mentent une fois
 sur deux.
 
-Reste 416 orphelines : 195 editioncollector, 159 coffrets blu-ray.com sans
+Reste 406 orphelines : 195 editioncollector, 116 coffrets blu-ray.com sans
 liste de contenu, 37 films et 25 séries — ces derniers surtout des opéras et
 des concerts que TMDB ne référence pas.
 
@@ -393,7 +393,7 @@ Résultat cumulé : 1 893 → 1 256 orphelines, 637 rattachées, 332 films cré�
 
 ### Seconde campagne orphelines — `orphelines_2026_07_30/`
 
-1 256 → 416 orphelines, 840 rattachées, 870 films créés, en six passes de
+1 256 → 406 orphelines, 850 rattachées, 883 films créés, en huit passes de
 résolution toutes en **lecture seule**, séparées de l'écriture.
 
 | Fichier | Rôle |
@@ -407,6 +407,9 @@ résolution toutes en **lecture seule**, séparées de l'écriture.
 | `resoudre5.py` | Passe 5 — coffrets restants, contrainte d'années assouplie |
 | `resoudre6.py` | Passe 6 — découpage accepté même partiel, les deux sources |
 | `resoudre_ec2.py` | editioncollector : bloc « Contenu : », préfixes d'édition |
+| `resoudre7.py` | Passe 7 — coffrets : `search/collection` par nom de saga |
+| `resoudre8.py` | Passe 8 — filmographie du réalisateur : **sans rendement**, gardé comme mesure |
+| `jumelle.py` | Recopie les liens d'une édition jumelle, à compte égal |
 | `controler.py` | Trie en « sûr » et « à relire » avant écriture |
 | `filtrer6.py` | Durcit la passe 6, la moins étayée |
 | `ecrire.py` | Écriture (`--apply`), quatre garde-fous |
@@ -492,14 +495,27 @@ côté serveur — écartée pour l'instant.
 ## 8. Chantiers ouverts
 
 ### Décisions en attente sur les orphelines
-Il reste **416 éditions sans film**, après la campagne du 30 juillet 2026 :
+Il reste **406 éditions sans film**, après la campagne du 30 juillet 2026 :
 
-- **159 coffrets blu-ray.com sans liste de contenu** — `Ozu en 20 films`,
+- **116 coffrets blu-ray.com sans liste de contenu** — `Ozu en 20 films`,
   `Douglas Sirk - Les Mélodrames allemands`. La page annonce le nombre de films
-  mais ne les nomme pas, et le titre ne les nomme pas non plus. Le seul chemin
-  restant serait la filmographie TMDB du réalisateur filtrée par la plage
-  d'années ; elle déborde toujours le contenu du boîtier, donc le contrôle par
-  le nombre ne peut pas trancher. Écarté pour cette raison.
+  mais ne les nomme pas, et le titre ne les nomme pas non plus. Trois leviers
+  ont été essayés sur les 126 de départ ; deux ont donné, le troisième est
+  mort et la raison est mesurée :
+
+  | levier | rendement |
+  |---|---|
+  | `search/collection` par nom de saga | 9 coffrets, 43 liens |
+  | édition jumelle (même titre nu, même compte) | 1 coffret, 2 liens |
+  | filmographie du réalisateur | 0 |
+
+  **La filmographie ne peut pas marcher.** Restreinte à la plage d'années du
+  bandeau, elle n'égale jamais le compte annoncé : John Hughes 6 contre 5,
+  Buster Keaton 11 contre 5, Fassbinder 39 contre 7, Kiarostami 14 contre 18,
+  Lamberto Bava 16 contre 2. Sans égalité, aucun contrôle ne valide le
+  résultat, et choisir un sous-ensemble reviendrait à deviner — c'est ce qui a
+  produit le lot `probable`, faux à 15 %. Mesuré par `resoudre8.py`, gardé pour
+  ne pas refaire l'essai.
 - **195 editioncollector** — pas de page brute conservée, et `contenu_brut`
   mêle packaging et œuvres dans la même liste à puces.
 - **37 films et 25 séries** — surtout des opéras, des concerts et des captations
