@@ -74,7 +74,38 @@ export function ComptePage() {
 }
 
 /**
- * Confirmation en deux temps, la seconde exigeant de recopier un mot.
+ * Réplique à recopier pour confirmer. Un catalogue de films peut se permettre
+ * un clin d’œil là où d’autres écriraient « SUPPRIMER ».
+ *
+ * Attention à ce que ce choix déplace : le mot « SUPPRIMER » énonçait
+ * l’intention, une réplique non. Ce sont donc le paragraphe de conséquence et
+ * le libellé du bouton qui portent le sens — ne pas les édulcorer en pensant
+ * que la phrase suffit.
+ */
+const PHRASE = "Hasta la vista, baby";
+
+/**
+ * Comparaison indulgente : casse, accents et ponctuation ignorés.
+ *
+ * La friction voulue est de recopier une phrase, pas de reproduire une virgule.
+ * Bloquer quelqu’un qui a manifestement compris serait de la brutalité sans
+ * bénéfice.
+ *
+ * La décomposition NFD précède le retrait des diacritiques, sinon les
+ * majuscules accentuées passent au travers — le même piège que `translate()`
+ * appliqué avant `lower()` en SQL.
+ */
+function normaliser(valeur: string): string {
+  return valeur
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Confirmation en deux temps, la seconde exigeant de recopier une phrase.
  *
  * Une simple boîte « êtes-vous sûr ? » se clique par réflexe. Comme il n’existe
  * aucune sauvegarde de laquelle revenir, le geste doit demander une intention
@@ -85,8 +116,7 @@ function SuppressionCompte() {
   const [saisie, setSaisie] = useState("");
   const [enCours, setEnCours] = useState(false);
 
-  const MOT = "SUPPRIMER";
-  const confirme = saisie.trim().toUpperCase() === MOT;
+  const confirme = normaliser(saisie) === normaliser(PHRASE);
 
   async function supprimer() {
     setEnCours(true);
@@ -122,7 +152,8 @@ function SuppressionCompte() {
           <label className="flex flex-col gap-2">
             <span>
               Pour confirmer, recopiez{" "}
-              <code style={{ color: "var(--reel-text)" }}>{MOT}</code> ci-dessous.
+              <code style={{ color: "var(--reel-text)" }}>{PHRASE}</code> ci-dessous. La casse et la
+              ponctuation n’ont pas d’importance.
             </span>
             <input
               type="text"
@@ -131,7 +162,7 @@ function SuppressionCompte() {
               autoComplete="off"
               spellCheck={false}
               disabled={enCours}
-              className="w-full max-w-[240px] rounded-[8px] px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
+              className="w-full max-w-[320px] rounded-[8px] px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
               style={{
                 backgroundColor: "var(--reel-surface)",
                 border: "1px solid var(--reel-border)",
