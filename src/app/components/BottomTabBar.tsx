@@ -7,11 +7,12 @@ interface BottomTabBarProps {
   onChange: (tab: Tab) => void;
 }
 
+// Libellés en français comme le reste du site : ils venaient du prototype.
 const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
-  { key: "home", label: "Home", icon: Home },
+  { key: "home", label: "Catalogue", icon: Home },
   { key: "collection", label: "Collection", icon: Library },
-  { key: "wishlist", label: "Wishlist", icon: Bookmark },
-  { key: "profile", label: "Profile", icon: User },
+  { key: "wishlist", label: "Envies", icon: Bookmark },
+  { key: "profile", label: "Profil", icon: User },
 ];
 
 export function BottomTabBar({ active, onChange }: BottomTabBarProps) {

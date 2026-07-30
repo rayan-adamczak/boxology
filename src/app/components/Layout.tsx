@@ -24,17 +24,34 @@ export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const onMobileTab = (tab: MobileTab) => {
-    setMobileTab(tab);
-    if (tab === "profile") navigate("/u/steelbook.marcus");
-    else if (tab === "wishlist") navigate("/wishlist");
-    else navigate("/");
+  /*
+   * La barre du bas menait aux écrans du prototype : « Profil » ouvrait
+   * /u/steelbook.marcus, un faux profil, et « Envies » /wishlist, des données
+   * factices. Sur mobile, c'était la seule navigation disponible — elle mène
+   * maintenant aux vraies pages.
+   */
+  const CHEMINS: Record<MobileTab, string> = {
+    home: "/",
+    collection: "/ma-collection",
+    wishlist: "/mes-envies",
+    profile: "/profil",
   };
 
-  const activeTab: MobileTab = location.pathname.startsWith("/u/")
+  const onMobileTab = (tab: MobileTab) => {
+    setMobileTab(tab);
+    navigate(CHEMINS[tab]);
+  };
+
+  // L'onglet actif se déduit de l'URL : arriver sur /profil par un lien du menu
+  // doit allumer le bon onglet, pas celui du dernier appui.
+  const activeTab: MobileTab = location.pathname.startsWith("/profil")
     ? "profile"
-    : location.pathname.startsWith("/wishlist")
+    : location.pathname.startsWith("/mes-envies")
     ? "wishlist"
+    : location.pathname.startsWith("/ma-collection")
+    ? "collection"
+    : location.pathname === "/"
+    ? "home"
     : mobileTab;
 
   return (

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { ChevronDown, Compass, Film, Settings, LogOut, Bookmark, Library } from "lucide-react";
+import { ChevronDown, Compass, Film, Settings, LogOut, Bookmark, Library, User as UserIcon } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { connexionGoogle, deconnexion, nomAffiche, useSession } from "../lib/auth";
 
@@ -116,6 +116,7 @@ export function TopBar({ onOpenDiscover, showDiscoverButton }: TopBarProps) {
                     </p>
                     <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>{session.user.email}</p>
                   </div>
+                  <MenuItem icon={<UserIcon size={16} />} to="/profil">Mon profil</MenuItem>
                   <MenuItem icon={<Bookmark size={16} />} to="/mes-envies">Mes envies</MenuItem>
                   <MenuItem icon={<Library size={16} />} to="/ma-collection">Ma collection</MenuItem>
                   {/*

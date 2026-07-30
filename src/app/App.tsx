@@ -20,6 +20,8 @@ const ConfidentialitePage = lazy(() =>
   import("./pages/ConfidentialitePage").then((m) => ({ default: m.ConfidentialitePage })));
 const ComptePage = lazy(() =>
   import("./pages/ComptePage").then((m) => ({ default: m.ComptePage })));
+const ProfilPage = lazy(() =>
+  import("./pages/ProfilPage").then((m) => ({ default: m.ProfilPage })));
 
 const HomePage = lazy(() =>
   import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
@@ -50,6 +52,7 @@ export default function App() {
           <Route path="/mes-envies" element={<StatusListPage statut="envie" />} />
           <Route path="/ma-collection" element={<StatusListPage statut="possede" />} />
 
+          <Route path="/profil" element={<ProfilPage />} />
           <Route path="/compte" element={<ComptePage />} />
 
           <Route path="/a-propos" element={<AProposPage />} />

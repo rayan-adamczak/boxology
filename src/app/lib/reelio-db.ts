@@ -30,6 +30,19 @@ export interface Edition {
 
 export type StatutValue = "envie" | "possede";
 
+/**
+ * Normalise les champs de liste des éditions (`formats_extraits`, etc.).
+ *
+ * PostgREST rend un `text[]` en tableau, mais certaines lignes issues des
+ * imports portent encore une chaîne séparée par des virgules. Les deux formes
+ * cohabitent en base, il faut donc accepter les deux.
+ */
+export function splitList(val: unknown): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.map(String).filter(Boolean);
+  return String(val).split(",").map((s) => s.trim()).filter(Boolean);
+}
+
 /** An edition joined with its parent film — used by the list pages. */
 export interface EditionWithFilm extends Edition {
   film: Pick<Film, "id" | "titre" | "affiche_url"> | null;

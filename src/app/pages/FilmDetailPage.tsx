@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import {
   getFilm,
   getEditionsForFilm,
+  splitList,
   type Film,
   type Edition,
   type StatutValue,
@@ -24,12 +25,6 @@ function formatDuration(raw: string | null): string {
   const h = Math.floor(total / 60);
   const min = total % 60;
   return `${h}h ${String(min).padStart(2, "0")}min`;
-}
-
-function splitList(val: unknown): string[] {
-  if (!val) return [];
-  if (Array.isArray(val)) return val.map(String).filter(Boolean);
-  return String(val).split(",").map((s) => s.trim()).filter(Boolean);
 }
 
 interface CastMember { nom: string; role: string }
