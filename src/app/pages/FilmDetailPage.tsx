@@ -42,35 +42,6 @@ function parseCast(val: unknown): CastMember[] {
 
 /* ---- sub-components ---- */
 
-function GenrePill({ label }: { label: string }) {
-  return (
-    <div
-      className="relative rounded-full shrink-0"
-      style={{ backgroundColor: "#1f242a", border: "1px solid #2a3138" }}
-    >
-      <span
-        className="block px-[11px] py-[5px] whitespace-nowrap"
-        style={{ fontSize: "13px", color: "#e8e8e8", lineHeight: "19.5px" }}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
-
-function FormatTag({ label }: { label: string }) {
-  return (
-    <div className="rounded-full shrink-0" style={{ backgroundColor: "#262c33" }}>
-      <span
-        className="block px-[8px] py-[2px] whitespace-nowrap"
-        style={{ fontSize: "13px", color: "#8a8f98", lineHeight: "19.5px" }}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
-
 interface CircleStatusButtonsProps {
   editionId: number;
   status: StatutValue | undefined;
@@ -316,15 +287,27 @@ export function FilmDetailPage() {
       </div>
 
       {/* Hero */}
-      <div className="relative w-full" style={{ minHeight: "520px" }}>
-        {film.affiche_url && (
+      {/* Pas de hauteur minimale : elle laissait un vide sous les boutons quand
+          le film avait un synopsis court. Le héros épouse son contenu. */}
+      <div className="relative w-full">
+        {/*
+          Le site s'appelle Jaquette : l'image de l'œuvre porte l'identité, pas
+          le chrome. On prend le backdrop TMDB quand il existe — une vraie image
+          large, nette — et on retombe sur l'affiche floutée sinon, faute de
+          mieux. Chaque fiche a donc sa propre couleur dominante.
+        */}
+        {(film.backdrop_url || film.affiche_url) && (
           <div className="absolute inset-0 overflow-hidden">
             <img
-              src={film.affiche_url}
+              src={film.backdrop_url ?? film.affiche_url ?? ""}
               alt=""
               aria-hidden
               className="absolute w-full h-full object-cover pointer-events-none"
-              style={{ filter: "blur(32px)", transform: "scale(1.15)", opacity: 0.4 }}
+              style={
+                film.backdrop_url
+                  ? { opacity: 0.55, objectPosition: "50% 25%" }
+                  : { filter: "blur(32px)", transform: "scale(1.15)", opacity: 0.4 }
+              }
             />
           </div>
         )}
@@ -336,7 +319,7 @@ export function FilmDetailPage() {
           }}
         />
 
-        <div className="relative mx-auto max-w-[1440px] px-8 lg:px-16 pb-10 pt-4 flex flex-col sm:flex-row gap-6 items-start">
+        <div className="relative mx-auto max-w-[1440px] px-8 lg:px-16 pb-14 pt-6 flex flex-col sm:flex-row gap-6 items-start">
           {/* Poster */}
           <div
             className="shrink-0 rounded-[8px] overflow-hidden self-center sm:self-start"
@@ -358,15 +341,37 @@ export function FilmDetailPage() {
           {/* Info */}
           <div className="flex-1 min-w-0 flex flex-col gap-3 pt-2">
             <div>
-              <span style={{ fontSize: "28px", fontWeight: 700, color: "#e8e8e8", lineHeight: "32.2px" }}>
-                {film.titre}{" "}
-              </span>
-              {film.annee && (
-                <span style={{ fontSize: "28px", fontWeight: 400, color: "#8a8f98", lineHeight: "32.2px" }}>
-                  ({film.annee})
-                </span>
+              <h1
+                style={{
+                  fontSize: "clamp(30px, 3.4vw, 44px)",
+                  fontWeight: 700,
+                  color: "#e8e8e8",
+                  lineHeight: 1.08,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {film.titre}
+              </h1>
+              {/* L'accroche vient de TMDB et manque souvent : jamais inventée. */}
+              {film.tagline && (
+                <p
+                  className="pt-2"
+                  style={{ fontSize: "16px", fontStyle: "italic", color: "#8a8f98", lineHeight: "22px" }}
+                >
+                  {film.tagline}
+                </p>
               )}
             </div>
+
+            {/*
+              Année, durée et genres sur une seule ligne séparée par des points
+              médians. En capsules, « Aventure » devenait un objet visuel de
+              même poids qu'un filtre cliquable — l'œil ne pouvait plus
+              distinguer ce qui se clique de ce qui se lit.
+            */}
+            <p style={{ fontSize: "15px", color: "#8a8f98", lineHeight: "22.5px" }}>
+              {[film.annee, durationFormatted, genres.join(", ")].filter(Boolean).join(" · ")}
+            </p>
 
             <p style={{ fontSize: "15px", color: "#8a8f98", lineHeight: "22.5px" }}>
               {film.realisateur && (
@@ -384,19 +389,13 @@ export function FilmDetailPage() {
                   </button>
                 </>
               )}
-              {film.realisateur && durationFormatted && " · "}
-              {durationFormatted}
             </p>
 
-            {genres.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {genres.map((g) => <GenrePill key={g} label={g} />)}
-              </div>
-            )}
+
 
             {film.note != null && film.note !== "" && (
               <div className="flex items-center gap-[6px]">
-                <Star size={18} color="#2e7dff" fill="#2e7dff" />
+                <Star size={18} color="#d9a441" fill="#d9a441" />
                 <span style={{ fontSize: "15px", fontWeight: 600, color: "#e8e8e8" }}>{film.note}</span>
                 <span style={{ fontSize: "13px", color: "#8a8f98" }}>/ 10</span>
               </div>
@@ -408,22 +407,37 @@ export function FilmDetailPage() {
               </p>
             )}
 
+            {/*
+              Une distribution est une liste de noms, pas d'étiquettes. En
+              capsules, cinq acteurs faisaient cinq objets visuels sous le
+              synopsis, du même poids que les filtres. Les noms restent
+              cliquables — le lien souligné le dit mieux qu'une bulle.
+            */}
             {castList.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 max-w-[640px]">
-                {castList.map((m) => (
-                  <button
-                    key={m.nom}
-                    type="button"
-                    onClick={() => setSelectedPerson(m.nom)}
-                    className="rounded-full px-[10px] py-[4px] whitespace-nowrap transition outline-none focus-visible:ring-2 focus-visible:ring-[#2e7dff]"
-                    style={{ fontSize: "13px", color: "#e8e8e8", backgroundColor: "#1f242a", border: "1px solid #2a3138", cursor: "pointer" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#2e7dff"; (e.currentTarget as HTMLElement).style.color = "#2e7dff"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#2a3138"; (e.currentTarget as HTMLElement).style.color = "#e8e8e8"; }}
-                  >
-                    {m.nom}
-                  </button>
+              <p className="max-w-[640px]" style={{ fontSize: "15px", color: "#8a8f98", lineHeight: "24px" }}>
+                Avec{" "}
+                {castList.map((m, i) => (
+                  <span key={m.nom}>
+                    {i > 0 && ", "}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPerson(m.nom)}
+                      className="outline-none transition focus-visible:ring-2 focus-visible:ring-[#2e7dff] rounded"
+                      style={{
+                        color: "#e8e8e8",
+                        textDecoration: "underline",
+                        textUnderlineOffset: "3px",
+                        textDecorationColor: "rgba(232,232,232,0.25)",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.textDecorationColor = "#e8e8e8")}
+                      onMouseLeave={(e) => (e.currentTarget.style.textDecorationColor = "rgba(232,232,232,0.25)")}
+                    >
+                      {m.nom}
+                    </button>
+                  </span>
                 ))}
-              </div>
+              </p>
             )}
 
             {/* Global CTA buttons */}
@@ -670,9 +684,16 @@ export function FilmDetailPage() {
                           {/* Format + région + pays + année */}
                           {(fmtTags.length > 0 || ed.region || ed.pays || ed.date_sortie) && (
                             <div className="flex flex-wrap gap-[6px]">
-                              {fmtTags.map((tag) => <FormatTag key={tag} label={tag} />)}
-                              {ed.region && <FormatTag label={ed.region} />}
-                              {ed.pays && <FormatTag label={ed.pays} />}
+                              {/*
+                                Quatre capsules par ligne — format, zone, pays,
+                                parfois l'année — faisaient quarante objets sur
+                                une fiche à dix éditions, pour ce qui tient en
+                                une phrase. En texte, ça se lit d'un coup d'œil
+                                et la capsule redevient le signal d'un contrôle.
+                              */}
+                              <span style={{ fontSize: "13px", color: "#8a8f98", lineHeight: "19.5px" }}>
+                                {[...fmtTags, ed.region, ed.pays].filter(Boolean).join(" · ")}
+                              </span>
                               {ed.date_sortie && (
                                 <span style={{ fontSize: "13px", color: "#8a8f98", lineHeight: "19.5px" }}>
                                   {ed.date_sortie}

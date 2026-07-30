@@ -11,6 +11,10 @@ export interface Film {
   annee: string | number | null;
   synopsis: string | null;
   affiche_url: string | null;
+  /** Image large TMDB, 16/9. Absente sur une partie du catalogue. */
+  backdrop_url: string | null;
+  /** Accroche d'affiche TMDB. Souvent vide, jamais inventée. */
+  tagline: string | null;
   genres: string | null;
   cast_principal: unknown | null;
   scenariste: string | null;
