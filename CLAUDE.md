@@ -878,6 +878,36 @@ Documentés parce qu'ils se reproduiront.
   renvoie `text/html` sans paramètre et `application/javascript` avec `?x=1`,
   ce qui prouve que le fichier existe et que seul le cache est en cause.
   Correctif : purge du cache Cloudflare.
+- **Un morceau `lazy()` peut échouer à l'import en servant pourtant 200 et les
+  bons octets.** Second incident du 30 juillet 2026, distinct du précédent : le
+  site rendait une page sans style bloquée sur « Chargement… ». Relevé sur
+  `auth-client` :
+
+  | | |
+  |---|---|
+  | `curl` | 200, `application/javascript`, octets identiques au build |
+  | `fetch()` dans la page | 200, fichier entier, fin de fichier correcte |
+  | `import()` | `Failed to fetch dynamically imported module` |
+
+  Le même build servi depuis `localhost` s'importait sans broncher, dans le
+  même navigateur — donc ni le code, ni le bundle. La purge du cache a rétabli
+  le CSS mais pas l'import. **Cause jamais établie.**
+
+  Ce qui est établi, en revanche, c'est pourquoi ça a mis le site à terre :
+  `useSession` attendait `auth-js` sans `catch`, `session` restait `undefined`,
+  et la fiche film — qui ne lance ses requêtes qu'une fois la session résolue —
+  ne sortait jamais de son écran de chargement. **Un catalogue public entier
+  inaccessible faute d'une bibliothèque dont il n'a pas besoin.** Le correctif
+  est dans `auth.ts` : à l'échec, on tranche à « pas de session » et la page
+  s'affiche.
+
+  À retenir pour le reste : **aucun chemin de consultation ne doit dépendre
+  d'un `import()` qui peut échouer.** Un chargement à la demande est un pari sur
+  le réseau ; il se rattrape, il ne se suppose pas.
+
+  Signature à reconnaître : page blanche ou sans style, `#root` vide ou bloqué
+  sur un écran de chargement, alors que `curl` trouve tout normal. Comparer
+  `fetch()` et `import()` sur le même morceau tranche en une commande.
 - **Basculer les nameservers casse DNSSEC.** Un enregistrement `DS` au registre
   signe la zone de l'ancien hébergeur ; si le nouveau répond à sa place, la
   validation échoue et le domaine devient injoignable — SERVFAIL, pas lent.
