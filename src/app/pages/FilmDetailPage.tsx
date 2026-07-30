@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router";
-import { ArrowLeft, Loader2, Star, CheckCircle2, Heart, ChevronDown, Plus } from "lucide-react";
+import { ArrowLeft, Loader2, Star, Bookmark, Library, ChevronDown, Plus } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { PersonModal } from "../components/PersonModal";
 import { toast } from "sonner";
@@ -103,7 +103,7 @@ function CircleStatusButtons({ editionId, status, onToggle }: CircleStatusButton
         }}
       >
         {collectionActive
-          ? <CheckCircle2 size={15} color="#fff" strokeWidth={2.2} />
+          ? <Library size={15} color="#fff" strokeWidth={2.2} />
           : <Plus size={15} color="#8a8f98" strokeWidth={2} />}
       </button>
 
@@ -118,7 +118,7 @@ function CircleStatusButtons({ editionId, status, onToggle }: CircleStatusButton
           border: wishlistActive ? "1px solid #2e7dff" : "none",
         }}
       >
-        <Heart
+        <Bookmark
           size={15}
           color={wishlistActive ? "#fff" : "#8a8f98"}
           fill={wishlistActive ? "#fff" : "none"}
@@ -437,7 +437,7 @@ export function FilmDetailPage() {
                     className="flex items-center gap-[6px] pl-[17px] pr-[13px] transition"
                     style={{ backgroundColor: "#2e7dff", fontSize: "15px", fontWeight: 500, color: "#fff" }}
                   >
-                    <Plus size={16} color="#fff" strokeWidth={2} />
+                    <Library size={16} color="#fff" strokeWidth={2} />
                     Ajouter à la collection
                   </button>
                   <div style={{ width: "1px", backgroundColor: "rgba(255,255,255,0.3)" }} />
@@ -486,7 +486,7 @@ export function FilmDetailPage() {
                           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = active ? "rgba(46,125,255,0.08)" : "transparent"; }}
                         >
                           <span className="truncate">{ed.titre ?? "Édition sans titre"}</span>
-                          {active && <CheckCircle2 size={15} color="#2e7dff" strokeWidth={2.2} className="shrink-0" />}
+                          {active && <Library size={15} color="#2e7dff" strokeWidth={2.2} className="shrink-0" />}
                         </button>
                       );
                     })}
@@ -503,7 +503,7 @@ export function FilmDetailPage() {
                     className="flex items-center gap-[6px] pl-[17px] pr-[13px] transition"
                     style={{ backgroundColor: "transparent", fontSize: "15px", fontWeight: 500, color: "#2e7dff" }}
                   >
-                    <Heart size={16} color="#2e7dff" fill="none" strokeWidth={2} />
+                    <Bookmark size={16} color="#2e7dff" fill="none" strokeWidth={2} />
                     Ajouter aux envies
                   </button>
                   <div style={{ width: "1px", backgroundColor: "#2e7dff", opacity: 0.3 }} />
@@ -552,7 +552,7 @@ export function FilmDetailPage() {
                           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = active ? "rgba(46,125,255,0.08)" : "transparent"; }}
                         >
                           <span className="truncate">{ed.titre ?? "Édition sans titre"}</span>
-                          {active && <Heart size={15} color="#2e7dff" fill="#2e7dff" strokeWidth={2} className="shrink-0" />}
+                          {active && <Bookmark size={15} color="#2e7dff" fill="#2e7dff" strokeWidth={2} className="shrink-0" />}
                         </button>
                       );
                     })}

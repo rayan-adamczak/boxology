@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Loader2, Heart, CheckCircle2 } from "lucide-react";
+import { Loader2, Bookmark, Library } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { getEditionsByIds, type EditionWithFilm, type StatutValue } from "../lib/reelio-db";
 import { idsParStatut } from "../lib/collections";
@@ -15,12 +15,12 @@ const CONFIG: Record<StatutValue, { title: string; empty: string; icon: React.Re
   envie: {
     title: "Mes envies",
     empty: "Vous n'avez pas encore ajouté d'éditions à vos envies.",
-    icon: <Heart size={22} color="var(--reel-accent)" />,
+    icon: <Bookmark size={22} color="var(--reel-accent)" />,
   },
   possede: {
     title: "Ma collection",
     empty: "Vous ne possédez encore aucune édition.",
-    icon: <CheckCircle2 size={22} color="var(--reel-accent)" />,
+    icon: <Library size={22} color="var(--reel-accent)" />,
   },
 };
 

@@ -1,4 +1,4 @@
-import { Home, Library, Heart, User } from "lucide-react";
+import { Home, Library, Bookmark, User } from "lucide-react";
 
 type Tab = "home" | "collection" | "wishlist" | "profile";
 
@@ -10,7 +10,7 @@ interface BottomTabBarProps {
 const TABS: { key: Tab; label: string; icon: typeof Home }[] = [
   { key: "home", label: "Home", icon: Home },
   { key: "collection", label: "Collection", icon: Library },
-  { key: "wishlist", label: "Wishlist", icon: Heart },
+  { key: "wishlist", label: "Wishlist", icon: Bookmark },
   { key: "profile", label: "Profile", icon: User },
 ];
 

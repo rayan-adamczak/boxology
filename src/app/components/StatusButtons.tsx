@@ -1,4 +1,4 @@
-import { Heart, CheckCircle2 } from "lucide-react";
+import { Bookmark, Library } from "lucide-react";
 import { toast } from "sonner";
 import { basculerStatut } from "../lib/collections";
 import type { StatutValue } from "../lib/reelio-db";
@@ -32,13 +32,13 @@ export function StatusButtons({ editionId, status, onChange }: StatusButtonsProp
       <StatusButton
         active={status === "envie"}
         onClick={() => { void handle("envie"); }}
-        icon={<Heart size={15} strokeWidth={2.2} />}
+        icon={<Bookmark size={15} strokeWidth={2.2} />}
         label="Envie"
       />
       <StatusButton
         active={status === "possede"}
         onClick={() => { void handle("possede"); }}
-        icon={<CheckCircle2 size={15} strokeWidth={2.2} />}
+        icon={<Library size={15} strokeWidth={2.2} />}
         label="Possédé"
       />
     </div>
