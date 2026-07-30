@@ -273,8 +273,33 @@ export function FilmDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>("Editions");
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [formatFilter, setFormatFilter] = useState<string | null>(null);
+  const [synopsisOuvert, setSynopsisOuvert] = useState(false);
+  /** Vrai quand le synopsis déborde de ses quatre lignes — mesuré, pas deviné
+   *  sur une longueur de chaîne : quatre lignes de 375 px et quatre lignes de
+   *  640 px n'accueillent pas le même nombre de signes. */
+  const [synopsisDeborde, setSynopsisDeborde] = useState(false);
+  const synopsisRef = useRef<HTMLParagraphElement | null>(null);
   const [modaleOuverte, setModaleOuverte] = useState(false);
   const session = useSession();
+
+  /*
+    Le « voir plus » n'apparaît que si le texte est vraiment coupé. Un synopsis
+    de deux lignes n'a pas de suite à montrer, et le bouton mentirait.
+
+    Remesuré au redimensionnement : la troncature dépend de la largeur, et une
+    rotation d'écran fait passer un texte de cinq lignes à trois.
+  */
+  useEffect(() => {
+    const el = synopsisRef.current;
+    if (!el) return;
+    const mesurer = () => {
+      if (synopsisOuvert) return;      // déplié, il ne déborde plus par construction
+      setSynopsisDeborde(el.scrollHeight > el.clientHeight + 1);
+    };
+    mesurer();
+    window.addEventListener("resize", mesurer);
+    return () => window.removeEventListener("resize", mesurer);
+  }, [film?.synopsis, synopsisOuvert]);
 
   useEffect(() => {
     // Tant que la session n'est pas résolue, on ne charge pas les statuts : on
@@ -450,17 +475,6 @@ export function FilmDetailPage() {
 
   return (
     <div className="w-full" style={{ backgroundColor: "var(--reel-bg)", minHeight: "100vh" }}>
-      {/* Back link */}
-      <div className="mx-auto max-w-[1440px] px-8 lg:px-16 pt-[88px]">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 mb-4 outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] rounded-full"
-          style={{ fontSize: "14px", color: "var(--reel-muted)" }}
-        >
-          <ArrowLeft size={16} /> Retour
-        </Link>
-      </div>
-
       {/* Hero */}
       {/* Pas de hauteur minimale : elle laissait un vide sous les boutons quand
           le film avait un synopsis court. Le héros épouse son contenu. */}
@@ -515,12 +529,44 @@ export function FilmDetailPage() {
           }}
         />
 
-        <div className="relative mx-auto max-w-[1440px] px-8 lg:px-16 pb-14 pt-6 flex flex-col sm:flex-row gap-6 items-start">
+        {/*
+          Le lien de retour est passé à l'intérieur du héros. Dehors, il occupait
+          une bande de 120 px que le backdrop ne couvrait pas : l'image
+          commençait sous lui, et le haut de la page montrait un aplat gris avec
+          une arête nette. Le héros part maintenant du filet de l'en-tête.
+
+          `pt-[88px]` reste : c'est ce qui dégage l'en-tête fixe.
+        */}
+        <div className="relative mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 pt-[88px]">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] rounded-full"
+            style={{ fontSize: "14px", color: "var(--reel-muted)" }}
+          >
+            <ArrowLeft size={16} /> Retour
+          </Link>
+        </div>
+
+        {/*
+          Grille et non pile, pour que le mobile et le bureau puissent ranger
+          les mêmes blocs dans deux ordres différents sans dupliquer le balisage.
+
+          Sur mobile, l'affiche et le titre partagent la première ligne, puis
+          les boutons, puis le synopsis. Empilé — affiche centrée, titre,
+          réalisation, note, synopsis, boutons — le premier écran s'arrêtait
+          au milieu du synopsis : on arrivait sur la fiche sans voir une seule
+          action. Le synopsis passe donc sous les boutons ; il se lit toujours,
+          mais après avoir eu le choix d'agir.
+
+          Sur écran large l'ordre d'origine tient — synopsis puis boutons — et
+          l'affiche court sur les trois rangées.
+        */}
+        <div className="relative mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 pb-8 sm:pb-14 pt-4 sm:pt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-4 sm:gap-x-6 items-start">
           {/* Poster */}
           <div
-            className="shrink-0 rounded-[8px] overflow-hidden self-center sm:self-start"
+            className="col-start-1 row-start-1 sm:row-span-3 shrink-0 rounded-[8px] overflow-hidden self-start"
             style={{
-              width: "clamp(160px, 18vw, 280px)",
+              width: "clamp(120px, 22vw, 280px)",
               aspectRatio: "2 / 3",
               backgroundColor: "var(--reel-surface)",
               border: "1px solid var(--reel-border)",
@@ -534,15 +580,17 @@ export function FilmDetailPage() {
             />
           </div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0 flex flex-col gap-3 pt-2">
+          {/* Titre, réalisation, note — la colonne à droite de l'affiche */}
+          <div className="col-start-2 row-start-1 min-w-0 flex flex-col gap-2 sm:gap-3 sm:pt-2">
             <div>
               <h1
                 style={{
                   // Les variables ne sont posées que par le sélecteur d'essai,
                   // en développement. En production, les replis s'appliquent.
                   fontFamily: "var(--reel-font-titre)",
-                  fontSize: "clamp(30px, 3.4vw, 44px)",
+                  // 22 px au plancher : à 30 px, le titre occupait trois lignes
+                  // à côté d'une affiche de 120 px et repoussait tout le reste.
+                  fontSize: "clamp(22px, 3.4vw, 44px)",
                   fontWeight: 800,
                   color: "var(--reel-text)",
                   lineHeight: 1.08,
@@ -554,10 +602,10 @@ export function FilmDetailPage() {
                 {film.annee && (
                   // Espace insécable large plutôt qu'une espace ordinaire : à
                   // 44 px, l'espace du titre est trop serrée et l'année colle
-                  // au dernier mot. Graisse 300 et non 400 — Bricolage
-                  // Grotesque descend jusqu'à 200, et plus l'écart de graisse
-                  // est net, moins l'année se lit comme un morceau du titre.
-                  <span style={{ fontWeight: 300, color: "var(--reel-muted)" }}>
+                  // au dernier mot. Graisse 200, le plus fin que Bricolage
+                  // Grotesque propose : contre un titre en 800, plus l'écart
+                  // est large, moins l'année se lit comme un morceau du titre.
+                  <span style={{ fontWeight: 200, color: "var(--reel-muted)" }}>
                     {"  "}({film.annee})
                   </span>
                 )}
@@ -573,7 +621,10 @@ export function FilmDetailPage() {
             <p style={{ fontSize: "15px", color: "var(--reel-muted)", lineHeight: "22.5px" }}>
               {film.realisateur && (
                 <>
-                  Réalisé par{" "}
+                  {/* « Réalisé par » saute sur mobile : dans une colonne de
+                      200 px, ces trois mots prennent une ligne entière pour
+                      annoncer ce que la position dit déjà. */}
+                  <span className="hidden sm:inline">Réalisé par </span>
                   <button
                     type="button"
                     onClick={() => setSelectedPerson(film.realisateur)}
@@ -601,16 +652,44 @@ export function FilmDetailPage() {
                 <span style={{ fontSize: "13px", color: "var(--reel-muted)" }}>/ 10</span>
               </div>
             )}
+          </div>
 
-            {film.synopsis && (
-              <p className="max-w-[640px]" style={{ fontSize: "15px", color: "var(--reel-text)", lineHeight: "24px" }}>
+          {film.synopsis && (
+            /*
+              Quatre lignes sur mobile, tout sur écran large. Un synopsis TMDB
+              fait souvent quinze lignes à 375 px : déplié, il repoussait la
+              barre d'onglets si loin qu'on ne soupçonnait plus son existence.
+
+              `line-clamp` et non une troncature de la chaîne : couper le texte
+              en JavaScript demanderait de deviner combien de signes tiennent
+              sur quatre lignes, ce qui dépend de la largeur et de la police.
+            */
+            <div className="col-span-2 row-start-3 sm:col-span-1 sm:col-start-2 sm:row-start-2 max-w-[640px]">
+              <p
+                ref={synopsisRef}
+                className={synopsisOuvert ? "" : "line-clamp-4 sm:line-clamp-none"}
+                style={{ fontSize: "15px", color: "var(--reel-text)", lineHeight: "24px" }}
+              >
                 {film.synopsis}
               </p>
-            )}
+              {synopsisDeborde && (
+                <button
+                  type="button"
+                  onClick={() => setSynopsisOuvert((o) => !o)}
+                  className="mt-1 sm:hidden outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] rounded-[6px]"
+                  style={{ fontSize: "14px", fontWeight: 500, color: "var(--reel-accent-clair)" }}
+                >
+                  {synopsisOuvert ? "Voir moins" : "Voir plus"}
+                </button>
+              )}
+            </div>
+          )}
 
-
-            {/* Global CTA buttons */}
-            <div ref={dropdownRef} className="relative flex flex-wrap gap-[10px] items-center mt-1">
+          {/* Global CTA buttons */}
+          <div
+            ref={dropdownRef}
+            className="col-span-2 row-start-2 sm:col-span-1 sm:col-start-2 sm:row-start-3 relative flex flex-wrap gap-[10px] items-center"
+          >
               {/* Add to Collection split button */}
               <div className="relative">
                 <div className="flex h-[40px] rounded-full overflow-hidden">
@@ -742,7 +821,6 @@ export function FilmDetailPage() {
                   </div>
                 )}
               </div>
-            </div>
           </div>
         </div>
       </div>
@@ -752,7 +830,7 @@ export function FilmDetailPage() {
         className="sticky top-[64px] z-10"
         style={{ backgroundColor: "var(--reel-bg)", borderBottom: "1px solid var(--reel-border)" }}
       >
-        <div className="mx-auto max-w-[1440px] px-8 lg:px-16 flex gap-1">
+        <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 flex gap-1">
           {TABS.map((tab) => (
             <button
               key={tab}
@@ -778,16 +856,28 @@ export function FilmDetailPage() {
       </div>
 
       {/* Tab content */}
-      <div className="mx-auto max-w-[1440px] px-8 lg:px-16 py-6 pb-24">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 py-6 pb-24">
 
         {activeTab === "Editions" && (
           <div className="flex flex-col gap-4">
             {allFormats.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              /*
+                Une seule ligne, qui défile latéralement au besoin.
+
+                En `flex-wrap`, sept formats passaient sur trois lignes en
+                mobile et poussaient la première édition sous le pli. Une barre
+                de filtres est un rail : elle doit tenir sur sa ligne, quitte à
+                ce qu'on la fasse glisser. Les capsules gardent `shrink-0`,
+                sinon flex les comprime au lieu de déborder, et les marges
+                négatives font mordre le rail sur le rembourrage de la page —
+                sans elles, le défilement s'arrêterait avant le bord et laisserait
+                croire qu'il n'y a plus rien.
+              */
+              <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
                   onClick={() => setFormatFilter(null)}
-                  className="rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
+                  className="shrink-0 whitespace-nowrap rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
                   style={{
                     backgroundColor: formatFilter === null ? "var(--reel-accent)" : "var(--reel-surface)",
                     border: `1px solid ${formatFilter === null ? "var(--reel-accent-clair)" : "var(--reel-border)"}`,
@@ -803,7 +893,7 @@ export function FilmDetailPage() {
                     key={fmt}
                     type="button"
                     onClick={() => setFormatFilter(fmt === formatFilter ? null : fmt)}
-                    className="rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
+                    className="shrink-0 whitespace-nowrap rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
                     style={{
                       backgroundColor: formatFilter === fmt ? "var(--reel-accent)" : "var(--reel-surface)",
                       border: `1px solid ${formatFilter === fmt ? "var(--reel-accent-clair)" : "var(--reel-border)"}`,
