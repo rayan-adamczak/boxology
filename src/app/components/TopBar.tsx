@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { ChevronDown, Film, Settings, LogOut, Bookmark, Library, User as UserIcon } from "lucide-react";
+import { ChevronDown, Settings, LogOut, Bookmark, Library, User as UserIcon } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { connexionGoogle, deconnexion, nomAffiche, useSession } from "../lib/auth";
 
@@ -22,16 +22,11 @@ export function TopBar() {
         <Link
           to="/"
           className="flex shrink-0 items-center gap-2"
-          aria-label="Accueil Jaquette"
+          aria-label="Accueil jaquette.app"
         >
+          {/* Plus de `hidden sm:block` : la pastille portait l'identité sur
+              petit écran, sans elle le bandeau n'aurait plus rien affiché. */}
           <span
-            className="flex h-8 w-8 items-center justify-center rounded-[8px]"
-            style={{ backgroundColor: "var(--reel-accent)" }}
-          >
-            <Film size={18} color="#ffffff" strokeWidth={2.2} />
-          </span>
-          <span
-            className="hidden sm:block"
             style={{ fontFamily: "var(--reel-font-titre)", fontSize: "18px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}
           >
             jaquette.app

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
-import { ArrowUpRight, Film } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 const CONTACT = "rayan.adamczak@gmail.com";
 
@@ -39,13 +39,7 @@ export function Footer() {
       <div className="mx-auto flex max-w-[1440px] flex-col gap-10 lg:flex-row lg:justify-between">
         {/* Identité */}
         <div className="flex max-w-[320px] flex-col gap-3">
-          <Link to="/" className="flex items-center gap-2" aria-label="Accueil Jaquette">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-[8px]"
-              style={{ backgroundColor: "var(--reel-accent)" }}
-            >
-              <Film size={18} color="#ffffff" strokeWidth={2.2} />
-            </span>
+          <Link to="/" className="flex items-center gap-2" aria-label="Accueil jaquette.app">
             <span style={{ fontFamily: "var(--reel-font-titre)", fontSize: "18px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}>
               jaquette.app
             </span>
