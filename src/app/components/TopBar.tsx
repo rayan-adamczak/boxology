@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { Search, Bell, MessageSquare, ChevronDown, Compass, Film, Settings, LogOut, User as UserIcon, Heart, CheckCircle2 } from "lucide-react";
+import { ChevronDown, Compass, Film, Settings, LogOut, Heart, CheckCircle2 } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
-import { user } from "../data";
+import { connexionGoogle, deconnexion, nomAffiche, useSession } from "../lib/auth";
 
 interface TopBarProps {
   /** shown only on tablet to open the collapsed right ("Discover") sidebar */
@@ -12,6 +12,7 @@ interface TopBarProps {
 
 export function TopBar({ onOpenDiscover, showDiscoverButton }: TopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const session = useSession();
 
   return (
     <header
@@ -43,54 +44,55 @@ export function TopBar({ onOpenDiscover, showDiscoverButton }: TopBarProps) {
           </span>
         </Link>
 
-        {/* Global search */}
-        <div className="mx-auto flex w-full max-w-[520px] flex-1 items-center">
-          <label className="relative block w-full">
-            <span className="sr-only">Search movies, editions, or users</span>
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-              color="var(--reel-muted)"
-            />
-            <input
-              type="search"
-              placeholder="Search movies, editions, or users"
-              className="w-full rounded-full py-2 pl-9 pr-4 outline-none transition focus:ring-2"
-              style={{
-                backgroundColor: "var(--reel-surface)",
-                border: "1px solid var(--reel-border)",
-                color: "var(--reel-text)",
-                fontSize: "14px",
-                fontWeight: 400,
-              }}
-            />
-          </label>
-        </div>
+        {/*
+          Pas de champ de recherche ici : la page d'accueil porte déjà le sien,
+          branché sur `searchFilms`. En doubler un dans le bandeau donnait deux
+          entrées côte à côte sur `/`, dont une qui ne cherchait rien.
+        */}
 
         {/* Right cluster */}
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           {showDiscoverButton && (
-            <IconButton label="Open Discover" onClick={onOpenDiscover} className="hidden md:flex lg:hidden">
+            <IconButton label="Ouvrir Découvrir" onClick={onOpenDiscover} className="hidden md:flex lg:hidden">
               <Compass size={20} color="var(--reel-muted)" />
             </IconButton>
           )}
-          <IconButton label="Notifications" badge>
-            <Bell size={20} color="var(--reel-muted)" />
-          </IconButton>
-          <IconButton label="Messages" badge>
-            <MessageSquare size={20} color="var(--reel-muted)" />
-          </IconButton>
 
+          {/*
+            Trois états, pas deux : tant que la session n'est pas résolue on
+            n'affiche rien à cet endroit, sinon un visiteur déjà connecté verrait
+            « Connexion » clignoter à chaque chargement de page.
+          */}
+          {session === undefined && <div style={{ width: 56, height: 34 }} aria-hidden="true" />}
+
+          {session === null && (
+            <button
+              type="button"
+              onClick={() => { void connexionGoogle(); }}
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                backgroundColor: "var(--reel-accent)",
+                color: "#ffffff",
+                border: "1px solid var(--reel-accent)",
+              }}
+            >
+              Connexion
+            </button>
+          )}
+
+          {session && (
           <div className="relative">
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-label="Account menu"
+              aria-label="Menu du compte"
               className="flex items-center gap-1 rounded-full p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
             >
-              <UserAvatar name={user.name} size={34} />
+              <UserAvatar name={nomAffiche(session)} size={34} />
               <ChevronDown size={16} color="var(--reel-muted)" />
             </button>
             {menuOpen && (
@@ -109,18 +111,31 @@ export function TopBar({ onOpenDiscover, showDiscoverButton }: TopBarProps) {
                   }}
                 >
                   <div className="px-3 py-2" style={{ borderBottom: "1px solid var(--reel-border)" }}>
-                    <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--reel-text)" }}>{user.name}</p>
-                    <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>{user.handle}</p>
+                    <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--reel-text)" }}>
+                      {nomAffiche(session)}
+                    </p>
+                    <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>{session.user.email}</p>
                   </div>
                   <MenuItem icon={<Heart size={16} />} to="/mes-envies">Mes envies</MenuItem>
                   <MenuItem icon={<CheckCircle2 size={16} />} to="/ma-collection">Ma collection</MenuItem>
-                  <MenuItem icon={<UserIcon size={16} />} to="/u/steelbook.marcus">Profile</MenuItem>
-                  <MenuItem icon={<Settings size={16} />}>Settings</MenuItem>
-                  <MenuItem icon={<LogOut size={16} />}>Sign out</MenuItem>
+                  {/*
+                    Vers `/compte`, qui porte la suppression du compte. La
+                    politique de confidentialité annonce que l'effacement est
+                    accessible dans les réglages : sans ce lien, la page n'était
+                    atteignable que depuis cette politique.
+                  */}
+                  <MenuItem icon={<Settings size={16} />} to="/compte">Mon compte</MenuItem>
+                  <MenuItem
+                    icon={<LogOut size={16} />}
+                    onClick={() => { setMenuOpen(false); void deconnexion(); }}
+                  >
+                    Déconnexion
+                  </MenuItem>
                 </div>
               </>
             )}
           </div>
+          )}
         </div>
       </div>
     </header>
@@ -130,13 +145,11 @@ export function TopBar({ onOpenDiscover, showDiscoverButton }: TopBarProps) {
 function IconButton({
   children,
   label,
-  badge,
   onClick,
   className = "",
 }: {
   children: React.ReactNode;
   label: string;
-  badge?: boolean;
   onClick?: () => void;
   className?: string;
 }) {
@@ -149,17 +162,21 @@ function IconButton({
       className={`relative flex h-10 w-10 items-center justify-center rounded-full outline-none transition hover:bg-[var(--reel-surface)] focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] ${className}`}
     >
       {children}
-      {badge && (
-        <span
-          className="absolute right-2 top-2 h-2 w-2 rounded-full"
-          style={{ backgroundColor: "var(--reel-accent)", boxShadow: "0 0 0 2px var(--reel-bg)" }}
-        />
-      )}
     </button>
   );
 }
 
-function MenuItem({ children, icon, to }: { children: React.ReactNode; icon: React.ReactNode; to?: string }) {
+function MenuItem({
+  children,
+  icon,
+  to,
+  onClick,
+}: {
+  children: React.ReactNode;
+  icon: React.ReactNode;
+  to?: string;
+  onClick?: () => void;
+}) {
   const className =
     "flex w-full items-center gap-2.5 px-3 py-2 text-left outline-none transition hover:bg-[var(--reel-surface-2)]";
   const inner = (
@@ -176,7 +193,13 @@ function MenuItem({ children, icon, to }: { children: React.ReactNode; icon: Rea
     );
   }
   return (
-    <button type="button" role="menuitem" className={className} style={{ fontSize: "14px", color: "var(--reel-text)" }}>
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className={className}
+      style={{ fontSize: "14px", color: "var(--reel-text)" }}
+    >
       {inner}
     </button>
   );
