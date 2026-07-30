@@ -1,0 +1,44 @@
+{
+  // Aucune compilation : Vite s'en charge via esbuild. Ce fichier n'existe que
+  // pour `tsc --noEmit`, lancé par `npm run build`.
+  //
+  // Sans lui, rien ne relisait le code. esbuild ne vérifie pas les types et
+  // laisse un identifiant JSX non importé devenir une référence globale,
+  // résolue seulement à l'exécution : un `<Search />` dont l'import a été
+  // retiré passe le build et fait écran blanc en production. C'est arrivé.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    // `main.tsx` importe `./App.tsx` avec son extension, ce que Vite accepte.
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
+    // `strict` reste désactivé : l'écran d'origine vient de Figma Make et
+    // produirait des centaines d'erreurs de nullité sans rapport avec ce qu'on
+    // cherche à attraper. À rehausser progressivement, fichier par fichier.
+    "strict": false,
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      // `import { projectId } from "/utils/supabase/info"` : Vite résout cette
+      // barre oblique depuis la racine du projet, TypeScript a besoin qu'on le
+      // lui dise.
+      "/utils/*": ["utils/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.d.ts",
+    "utils/**/*.ts",
+    "utils/**/*.tsx"
+  ]
+}
