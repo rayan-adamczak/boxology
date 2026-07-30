@@ -5,6 +5,7 @@ import { Outlet, useLocation, useNavigate } from "react-router";
 import { TopBar } from "./TopBar";
 import { BottomTabBar } from "./BottomTabBar";
 import { Footer } from "./Footer";
+import { EssaiTypo } from "./EssaiTypo";
 
 type MobileTab = "home" | "collection" | "wishlist" | "profile";
 
@@ -74,6 +75,10 @@ export function Layout() {
       <Footer />
 
       <BottomTabBar active={activeTab} onChange={onMobileTab} />
+
+      {/* Sélecteur de police, développement seulement : Vite élimine la
+          branche au build, le composant et ses polices ne partent jamais. */}
+      {import.meta.env.DEV && <EssaiTypo />}
 
       <Toaster theme="dark" position="bottom-right" richColors />
     </div>

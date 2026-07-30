@@ -15,6 +15,9 @@ export interface Film {
   backdrop_url: string | null;
   /** Accroche d'affiche TMDB. Souvent vide, jamais inventée. */
   tagline: string | null;
+  titre_original: string | null;
+  nb_votes: number | null;
+  imdb_id: string | null;
   genres: string | null;
   cast_principal: unknown | null;
   scenariste: string | null;
@@ -22,6 +25,8 @@ export interface Film {
 
 export interface Edition {
   id: number;
+  /** Code-barres, présent sur 3 428 des 5 739 éditions. */
+  ean: string | null;
   film_id: number;
   titre: string | null;
   formats_extraits: string | null;

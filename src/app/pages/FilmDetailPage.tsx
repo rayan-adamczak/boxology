@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router";
 import { ArrowLeft, Loader2, Star, Bookmark, Library, ChevronDown, Plus } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { PersonModal } from "../components/PersonModal";
+import { UserAvatar } from "../components/UserAvatar";
 import { toast } from "sonner";
 import {
   getFilm,
@@ -93,6 +94,12 @@ function CircleStatusButtons({ editionId, status, onToggle }: CircleStatusButton
         />
       </button>
     </div>
+  );
+}
+
+function TitreSection({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 style={{ fontSize: "17px", fontWeight: 600, color: "#e8e8e8" }}>{children}</h2>
   );
 }
 
@@ -305,8 +312,16 @@ export function FilmDetailPage() {
               className="absolute w-full h-full object-cover pointer-events-none"
               style={
                 film.backdrop_url
-                  ? { opacity: 0.55, objectPosition: "50% 25%" }
-                  : { filter: "blur(32px)", transform: "scale(1.15)", opacity: 0.4 }
+                  // Atmosphère, pas illustration : un léger flou empêche l'image
+                  // de disputer l'attention au texte, et un contraste réduit
+                  // l'empêche de produire des zones claires sous les lettres.
+                  ? {
+                      opacity: 0.38,
+                      objectPosition: "50% 22%",
+                      filter: "blur(3px) saturate(0.85) contrast(0.9)",
+                      transform: "scale(1.04)",
+                    }
+                  : { filter: "blur(32px)", transform: "scale(1.15)", opacity: 0.35 }
               }
             />
           </div>
@@ -321,14 +336,14 @@ export function FilmDetailPage() {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to right, rgba(20,24,28,0.97) 0%, rgba(20,24,28,0.92) 38%, rgba(20,24,28,0.55) 72%, rgba(20,24,28,0.35) 100%)",
+              "linear-gradient(to right, rgba(20,24,28,1) 0%, rgba(20,24,28,0.99) 40%, rgba(20,24,28,0.9) 58%, rgba(20,24,28,0.55) 78%, rgba(20,24,28,0.3) 100%)",
           }}
         />
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(20,24,28,0.55) 0%, rgba(20,24,28,0.25) 35%, rgba(20,24,28,0.75) 82%, #14181c 100%)",
+              "linear-gradient(to bottom, rgba(20,24,28,0.7) 0%, rgba(20,24,28,0.35) 30%, rgba(20,24,28,0.8) 80%, #14181c 100%)",
           }}
         />
 
@@ -356,11 +371,15 @@ export function FilmDetailPage() {
             <div>
               <h1
                 style={{
-                  fontSize: "clamp(30px, 3.4vw, 44px)",
-                  fontWeight: 700,
+                  // Les variables ne sont posées que par le sélecteur d'essai,
+                  // en développement. En production, les replis s'appliquent.
+                  fontFamily: "var(--titre-famille, inherit)",
+                  fontSize: "calc(clamp(30px, 3.4vw, 44px) * var(--titre-echelle, 1))",
+                  fontWeight: "var(--titre-graisse, 700)" as unknown as number,
                   color: "#e8e8e8",
-                  lineHeight: 1.08,
-                  letterSpacing: "-0.02em",
+                  lineHeight: "var(--titre-interligne, 1.08)" as unknown as number,
+                  letterSpacing: "var(--titre-approche, -0.02em)",
+                  textTransform: "var(--titre-casse, none)" as unknown as "none",
                 }}
               >
                 {film.titre}
@@ -737,46 +756,110 @@ export function FilmDetailPage() {
         )}
 
         {activeTab === "Détails" && (
-          <div className="flex flex-col gap-0 max-w-[700px]">
-            {([
-              film.realisateur && { label: "Réalisateur", value: film.realisateur },
-              scenaristes.length > 0 && { label: "Scénariste", value: scenaristes.join(", ") },
-              castList.length > 0 && {
-                label: "Cast principal",
-                value: castList.map((m) => `${m.nom} (${m.role})`).join(", "),
-              },
-              film.annee && { label: "Année", value: String(film.annee) },
-              film.duree && {
-                label: "Durée",
-                value: (() => {
-                  const total = parseInt(String(film.duree), 10);
-                  if (isNaN(total)) return String(film.duree);
-                  const h = Math.floor(total / 60);
-                  const min = total % 60;
-                  return `${h}h ${String(min).padStart(2, "0")}min (${total} min)`;
-                })(),
-              },
-              genres.length > 0 && { label: "Genres", value: genres.join(", ") },
-            ] as const)
-              .filter(Boolean)
-              .map((row) => {
-                const { label, value } = row as { label: string; value: string };
-                return (
-                  <div
-                    key={label}
-                    className="flex gap-4 items-start py-4"
-                    style={{ borderBottom: "1px solid #2a3138" }}
-                  >
-                    <span className="shrink-0 w-[160px]" style={{ fontSize: "13px", color: "#8a8f98", lineHeight: "22px" }}>
-                      {label}
-                    </span>
-                    <span style={{ fontSize: "15px", color: "#e8e8e8", lineHeight: "22px" }}>{value}</span>
-                  </div>
-                );
-              })}
-            {!film.realisateur && castList.length === 0 && !film.scenariste && genres.length === 0 && (
-              <p style={{ fontSize: "14px", color: "#8a8f98" }}>Aucun détail disponible.</p>
-            )}
+          /*
+            Deux colonnes, sur le modèle de la maquette : la distribution et la
+            fiche technique à gauche, le récit à droite. L'ancienne version
+            empilait tout dans une liste libellé/valeur, distribution comprise,
+            ce qui écrasait des noms de personnes dans une ligne de tableau.
+          */
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+            <div className="flex flex-col gap-8">
+              {castList.length > 0 && (
+                <section>
+                  <TitreSection>Distribution</TitreSection>
+                  <ul className="flex flex-col gap-3 pt-4">
+                    {castList.map((m) => (
+                      <li key={m.nom}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPerson(m.nom)}
+                          className="flex w-full items-center gap-3 rounded-[8px] px-2 py-1.5 text-left outline-none transition hover:bg-[#1f242a] focus-visible:ring-2 focus-visible:ring-[#2e7dff]"
+                        >
+                          <UserAvatar name={m.nom} size={36} />
+                          <span className="min-w-0">
+                            <span className="block truncate" style={{ fontSize: "15px", color: "#e8e8e8" }}>
+                              {m.nom}
+                            </span>
+                            {m.role && (
+                              <span className="block truncate" style={{ fontSize: "13px", color: "#8a8f98" }}>
+                                {m.role}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              <section
+                className="rounded-[10px] p-5"
+                style={{ backgroundColor: "#1f242a", border: "1px solid #2a3138" }}
+              >
+                <TitreSection>Fiche technique</TitreSection>
+                <dl className="pt-3">
+                  {([
+                    film.titre_original && film.titre_original !== film.titre &&
+                      { label: "Titre original", value: film.titre_original },
+                    film.realisateur && { label: "Réalisation", value: film.realisateur },
+                    scenaristes.length > 0 && { label: "Scénario", value: scenaristes.join(", ") },
+                    film.annee && { label: "Année", value: String(film.annee) },
+                    durationFormatted && { label: "Durée", value: durationFormatted },
+                    genres.length > 0 && { label: "Genres", value: genres.join(", ") },
+                    film.note != null && film.note !== "" && {
+                      label: "Note TMDB",
+                      value: film.nb_votes
+                        ? `${film.note} / 10 (${film.nb_votes.toLocaleString("fr-FR")} votes)`
+                        : `${film.note} / 10`,
+                    },
+                  ] as const)
+                    .filter(Boolean)
+                    .map((row) => {
+                      const { label, value } = row as { label: string; value: string };
+                      return (
+                        <div key={label} className="flex gap-4 py-2">
+                          <dt className="shrink-0 w-[130px]" style={{ fontSize: "13px", color: "#8a8f98", lineHeight: "21px" }}>
+                            {label}
+                          </dt>
+                          <dd style={{ fontSize: "14px", color: "#e8e8e8", lineHeight: "21px" }}>{value}</dd>
+                        </div>
+                      );
+                    })}
+                </dl>
+              </section>
+            </div>
+
+            <div className="flex flex-col gap-8">
+              {film.synopsis && (
+                <section>
+                  <TitreSection>Synopsis</TitreSection>
+                  <p className="pt-3" style={{ fontSize: "15px", color: "#e8e8e8", lineHeight: "25px" }}>
+                    {film.synopsis}
+                  </p>
+                </section>
+              )}
+
+              {/*
+                Ce que Jaquette apporte que TMDB n'a pas : le recensement des
+                éditions physiques. C'est l'information la plus rare de la page,
+                elle mérite une place et pas une ligne de tableau.
+              */}
+              {editions.length > 0 && (
+                <section>
+                  <TitreSection>Au catalogue</TitreSection>
+                  <p className="pt-3" style={{ fontSize: "15px", color: "#e8e8e8", lineHeight: "25px" }}>
+                    {editions.length} édition{editions.length > 1 ? "s" : ""} recensée
+                    {editions.length > 1 ? "s" : ""}
+                    {allFormats.length > 0 && <> en {allFormats.join(", ")}</>}.
+                    {(() => {
+                      const avecEan = editions.filter((e) => e.ean).length;
+                      return avecEan > 0 ? ` ${avecEan} avec code-barres.` : "";
+                    })()}
+                  </p>
+                </section>
+              )}
+            </div>
           </div>
         )}
 
