@@ -770,12 +770,18 @@ export function FilmDetailPage() {
                 </p>
               )}
 
+              {/*
+                Traitement repris de la maquette : un filet sous chaque ligne,
+                le libellé en gris à gauche sur une colonne fixe, la valeur plus
+                grande à droite. Les filets font le travail que les capsules
+                faisaient mal — ils séparent sans ajouter d'objet visuel.
+              */}
               <section
-                className="rounded-[10px] p-5"
+                className="rounded-[12px] px-5 py-4"
                 style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
               >
                 <TitreSection>Fiche technique</TitreSection>
-                <dl className="pt-3">
+                <dl className="pt-2">
                   {([
                     film.titre_original && film.titre_original !== film.titre &&
                       { label: "Titre original", value: film.titre_original },
@@ -794,14 +800,27 @@ export function FilmDetailPage() {
                     },
                   ] as const)
                     .filter(Boolean)
-                    .map((row) => {
+                    .map((row, i, lignes) => {
                       const { label, value } = row as { label: string; value: string };
                       return (
-                        <div key={label} className="flex gap-4 py-2">
-                          <dt className="shrink-0 w-[130px]" style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "21px" }}>
+                        <div
+                          key={label}
+                          className="flex gap-5 py-3"
+                          style={{
+                            // Pas de filet sous la dernière ligne : il doublerait
+                            // le bord de la carte.
+                            borderBottom: i < lignes.length - 1 ? "1px solid var(--reel-border)" : "none",
+                          }}
+                        >
+                          <dt
+                            className="shrink-0 w-[120px]"
+                            style={{ fontSize: "14px", color: "var(--reel-muted)", lineHeight: "24px" }}
+                          >
                             {label}
                           </dt>
-                          <dd style={{ fontSize: "14px", color: "var(--reel-text)", lineHeight: "21px" }}>{value}</dd>
+                          <dd style={{ fontSize: "16px", color: "var(--reel-text)", lineHeight: "24px" }}>
+                            {value}
+                          </dd>
                         </div>
                       );
                     })}
