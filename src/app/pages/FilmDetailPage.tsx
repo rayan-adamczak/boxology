@@ -9,6 +9,7 @@ import {
   getFilm,
   getEditionsForFilm,
   splitList,
+  agregerSpecs,
   type Film,
   type Edition,
   type StatutValue,
@@ -20,6 +21,42 @@ import { useSeo, extrait, type Seo } from "../lib/seo";
 
 /* ---- helpers ---- */
 
+/**
+ * Langues des titres étrangers. Ce sont les six que `enrichir_tmdb.py` retient
+ * — TMDB en propose une centaine, dont beaucoup ne sont qu'une translittération
+ * du titre original et n'apprennent rien à un lecteur francophone.
+ */
+const LANGUES_TITRES: Record<string, string> = {
+  en: "Anglais",
+  de: "Allemand",
+  es: "Espagnol",
+  it: "Italien",
+  ja: "Japonais",
+  pt: "Portugais",
+};
+
+/** « 2018-01-17 » → « 17 janvier 2018 ». Date nue, jamais reformatée en UTC. */
+function formatDateSortie(raw: string | null): string {
+  if (!raw) return "";
+  // `new Date("2018-01-17")` est interprété en UTC et recule d'un jour dans les
+  // fuseaux négatifs. On construit la date en local, à partir des trois nombres.
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!m) return raw;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/**
+ * Budget TMDB, en dollars — leur champ n'est pas converti et ne porte pas de
+ * devise, mais c'est du dollar. Arrondi au million au-dessus de dix millions :
+ * « 15 000 000 $ » donne une précision que la donnée n'a pas.
+ */
+function formatBudget(raw: number | null): string {
+  if (!raw || raw <= 0) return "";
+  if (raw >= 10_000_000) return `${Math.round(raw / 1_000_000)} M$`;
+  return `${raw.toLocaleString("fr-FR")} $`;
+}
+
 function formatDuration(raw: string | null): string {
   if (!raw) return "";
   const total = parseInt(String(raw), 10);
@@ -29,7 +66,9 @@ function formatDuration(raw: string | null): string {
   return `${h}h ${String(min).padStart(2, "0")}min`;
 }
 
-interface CastMember { nom: string; role: string }
+/** `photo` est une URL TMDB complète, posée par `enrichir_tmdb.py --cast-seul`.
+ *  Absente sur les seconds rôles que TMDB n'illustre pas. */
+interface CastMember { nom: string; role: string; photo?: string }
 
 function parseCast(val: unknown): CastMember[] {
   if (!val) return [];
@@ -100,6 +139,120 @@ function CircleStatusButtons({ editionId, status, onToggle }: CircleStatusButton
 function TitreSection({ children }: { children: React.ReactNode }) {
   return (
     <h2 style={{ fontSize: "17px", fontWeight: 600, color: "var(--reel-text)" }}>{children}</h2>
+  );
+}
+
+type LigneFiche = { label: string; value: React.ReactNode } | false | null | undefined | "";
+
+/**
+ * Carte libellé/valeur, reprise de la maquette : un filet sous chaque ligne, le
+ * libellé en gris à gauche sur une colonne fixe, la valeur plus grande à
+ * droite. Les filets font le travail que les capsules faisaient mal — ils
+ * séparent sans ajouter d'objet visuel.
+ *
+ * La carte disparaît entièrement quand aucune ligne n'est renseignée. Un bloc
+ * technique vide n'apprendrait rien, et il serait vide sur les 3 193 éditions
+ * editioncollector, qui ne publient pas de fiche technique.
+ */
+function BlocFiche({
+  titre,
+  lignes,
+  note,
+}: {
+  titre: string;
+  lignes: LigneFiche[];
+  note?: string;
+}) {
+  const visibles = lignes.filter(Boolean) as { label: string; value: React.ReactNode }[];
+  if (visibles.length === 0) return null;
+
+  return (
+    <section
+      className="rounded-[12px] px-5 py-4"
+      style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
+    >
+      <TitreSection>{titre}</TitreSection>
+      <dl className="pt-2">
+        {visibles.map(({ label, value }, i) => (
+          <div
+            key={label}
+            className="flex gap-5 py-3"
+            style={{
+              // Pas de filet sous la dernière ligne : il doublerait le bord de
+              // la carte.
+              borderBottom: i < visibles.length - 1 ? "1px solid var(--reel-border)" : "none",
+            }}
+          >
+            <dt
+              className="shrink-0 w-[120px]"
+              style={{ fontSize: "14px", color: "var(--reel-muted)", lineHeight: "24px" }}
+            >
+              {label}
+            </dt>
+            <dd style={{ fontSize: "16px", color: "var(--reel-text)", lineHeight: "24px" }}>
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {note && (
+        <p className="pt-1" style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "20px" }}>
+          {note}
+        </p>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Une carte d'acteur : portrait, nom, rôle. En grille et non en liste — la
+ * liste empilée tenait dans une colonne étroite, mais elle lisait comme un
+ * annuaire, et les portraits se réduisaient à des pastilles d'initiales de
+ * 36 px où l'on ne reconnaissait personne.
+ *
+ * Le portrait garde le rapport 2/3 de l'affiche, même sans image : sans
+ * hauteur imposée, les cartes sans photo remontaient et cassaient l'alignement
+ * des noms d'une colonne à l'autre.
+ */
+function CarteActeur({ membre, onClick }: { membre: CastMember; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex flex-col gap-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] rounded-[10px]"
+    >
+      <span
+        className="relative block w-full overflow-hidden rounded-[10px] ring-1 ring-transparent transition group-hover:ring-[var(--reel-accent-clair)]"
+        style={{ aspectRatio: "2 / 3", backgroundColor: "var(--reel-surface)" }}
+      >
+        {membre.photo ? (
+          // Zoom léger plutôt qu'un voile : assombrir un portrait déjà sombre
+          // ne se voyait pas, alors que le mouvement se remarque tout de suite.
+          <ImageWithFallback
+            src={membre.photo}
+            alt={membre.nom}
+            className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.04]"
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center">
+            <UserAvatar name={membre.nom} size={48} />
+          </span>
+        )}
+      </span>
+      {/* La couleur passe par une classe et non par `style` : une couleur en
+          ligne l'emporte sur toute règle CSS, y compris sur le survol. */}
+      <span
+        className="block text-[var(--reel-text)] transition-colors group-hover:text-[var(--reel-accent-clair)]"
+        style={{ fontSize: "14px", fontWeight: 600, lineHeight: "19px" }}
+      >
+        {membre.nom}
+      </span>
+      {membre.role && (
+        <span className="block" style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "18px" }}>
+          {membre.role}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -279,6 +432,21 @@ export function FilmDetailPage() {
     : editions;
 
   const durationFormatted = formatDuration(film.duree);
+  const paysList = splitList(film.pays);
+  const producteurs = splitList(film.producteurs);
+  const dateSortieFr = formatDateSortie(film.date_sortie);
+  const budgetFormate = formatBudget(film.budget);
+  const specs = agregerSpecs(editions);
+
+  // Un titre déjà affiché ailleurs sur la carte n'apprend rien : le titre
+  // anglais est le titre original dans la plupart des cas, et le répéter deux
+  // lignes plus bas donne à la fiche l'air de bégayer.
+  const dejaVus = new Set(
+    [film.titre, film.titre_original].filter(Boolean).map((t) => String(t).toLowerCase())
+  );
+  const titresEtrangers = Object.entries(film.titres_alternatifs || {})
+    .filter(([code, titre]) => titre && LANGUES_TITRES[code] && !dejaVus.has(titre.toLowerCase()))
+    .sort((a, b) => LANGUES_TITRES[a[0]].localeCompare(LANGUES_TITRES[b[0]], "fr"));
 
   return (
     <div className="w-full" style={{ backgroundColor: "var(--reel-bg)", minHeight: "100vh" }}>
@@ -384,7 +552,14 @@ export function FilmDetailPage() {
               >
                 {film.titre}
                 {film.annee && (
-                  <span style={{ fontWeight: 400, color: "var(--reel-muted)" }}> ({film.annee})</span>
+                  // Espace insécable large plutôt qu'une espace ordinaire : à
+                  // 44 px, l'espace du titre est trop serrée et l'année colle
+                  // au dernier mot. Graisse 300 et non 400 — Bricolage
+                  // Grotesque descend jusqu'à 200, et plus l'écart de graisse
+                  // est net, moins l'année se lit comme un morceau du titre.
+                  <span style={{ fontWeight: 300, color: "var(--reel-muted)" }}>
+                    {"  "}({film.annee})
+                  </span>
                 )}
               </h1>
             </div>
@@ -719,113 +894,142 @@ export function FilmDetailPage() {
 
         {activeTab === "Détails" && (
           /*
-            Distribution à gauche, fiche technique à droite. L'ancienne version
-            empilait tout dans une liste libellé/valeur, distribution comprise,
-            ce qui écrasait des noms de personnes dans des lignes de tableau.
+            Distribution en tête, pleine largeur, puis les deux fiches côte à
+            côte. Les visages passent avant les tableaux : c'est ce qu'on
+            reconnaît d'un coup d'œil, et une grille de portraits a besoin de
+            toute la largeur — dans une demi-colonne elle retombait à trois
+            cartes par ligne.
 
             Pas de synopsis ici : il est déjà en entier dans le héros, au-dessus
             des onglets. Le répéter deux fois sur le même écran ne renseignait
             personne.
           */
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="flex flex-col gap-10">
+            {castList.length > 0 && (
+              <section>
+                <TitreSection>Distribution</TitreSection>
+                <div className="grid grid-cols-3 gap-x-4 gap-y-6 pt-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+                  {castList.map((m) => (
+                    <CarteActeur key={m.nom} membre={m} onClick={() => setSelectedPerson(m.nom)} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="flex flex-col gap-8">
-              {castList.length > 0 && (
-                <section>
-                  <TitreSection>Distribution</TitreSection>
-                  <ul className="flex flex-col gap-3 pt-4">
-                    {castList.map((m) => (
-                      <li key={m.nom}>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPerson(m.nom)}
-                          className="flex w-full items-center gap-3 rounded-[8px] px-2 py-1.5 text-left outline-none transition hover:bg-[var(--reel-surface)] focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
-                        >
-                          <UserAvatar name={m.nom} size={36} />
-                          <span className="min-w-0">
-                            <span className="block truncate" style={{ fontSize: "15px", color: "var(--reel-text)" }}>
-                              {m.nom}
-                            </span>
-                            {m.role && (
-                              <span className="block truncate" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
-                                {m.role}
-                              </span>
-                            )}
+              {/*
+                Deux blocs et non un. L'ancienne fiche unique mélangeait ce qui
+                relève de l'œuvre — réalisation, année, genres, titres étrangers,
+                identiques quel que soit le disque — et ce qui relève du support
+                — définition, HDR, pistes audio, qui changent d'une édition à
+                l'autre. Les séparer dit d'où vient chaque ligne.
+
+                Ordre et vocabulaire calqués sur la fiche technique de
+                SensCritique, prise comme référence pour cette v1 : titre
+                original, titres alternatifs, genres, année, pays, durée, dates
+                de sortie, réalisateur, scénariste, producteurs, distributeur,
+                budget, bande originale.
+
+                Le distributeur n'y figure pas : TMDB ne publie que les sociétés
+                de production, qui ne sont le distributeur que par accident.
+                L'éditeur vidéo relevé sur blu-ray.com le remplace, et il est
+                dans l'autre bloc — il qualifie le disque, pas l'œuvre.
+
+                La note n'est pas de leur liste non plus. Gardée quand même,
+                pour le nombre de votes, que le héros n'affiche pas.
+              */}
+              <BlocFiche
+                titre="L'œuvre"
+                lignes={[
+                  film.titre_original && film.titre_original !== film.titre &&
+                    { label: "Titre original", value: film.titre_original },
+                  titresEtrangers.length > 0 && {
+                    label: "Autres titres",
+                    // Une ligne par langue : sur un seul paragraphe, les titres
+                    // se confondaient entre eux dès qu'il y en avait trois.
+                    value: (
+                      <span className="flex flex-col gap-1">
+                        {titresEtrangers.map(([code, titre]) => (
+                          <span key={code}>
+                            <span style={{ color: "var(--reel-muted)" }}>{LANGUES_TITRES[code]}</span>
+                            {" · "}
+                            {titre}
                           </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
+                        ))}
+                      </span>
+                    ),
+                  },
+                  // L'accroche d'affiche TMDB. Elle a d'abord ouvert la colonne
+                  // de droite, hors carte : elle y flottait sans rien qualifier.
+                  // Ici elle suit les titres, ce qu'elle prolonge — mais elle
+                  // reste en italique, parce que c'est une phrase d'affiche et
+                  // non une donnée relevée comme les lignes qui suivent. En
+                  // blanc comme les autres valeurs : le gris la faisait passer
+                  // pour un libellé alors qu'elle est du contenu.
+                  film.tagline && { label: "Accroche", value: <em>{film.tagline}</em> },
+                  genres.length > 0 && { label: "Genres", value: genres.join(", ") },
+                  film.annee && { label: "Année", value: String(film.annee) },
+                  paysList.length > 0 && { label: "Pays", value: paysList.join(", ") },
+                  durationFormatted && { label: "Durée", value: durationFormatted },
+                  dateSortieFr && { label: "Sortie", value: dateSortieFr },
+                  film.realisateur && { label: "Réalisateur", value: film.realisateur },
+                  scenaristes.length > 0 && { label: "Scénariste", value: scenaristes.join(", ") },
+                  producteurs.length > 0 && { label: "Producteurs", value: producteurs.join(", ") },
+                  film.musique && { label: "Bande originale", value: film.musique },
+                  budgetFormate && { label: "Budget", value: budgetFormate },
+                  film.note != null && film.note !== "" && {
+                    label: "Note TMDB",
+                    // Deux décimales comme dans le héros : la même note ne peut
+                    // pas s'afficher différemment à deux endroits.
+                    value: film.nb_votes
+                      ? `${Number(film.note).toFixed(2)} / 10 (${film.nb_votes.toLocaleString("fr-FR")} votes)`
+                      : `${Number(film.note).toFixed(2)} / 10`,
+                  },
+                ]}
+              />
 
             </div>
 
             <div className="flex flex-col gap-8">
-              {/* L'accroche d'affiche TMDB. Retirée du héros où elle séparait le
-                  titre de son auteur ; ici elle ouvre la colonne, en italique et
-                  sans titre de section — c'est une phrase, pas une donnée. */}
-              {film.tagline && (
-                <p style={{ fontSize: "17px", fontStyle: "italic", color: "var(--reel-muted)", lineHeight: "25px" }}>
-                  {film.tagline}
-                </p>
-              )}
-
               {/*
-                Traitement repris de la maquette : un filet sous chaque ligne,
-                le libellé en gris à gauche sur une colonne fixe, la valeur plus
-                grande à droite. Les filets font le travail que les capsules
-                faisaient mal — ils séparent sans ajouter d'objet visuel.
+                Ce bloc réunit les specs de toutes les éditions du film, pas
+                celles d'un disque. Il se lit « disponible en Dolby Vision », et
+                non « ce film est en Dolby Vision » — d'où la mention du nombre
+                d'éditions dépouillées, qui dit sur quoi la liste s'appuie.
+
+                Aucune donnée n'en vient d'IMDb : leurs conditions interdisent
+                l'extraction, et leurs jeux gratuits sont réservés à un usage non
+                commercial et ne contiennent de toute façon aucune spec. Tout
+                vient des fiches blu-ray.com déjà en cache.
               */}
-              <section
-                className="rounded-[12px] px-5 py-4"
-                style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
-              >
-                <TitreSection>Fiche technique</TitreSection>
-                <dl className="pt-2">
-                  {([
-                    film.titre_original && film.titre_original !== film.titre &&
-                      { label: "Titre original", value: film.titre_original },
-                    film.realisateur && { label: "Réalisation", value: film.realisateur },
-                    scenaristes.length > 0 && { label: "Scénario", value: scenaristes.join(", ") },
-                    film.annee && { label: "Année", value: String(film.annee) },
-                    durationFormatted && { label: "Durée", value: durationFormatted },
-                    genres.length > 0 && { label: "Genres", value: genres.join(", ") },
-                    film.note != null && film.note !== "" && {
-                      label: "Note TMDB",
-                      // Deux décimales comme dans le héros : la même note ne
-                      // peut pas s'afficher différemment à deux endroits.
-                      value: film.nb_votes
-                        ? `${Number(film.note).toFixed(2)} / 10 (${film.nb_votes.toLocaleString("fr-FR")} votes)`
-                        : `${Number(film.note).toFixed(2)} / 10`,
-                    },
-                  ] as const)
-                    .filter(Boolean)
-                    .map((row, i, lignes) => {
-                      const { label, value } = row as { label: string; value: string };
-                      return (
-                        <div
-                          key={label}
-                          className="flex gap-5 py-3"
-                          style={{
-                            // Pas de filet sous la dernière ligne : il doublerait
-                            // le bord de la carte.
-                            borderBottom: i < lignes.length - 1 ? "1px solid var(--reel-border)" : "none",
-                          }}
-                        >
-                          <dt
-                            className="shrink-0 w-[120px]"
-                            style={{ fontSize: "14px", color: "var(--reel-muted)", lineHeight: "24px" }}
-                          >
-                            {label}
-                          </dt>
-                          <dd style={{ fontSize: "16px", color: "var(--reel-text)", lineHeight: "24px" }}>
-                            {value}
-                          </dd>
-                        </div>
-                      );
-                    })}
-                </dl>
-              </section>
+              <BlocFiche
+                titre="Image et son"
+                lignes={[
+                  specs.definitions.length > 0 && {
+                    label: "Définition",
+                    value: specs.definitions.join(" · "),
+                  },
+                  specs.hdr.length > 0 && { label: "HDR", value: specs.hdr.join(" · ") },
+                  specs.ratios.length > 0 && { label: "Format", value: specs.ratios.join(" · ") },
+                  specs.codecs.length > 0 && { label: "Codec", value: specs.codecs.join(" · ") },
+                  specs.languesAudio.length > 0 && {
+                    label: "Audio",
+                    value: specs.languesAudio.join(", "),
+                  },
+                  specs.sousTitres.length > 0 && {
+                    label: "Sous-titres",
+                    value: specs.sousTitres.join(", "),
+                  },
+                  specs.editeurs.length > 0 && { label: "Éditeur", value: specs.editeurs.join(" · ") },
+                  specs.zones.length > 0 && { label: "Zone", value: specs.zones.join(" · ") },
+                ]}
+                note={
+                  specs.sources > 0
+                    ? `Relevé sur ${specs.sources} édition${specs.sources > 1 ? "s" : ""} du catalogue.`
+                    : undefined
+                }
+              />
 
               {/*
                 Ce que Jaquette apporte que TMDB n'a pas : le recensement des
@@ -846,6 +1050,7 @@ export function FilmDetailPage() {
                   </p>
                 </section>
               )}
+            </div>
             </div>
           </div>
         )}

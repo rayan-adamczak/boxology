@@ -204,6 +204,32 @@
     line-height: 1.5;
   }
 
+  /*
+    Le curseur main sur tout ce qui se clique.
+
+    Tailwind 4 a changé son preflight : les boutons y reçoivent
+    `cursor: default` au lieu du `cursor: pointer` que Tailwind 3 posait, pour
+    coller au défaut du navigateur. Résultat, la moitié de l'interface — les
+    onglets, les capsules de format, les cartes d'acteurs, les boutons de
+    collection — ne signalait plus qu'elle était cliquable. Seuls les liens,
+    qui sont des `<a>`, gardaient le bon curseur.
+
+    Réglé ici et non capsule par capsule : c'est une règle d'interface, pas une
+    décoration d'un composant. `:disabled` garde le curseur d'interdiction, et
+    `[aria-disabled]` avec, pour les éléments désactivés sans attribut natif.
+  */
+  button,
+  summary,
+  [role="button"],
+  [role="tab"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
   input {
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
