@@ -387,22 +387,13 @@ export function FilmDetailPage() {
                   <span style={{ fontWeight: 400, color: "var(--reel-muted)" }}> ({film.annee})</span>
                 )}
               </h1>
-              {/* L'accroche vient de TMDB et manque souvent : jamais inventée. */}
-              {film.tagline && (
-                <p
-                  className="pt-2"
-                  style={{ fontSize: "16px", fontStyle: "italic", color: "var(--reel-muted)", lineHeight: "22px" }}
-                >
-                  {film.tagline}
-                </p>
-              )}
             </div>
 
             {/*
-              Durée et genres suivent la réalisation sur la même ligne, séparées
-              par des points médians. En capsules, « Aventure » avait le même
-              poids visuel qu'un filtre cliquable ; sur une ligne à part, elle
-              séparait le titre de son auteur.
+              Le héros s'en tient à ce qui situe le film : titre, auteur, note,
+              récit, action. Accroche, durée, genres et distribution vivent dans
+              l'onglet Détails — les empiler ici repoussait les boutons hors de
+              vue sans rien apprendre d'essentiel.
             */}
             <p style={{ fontSize: "15px", color: "var(--reel-muted)", lineHeight: "22.5px" }}>
               {film.realisateur && (
@@ -420,9 +411,6 @@ export function FilmDetailPage() {
                   </button>
                 </>
               )}
-              {[durationFormatted, genres.join(", ")].filter(Boolean).map((v) => (
-                <span key={v}>{film.realisateur ? " · " : ""}{v}</span>
-              ))}
             </p>
 
 
@@ -445,38 +433,6 @@ export function FilmDetailPage() {
               </p>
             )}
 
-            {/*
-              Une distribution est une liste de noms, pas d'étiquettes. En
-              capsules, cinq acteurs faisaient cinq objets visuels sous le
-              synopsis, du même poids que les filtres. Les noms restent
-              cliquables — le lien souligné le dit mieux qu'une bulle.
-            */}
-            {castList.length > 0 && (
-              <p className="max-w-[640px]" style={{ fontSize: "15px", color: "var(--reel-muted)", lineHeight: "24px" }}>
-                Avec{" "}
-                {castList.map((m, i) => (
-                  <span key={m.nom}>
-                    {i > 0 && ", "}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPerson(m.nom)}
-                      className="outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] rounded"
-                      style={{
-                        color: "var(--reel-text)",
-                        textDecoration: "underline",
-                        textUnderlineOffset: "3px",
-                        textDecorationColor: "rgba(232,232,232,0.25)",
-                        cursor: "pointer",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.textDecorationColor = "var(--reel-text)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.textDecorationColor = "rgba(232,232,232,0.25)")}
-                    >
-                      {m.nom}
-                    </button>
-                  </span>
-                ))}
-              </p>
-            )}
 
             {/* Global CTA buttons */}
             <div ref={dropdownRef} className="relative flex flex-wrap gap-[10px] items-center mt-1">
@@ -805,6 +761,15 @@ export function FilmDetailPage() {
             </div>
 
             <div className="flex flex-col gap-8">
+              {/* L'accroche d'affiche TMDB. Retirée du héros où elle séparait le
+                  titre de son auteur ; ici elle ouvre la colonne, en italique et
+                  sans titre de section — c'est une phrase, pas une donnée. */}
+              {film.tagline && (
+                <p style={{ fontSize: "17px", fontStyle: "italic", color: "var(--reel-muted)", lineHeight: "25px" }}>
+                  {film.tagline}
+                </p>
+              )}
+
               <section
                 className="rounded-[10px] p-5"
                 style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
@@ -821,9 +786,11 @@ export function FilmDetailPage() {
                     genres.length > 0 && { label: "Genres", value: genres.join(", ") },
                     film.note != null && film.note !== "" && {
                       label: "Note TMDB",
+                      // Deux décimales comme dans le héros : la même note ne
+                      // peut pas s'afficher différemment à deux endroits.
                       value: film.nb_votes
-                        ? `${film.note} / 10 (${film.nb_votes.toLocaleString("fr-FR")} votes)`
-                        : `${film.note} / 10`,
+                        ? `${Number(film.note).toFixed(2)} / 10 (${film.nb_votes.toLocaleString("fr-FR")} votes)`
+                        : `${Number(film.note).toFixed(2)} / 10`,
                     },
                   ] as const)
                     .filter(Boolean)
