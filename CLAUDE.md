@@ -13,7 +13,7 @@ pour le marché français. Anciennement *Boxology*, renommé en juillet 2026.
 | Domaine | `jaquette.app` — **en ligne**, apex et `www` |
 | Dépôt | `github.com/rayan-adamczak/jaquette` (public) |
 | Éditeur | Rayan Adamczak, designer, à titre non professionnel |
-| Contact | rayan.adamczak@gmail.com |
+| Contact | `contact@jaquette.app` — Cloudflare Email Routing, redirige vers rayan.adamczak@gmail.com. Réception seulement, pas d'envoi |
 | Compte Awin | `Boxology` (3006883) — 4 candidatures en attente |
 
 **Ambition** : devenir commercial via liens d'affiliation. Aujourd'hui purement
@@ -49,6 +49,26 @@ la règle, sinon un déploiement ne serait pas vu des visiteurs déjà venus.
 DNS géré par Cloudflare, domaine acheté chez Spaceship (nameservers
 `anna`/`lloyd.ns.cloudflare.com`). Un enregistrement `TXT` valide la propriété
 Google Search Console — **ne pas le supprimer**, la validation tomberait.
+
+### Courrier
+
+`contact@jaquette.app` posé le 30 juillet 2026 par **Cloudflare Email Routing**,
+gratuit. Une règle unique redirige vers `rayan.adamczak@gmail.com` ; le catch-all
+reste désactivé, donc toute autre adresse du domaine est jetée.
+
+Spaceship a été écarté : son transfert d'email et sa redirection d'URL supposent
+que la zone soit chez lui, et elle est chez Cloudflare — l'écran affiche
+d'ailleurs « Redirection d'URL » grisée pour cette raison. Spacemail n'a jamais
+été souscrit.
+
+Cinq enregistrements ajoutés à la zone, les quatre premiers **verrouillés** par
+Email Routing : trois `MX` vers `route{1,2,3}.mx.cloudflare.net`, un `TXT` DKIM
+sur `cf2024-1._domainkey`, un `TXT` SPF `v=spf1 include:_spf.mx.cloudflare.net
+~all`. Puis, à la main, `_dmarc` en `v=DMARC1; p=none; rua=mailto:contact@…;
+fo=1` — `p=none` observe sans rien rejeter, à durcir une fois les rapports lus.
+
+**Email Routing ne fait que recevoir.** Répondre depuis l'adresse demanderait un
+SMTP et un « Envoyer en tant que » dans Gmail.
 
 ### Poids du bundle
 

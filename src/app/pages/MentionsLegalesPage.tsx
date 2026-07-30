@@ -13,8 +13,8 @@ export function MentionsLegalesPage() {
           Adamczak</strong>, designer, agissant à titre non professionnel.
         </p>
         <p>
-          Contact : <a href="mailto:rayan.adamczak@gmail.com" style={{ color: "var(--reel-accent)" }}>
-          rayan.adamczak@gmail.com</a>
+          Contact : <a href="mailto:contact@jaquette.app" style={{ color: "var(--reel-accent)" }}>
+          contact@jaquette.app</a>
         </p>
         <Encadre>
           Conformément à l’article 6 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans

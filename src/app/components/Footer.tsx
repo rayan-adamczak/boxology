@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { ArrowUpRight } from "lucide-react";
 
-const CONTACT = "rayan.adamczak@gmail.com";
+const CONTACT = "contact@jaquette.app";
 
 /** Titre d'une colonne du pied de page. */
 function Colonne({ titre, children }: { titre: string; children: ReactNode }) {

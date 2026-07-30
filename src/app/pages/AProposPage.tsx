@@ -84,8 +84,8 @@ export function AProposPage() {
         </p>
         <p>
           Remarques, corrections, éditions manquantes :{" "}
-          <a href="mailto:rayan.adamczak@gmail.com" style={{ color: "var(--reel-accent)" }}>
-            rayan.adamczak@gmail.com
+          <a href="mailto:contact@jaquette.app" style={{ color: "var(--reel-accent)" }}>
+            contact@jaquette.app
           </a>
         </p>
       </Section>

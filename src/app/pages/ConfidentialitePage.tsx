@@ -124,8 +124,8 @@ export function ConfidentialitePage() {
         </p>
         <p>
           Pour toute autre demande :{" "}
-          <a href="mailto:rayan.adamczak@gmail.com" style={{ color: "var(--reel-accent)" }}>
-            rayan.adamczak@gmail.com
+          <a href="mailto:contact@jaquette.app" style={{ color: "var(--reel-accent)" }}>
+            contact@jaquette.app
           </a>
           . Vous pouvez également saisir la CNIL.
         </p>
