@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useSeo } from "../lib/seo";
 
 /** Mise en page commune aux pages éditoriales (mentions légales, confidentialité, à propos). */
-export function PageStatique({ titre, titreSeo, sousTitre, description, children }: {
+export function PageStatique({ titre, titreSeo, sousTitre, description, noindex, children }: {
   titre: string;
   /** Titre de l'onglet, quand le H1 répète déjà « Jaquette » et rendrait le
    *  suffixe du <title> redondant. */
@@ -13,9 +13,11 @@ export function PageStatique({ titre, titreSeo, sousTitre, description, children
   /** Description SEO. Le sous-titre sert de repli, mais il porte souvent une
    *  date de mise à jour plutôt qu'un résumé : mieux vaut la renseigner. */
   description?: string;
+  /** Pages personnelles : elles n'ont rien à faire dans un index. */
+  noindex?: boolean;
   children: ReactNode;
 }) {
-  useSeo({ titre: titreSeo ?? titre, description: description ?? sousTitre ?? titre });
+  useSeo({ titre: titreSeo ?? titre, description: description ?? sousTitre ?? titre, noindex });
 
   return (
     <div className="mx-auto max-w-[760px] px-6 pb-24 pt-6">

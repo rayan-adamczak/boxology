@@ -3,7 +3,8 @@ import { Link } from "react-router";
 import { Loader2, Heart, CheckCircle2 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { getEditionsByIds, type EditionWithFilm, type StatutValue } from "../lib/reelio-db";
-import { getEditionIdsByStatut } from "../lib/local-statuts";
+import { idsParStatut } from "../lib/collections";
+import { useSession } from "../lib/auth";
 import { useSeo } from "../lib/seo";
 
 interface StatusListPageProps {
@@ -37,15 +38,21 @@ export function StatusListPage({ statut }: StatusListPageProps) {
   const [editions, setEditions] = useState<EditionWithFilm[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const session = useSession();
 
   useEffect(() => {
+    // Attendre la résolution de la session évite d'afficher la liste locale
+    // une fraction de seconde avant celle du compte.
+    if (session === undefined) return;
+
     let cancelled = false;
     setLoading(true);
     setError(null);
     (async () => {
       try {
-        // Read edition IDs from localStorage, then fetch details from Supabase
-        const ids = getEditionIdsByStatut(statut);
+        // Base ou localStorage selon qu'un compte est connecté, puis on va
+        // chercher le détail des éditions dans le catalogue.
+        const ids = await idsParStatut(statut);
         const rows = await getEditionsByIds(ids);
         if (!cancelled) setEditions(rows);
       } catch (e) {
@@ -55,7 +62,9 @@ export function StatusListPage({ statut }: StatusListPageProps) {
       }
     })();
     return () => { cancelled = true; };
-  }, [statut]);
+    // Voir FilmDetailPage : on suit l'identité, pas l'objet session, qui est
+    // recréé à chaque rafraîchissement de jeton.
+  }, [statut, session === undefined, session?.user.id]);
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-[88px] md:px-8 md:pb-8 lg:px-16">

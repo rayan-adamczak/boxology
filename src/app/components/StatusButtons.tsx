@@ -1,6 +1,6 @@
 import { Heart, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { toggleStatutLocal } from "../lib/local-statuts";
+import { basculerStatut } from "../lib/collections";
 import type { StatutValue } from "../lib/reelio-db";
 
 interface StatusButtonsProps {
@@ -10,13 +10,20 @@ interface StatusButtonsProps {
 }
 
 export function StatusButtons({ editionId, status, onChange }: StatusButtonsProps) {
-  const handle = (value: StatutValue) => {
-    const next = toggleStatutLocal(editionId, value);
-    onChange(editionId, next);
-    if (next === null) {
-      toast.success(value === "envie" ? "Retiré de vos envies" : "Retiré de votre collection");
-    } else {
-      toast.success(value === "envie" ? "Ajouté à vos envies" : "Ajouté à votre collection");
+  // On attend la confirmation avant de bouger l'interface : avec un compte,
+  // l'écriture passe par le réseau, et annoncer « Ajouté » sur un
+  // enregistrement qui a échoué serait un mensonge.
+  const handle = async (value: StatutValue) => {
+    try {
+      const next = await basculerStatut(editionId, value);
+      onChange(editionId, next);
+      if (next === null) {
+        toast.success(value === "envie" ? "Retiré de vos envies" : "Retiré de votre collection");
+      } else {
+        toast.success(value === "envie" ? "Ajouté à vos envies" : "Ajouté à votre collection");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Enregistrement impossible");
     }
   };
 
@@ -24,13 +31,13 @@ export function StatusButtons({ editionId, status, onChange }: StatusButtonsProp
     <div className="flex gap-2">
       <StatusButton
         active={status === "envie"}
-        onClick={() => handle("envie")}
+        onClick={() => { void handle("envie"); }}
         icon={<Heart size={15} strokeWidth={2.2} />}
         label="Envie"
       />
       <StatusButton
         active={status === "possede"}
-        onClick={() => handle("possede")}
+        onClick={() => { void handle("possede"); }}
         icon={<CheckCircle2 size={15} strokeWidth={2.2} />}
         label="Possédé"
       />

@@ -85,13 +85,28 @@ export async function getEditionsForFilm(filmId: number): Promise<Edition[]> {
   return (data ?? []).map(({ edition_films: _ignored, ...edition }) => edition) as Edition[];
 }
 
-/** Fetch a list of editions by their IDs, joined with their parent film. */
+/**
+ * Fetch a list of editions by their IDs, joined with their parent film.
+ *
+ * Découpé en tranches parce que PostgREST plafonne à 1 000 lignes par réponse :
+ * une collection plus grande verrait ses éditions disparaître de la liste sans
+ * la moindre erreur. La taille de tranche tient aussi la longueur de l'URL, le
+ * filtre `in` étant sérialisé dans la query string.
+ */
 export async function getEditionsByIds(ids: number[]): Promise<EditionWithFilm[]> {
   if (ids.length === 0) return [];
-  const { data, error } = await supabase
-    .from("editions")
-    .select("*, film:films(id, titre, affiche_url)")
-    .in("id", ids);
-  if (error) throw new Error(`Erreur lors du chargement des éditions: ${error.message}`);
-  return (data ?? []) as EditionWithFilm[];
+
+  const TRANCHE = 500;
+  const resultat: EditionWithFilm[] = [];
+
+  for (let debut = 0; debut < ids.length; debut += TRANCHE) {
+    const { data, error } = await supabase
+      .from("editions")
+      .select("*, film:films(id, titre, affiche_url)")
+      .in("id", ids.slice(debut, debut + TRANCHE));
+    if (error) throw new Error(`Erreur lors du chargement des éditions: ${error.message}`);
+    resultat.push(...((data ?? []) as EditionWithFilm[]));
+  }
+
+  return resultat;
 }

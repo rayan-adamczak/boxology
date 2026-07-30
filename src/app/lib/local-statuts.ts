@@ -66,6 +66,20 @@ export function toggleStatutLocal(editionId: number, statut: StatutValue): Statu
   return statut;
 }
 
+/**
+ * Efface la copie locale, une fois qu'elle a été reprise dans un compte
+ * (cf. `fusionner` dans lib/collections.ts). Laisser les deux dépôts en place
+ * donnerait un instantané figé, réaffiché après déconnexion comme s'il était à
+ * jour.
+ */
+export function viderStatutsLocaux(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* stockage indisponible : rien à effacer */
+  }
+}
+
 export function getEditionIdsByStatut(statut: StatutValue): number[] {
   const all = readStatuts();
   return Object.entries(all)

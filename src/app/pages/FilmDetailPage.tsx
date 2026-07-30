@@ -11,12 +11,8 @@ import {
   type Edition,
   type StatutValue,
 } from "../lib/reelio-db";
-import {
-  getStatusForEditions,
-  toggleStatutLocal,
-  setStatutLocal,
-  removeStatutLocal,
-} from "../lib/local-statuts";
+import { basculerStatut, chargerStatuts } from "../lib/collections";
+import { useSession } from "../lib/auth";
 import { useSeo, extrait, type Seo } from "../lib/seo";
 
 /* ---- helpers ---- */
@@ -82,19 +78,13 @@ function FormatTag({ label }: { label: string }) {
 interface CircleStatusButtonsProps {
   editionId: number;
   status: StatutValue | undefined;
-  onChange: (editionId: number, status: StatutValue | null) => void;
+  /** La page tient la bascule : selon qu'un compte est connecté ou non, elle
+   *  part en base ou dans localStorage, et ce composant n'a pas à le savoir. */
+  onToggle: (editionId: number, value: StatutValue) => void;
 }
 
-function CircleStatusButtons({ editionId, status, onChange }: CircleStatusButtonsProps) {
-  const handle = (value: StatutValue) => {
-    const next = toggleStatutLocal(editionId, value);
-    onChange(editionId, next);
-    toast.success(
-      next === null
-        ? value === "possede" ? "Retiré de votre collection" : "Retiré de vos envies"
-        : value === "possede" ? "Ajouté à votre collection" : "Ajouté à vos envies"
-    );
-  };
+function CircleStatusButtons({ editionId, status, onToggle }: CircleStatusButtonsProps) {
+  const handle = (value: StatutValue) => onToggle(editionId, value);
 
   const collectionActive = status === "possede";
   const wishlistActive = status === "envie";
@@ -156,20 +146,26 @@ export function FilmDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>("Editions");
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [formatFilter, setFormatFilter] = useState<string | null>(null);
+  const session = useSession();
 
   useEffect(() => {
+    // Tant que la session n'est pas résolue, on ne charge pas les statuts : on
+    // les lirait dans localStorage pour les remplacer aussitôt par ceux du
+    // compte, et les boutons changeraient d'état sous le curseur.
+    if (session === undefined) return;
+
     let cancelled = false;
     setLoading(true);
     setError(null);
     (async () => {
       try {
         const [f, eds] = await Promise.all([getFilm(filmId), getEditionsForFilm(filmId)]);
-        if (!cancelled) {
-          setFilm(f);
-          setEditions(eds);
-          // Read statuts from localStorage (sync)
-          setStatuts(getStatusForEditions(eds.map((e) => e.id)));
-        }
+        if (cancelled) return;
+        setFilm(f);
+        setEditions(eds);
+        // Base ou localStorage selon qu'un compte est connecté (cf. lib/collections.ts).
+        const st = await chargerStatuts(eds.map((e) => e.id));
+        if (!cancelled) setStatuts(st);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Erreur inconnue");
       } finally {
@@ -177,7 +173,9 @@ export function FilmDetailPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [filmId]);
+    // `session?.user.id` et non `session` : l'objet est recréé à chaque
+    // rafraîchissement de jeton, ce qui rechargerait la page toutes les heures.
+  }, [filmId, session === undefined, session?.user.id]);
 
   /*
    * Titre et description propres à la fiche. Tant que le film n'est pas chargé
@@ -216,6 +214,25 @@ export function FilmDetailPage() {
     });
   };
 
+  /**
+   * Unique point de bascule d'un statut. On attend la confirmation avant de
+   * bouger l'interface : avec un compte, l'écriture passe par le réseau, et
+   * afficher « Ajouté » sur un enregistrement qui a échoué serait un mensonge.
+   */
+  const basculer = async (editionId: number, value: StatutValue) => {
+    try {
+      const next = await basculerStatut(editionId, value);
+      onStatusChange(editionId, next);
+      toast.success(
+        next === null
+          ? value === "possede" ? "Retiré de votre collection" : "Retiré de vos envies"
+          : value === "possede" ? "Ajouté à votre collection" : "Ajouté à vos envies"
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Enregistrement impossible");
+    }
+  };
+
   /* Dropdown state for edition picker */
   const [openDropdown, setOpenDropdown] = useState<StatutValue | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -233,16 +250,7 @@ export function FilmDetailPage() {
 
   /* Toggle a specific edition for a given statut value */
   const handleEditionStatut = (editionId: number, value: StatutValue) => {
-    const current = statuts[editionId];
-    if (current === value) {
-      removeStatutLocal(editionId);
-      onStatusChange(editionId, null);
-      toast.success(value === "possede" ? "Retiré de votre collection" : "Retiré de vos envies");
-    } else {
-      setStatutLocal(editionId, value);
-      onStatusChange(editionId, value);
-      toast.success(value === "possede" ? "Ajouté à votre collection" : "Ajouté à vos envies");
-    }
+    void basculer(editionId, value);
     setOpenDropdown(null);
   };
 
@@ -683,7 +691,7 @@ export function FilmDetailPage() {
                         <CircleStatusButtons
                           editionId={ed.id}
                           status={statuts[ed.id]}
-                          onChange={onStatusChange}
+                          onToggle={handleEditionStatut}
                         />
                       </div>
                     </div>

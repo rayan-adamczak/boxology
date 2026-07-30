@@ -18,6 +18,8 @@ const MentionsLegalesPage = lazy(() =>
   import("./pages/MentionsLegalesPage").then((m) => ({ default: m.MentionsLegalesPage })));
 const ConfidentialitePage = lazy(() =>
   import("./pages/ConfidentialitePage").then((m) => ({ default: m.ConfidentialitePage })));
+const ComptePage = lazy(() =>
+  import("./pages/ComptePage").then((m) => ({ default: m.ComptePage })));
 
 const HomePage = lazy(() =>
   import("./pages/HomePage").then((m) => ({ default: m.HomePage })));
@@ -47,6 +49,8 @@ export default function App() {
           <Route path="/films/:id" element={<FilmDetailPage />} />
           <Route path="/mes-envies" element={<StatusListPage statut="envie" />} />
           <Route path="/ma-collection" element={<StatusListPage statut="possede" />} />
+
+          <Route path="/compte" element={<ComptePage />} />
 
           <Route path="/a-propos" element={<AProposPage />} />
           <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
