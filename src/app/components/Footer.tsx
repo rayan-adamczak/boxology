@@ -1,33 +1,115 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router";
+import { ArrowUpRight, Film } from "lucide-react";
 
-/** Pied de page : accès aux pages éditoriales et attribution TMDB (exigée par leur licence). */
+const CONTACT = "rayan.adamczak@gmail.com";
+
+/** Titre d'une colonne du pied de page. */
+function Colonne({ titre, children }: { titre: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <h2 style={{ fontSize: "17px", fontWeight: 600, color: "var(--reel-text)" }}>{titre}</h2>
+      <ul className="flex flex-col gap-2" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
+        {children}
+      </ul>
+    </div>
+  );
+}
+
+function LienInterne({ to, children }: { to: string; children: ReactNode }) {
+  return (
+    <li>
+      <Link to={to} style={{ color: "var(--reel-muted)" }}>{children}</Link>
+    </li>
+  );
+}
+
+/**
+ * Pied de page.
+ *
+ * L'attribution TMDB est exigée par leur licence : elle doit rester visible
+ * sur toutes les pages, d'où sa présence ici et non sur la seule page À propos.
+ */
 export function Footer() {
   return (
     <footer
-      className="mt-16 px-6 py-8 pb-24 lg:pb-8"
+      className="mt-16 px-6 py-12 pb-24 lg:pb-12"
       style={{ borderTop: "1px solid var(--reel-border)" }}
     >
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <nav className="flex flex-wrap gap-x-6 gap-y-2" style={{ fontSize: "14px" }}>
-          <Link to="/a-propos" style={{ color: "var(--reel-muted)" }}>À propos</Link>
-          <Link to="/mentions-legales" style={{ color: "var(--reel-muted)" }}>Mentions légales</Link>
-          <Link to="/confidentialite" style={{ color: "var(--reel-muted)" }}>Confidentialité</Link>
-          <a href="mailto:rayan.adamczak@gmail.com" style={{ color: "var(--reel-muted)" }}>Contact</a>
-        </nav>
+      <div className="mx-auto flex max-w-[1440px] flex-col gap-10 lg:flex-row lg:justify-between">
+        {/* Identité */}
+        <div className="flex max-w-[320px] flex-col gap-3">
+          <Link to="/" className="flex items-center gap-2" aria-label="Accueil Jaquette">
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-[8px]"
+              style={{ backgroundColor: "var(--reel-accent)" }}
+            >
+              <Film size={18} color="#ffffff" strokeWidth={2.2} />
+            </span>
+            <span style={{ fontSize: "18px", fontWeight: 700, color: "var(--reel-text)" }}>
+              Jaquette
+            </span>
+          </Link>
+          <p style={{ fontSize: "14px", lineHeight: "21px", color: "var(--reel-muted)" }}>
+            Le catalogue des éditions physiques de films.
+            <br />
+            Blu-ray, 4K, steelbooks et coffrets, pour le marché français.
+          </p>
+        </div>
 
-        <p style={{ fontSize: "12px", color: "var(--reel-muted)", maxWidth: "460px" }}>
-          Métadonnées et affiches fournies par{" "}
+        <div className="flex flex-wrap gap-x-16 gap-y-10">
+          <Colonne titre="Sections">
+            <LienInterne to="/">Catalogue</LienInterne>
+            <LienInterne to="/ma-collection">Ma collection</LienInterne>
+            <LienInterne to="/mes-envies">Mes envies</LienInterne>
+            <LienInterne to="/a-propos">À propos</LienInterne>
+          </Colonne>
+
+          {/* Aucun compte ouvert pour l'instant : de simples mentions, pas des
+              liens morts. À remplacer par des <a> le jour où ils existent. */}
+          <Colonne titre="Réseaux">
+            <li>Instagram</li>
+            <li>Bluesky</li>
+            <li>Letterboxd</li>
+          </Colonne>
+
+          <Colonne titre="Légal">
+            <LienInterne to="/mentions-legales">Mentions légales</LienInterne>
+            <LienInterne to="/confidentialite">Confidentialité</LienInterne>
+          </Colonne>
+
           <a
-            href="https://www.themoviedb.org"
-            target="_blank"
-            rel="noreferrer noopener"
-            style={{ color: "var(--reel-muted)", textDecoration: "underline" }}
+            href={`mailto:${CONTACT}`}
+            className="inline-flex h-fit items-center gap-1"
+            style={{
+              fontSize: "17px",
+              fontWeight: 600,
+              color: "var(--reel-text)",
+              textDecoration: "underline",
+              textUnderlineOffset: "4px",
+            }}
           >
-            TMDB
+            Nous écrire
+            <ArrowUpRight size={18} />
           </a>
-          . Ce produit utilise l’API TMDB mais n’est ni approuvé ni certifié par TMDB.
-        </p>
+        </div>
       </div>
+
+      <p
+        className="mx-auto max-w-[1440px] pt-10"
+        style={{ fontSize: "12px", lineHeight: "18px", color: "var(--reel-muted)" }}
+      >
+        Métadonnées et affiches fournies par{" "}
+        <a
+          href="https://www.themoviedb.org"
+          target="_blank"
+          rel="noreferrer noopener"
+          style={{ color: "var(--reel-muted)", textDecoration: "underline" }}
+        >
+          TMDB
+        </a>
+        . Ce produit utilise l’API TMDB mais n’est ni approuvé ni certifié par TMDB.
+      </p>
     </footer>
   );
 }
