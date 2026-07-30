@@ -114,11 +114,31 @@ Répartition : `film_id` 2 656, `bluray_tmdb` 1 037, `corrige_manuel` 227,
 **L'app lit les éditions via cette table**, pas via `editions.film_id`
 (cf. `getEditionsForFilm` dans `src/app/lib/reelio-db.ts`).
 
-### `collections` — **écrite, pas encore appliquée**
-`supabase/migrations/20260730_collections.sql` crée la table des listes
-utilisateur (`user_id`, `edition_id`, `statut`, clé primaire composite, RLS par
-`auth.uid()`). **La table n'existe pas en base** : PostgREST répond `PGRST205`.
-À exécuter dans l'éditeur SQL Supabase, aucune CLI n'est configurée.
+### `collections` — appliquée le 30 juillet 2026, vide
+Listes utilisateur : `user_id`, `edition_id` (bigint), `statut`
+(`envie|possede`), `cree_le`. Clé primaire composite `(user_id, edition_id)`
+plutôt qu'un `id` identity, pour que `on conflict (user_id, edition_id)`
+s'appuie dessus sans index partiel. Index inverse sur `edition_id` pour les
+décomptes par édition.
+
+Cascade sur `auth.users` **et** sur `editions` : la disparition d'un compte
+emporte ses listes, sans ligne orpheline à purger pour honorer un effacement.
+
+Contient aussi la fonction `public.supprimer_mon_compte()`, `security definer`,
+`set search_path = ''`, réservée à `authenticated` : elle supprime la ligne
+`auth.users` de l'appelant, ce qu'une clé de navigateur ne peut pas faire.
+
+`supabase/migrations/20260730_collections.sql` reste la source, et il est
+idempotent — rejouable sans effet de bord.
+
+**Comment l'appliquer.** Par l'éditeur SQL du tableau de bord, seule voie
+disponible : pas de `psql`, pas de CLI Supabase, et aucun mot de passe de base
+ni jeton `sbp_` sur la machine. La clé `service_role` ne suffit pas — PostgREST
+n'exécute pas de SQL arbitraire, donc aucun DDL. Coller par le presse-papiers
+(`pbcopy < fichier.sql`) et non taper : l'éditeur auto-indente et ferme les
+parenthèses, ce qui abîme un bloc `$$ ... $$`. Le tableau de bord annonce
+« destructive operations » pour les `drop policy if exists` que le script
+recrée trois lignes plus bas.
 
 ### `bluray_import` — table de transit
 3 100 fiches crawlées, avec statut : `promu` (2 546), `a_verifier` (464),
@@ -135,12 +155,30 @@ les tables de sauvegarde renvoient `[]` en anon.
 Attention en vérifiant : PostgREST répond **200 avec un tableau vide** quand une
 policy bloque un SELECT, pas 401. Un 200 ne prouve rien.
 
+`collections` échappe à ce piège, et c'est délibéré : plutôt qu'une policy
+`anon` restrictive, la migration **révoque les privilèges de table** à `anon`.
+La barrière tombe donc avant la RLS et se voit. Vérifié le 30 juillet 2026 :
+
+    anon GET /collections  ->  401, 42501 permission denied for table collections
+
+Un vrai refus, pas un tableau vide. Comme `revoke all` porte sur tous les
+privilèges, une écriture bute sur la même barrière — mais seul le SELECT a été
+réellement exercé.
+
 La clé `anon` du bundle est publique par nature — ce n'est pas une fuite.
 Vérifié : aucune `service_role` dans `dist/` ni dans l'historique git.
 
-**Non vérifié à ce jour** : le refus d'écriture anon. Un `PATCH` sur un filtre
-vide renvoie 204 que la policy accepte ou refuse ; seul un `INSERT` réel
-tranche.
+**Toujours non vérifié** : le refus d'écriture anon sur `films`, `editions` et
+`edition_films`, protégées par des policies et non par un `revoke`. Un `PATCH`
+sur un filtre vide renvoie 204 que la policy accepte ou refuse ; seul un
+`INSERT` réel tranche. Le 42501 obtenu sur `collections` ne dit rien de ces
+trois tables : ce n'est pas le même mécanisme.
+
+**Non vérifié aussi** : `supprimer_mon_compte()`. Elle est exposée dans
+l'OpenAPI et le DDL est passé, mais l'appeler pour confirmer son garde-fou
+`auth.uid() is null` supposerait de risquer l'effacement d'un compte réel si le
+jeton employé portait une revendication `sub`. Pas de test destructif pour
+valider un garde-fou.
 
 ---
 
@@ -262,10 +300,20 @@ Fichiers produits par `resoudre_orphelines3.py`, à trancher :
 - **~914 sans correspondance** — le vrai gisement, non décomposé
 
 ### Fonctionnel
-- **Authentification** — code écrit (`lib/auth.ts`, `auth-client.ts`,
-  `auth-config.ts`, Google uniquement, auth-js chargé à la demande), mais la
-  table `collections` n'est pas créée. Sans compte, les listes restent en
-  `localStorage` sous `jaquette_statuts`.
+- **Authentification** — écrite et la table est en place, mais **non
+  déployée** : le tout vit sur la branche `compte-google`, non poussée et non
+  fusionnée dans `main`. Google uniquement, `auth-js` chargé à la demande.
+  `/compte` porte la suppression du compte, `TopBar` y mène.
+  La base est donc en avance sur le site en ligne, sans effet visible : le
+  bundle déployé ne connaît pas `collections`. Sans compte, les listes restent
+  en `localStorage` sous `jaquette_statuts`, ce qui reste le cas de tous les
+  visiteurs jusqu'à la fusion.
+  **Jamais exercé de bout en bout** : la connexion Google et la reprise des
+  statuts `localStorage` vers `collections` à la première connexion n'ont pas
+  été essayées.
+- **Vestiges du prototype dans `BottomTabBar`** — libellés anglais (« Home »,
+  « Collection », « Wishlist », « Profile ») et un onglet menant au faux profil
+  `/u/:handle`. `TopBar` a été nettoyé, celui-ci pas.
 - **Rapatrier les images** hébergées chez editioncollector
 - **Supprimer la branche `DEPLOY_TARGET=github`** de `vite.config.ts`
 - **Une quinzaine d'opéras** à écarter du catalogue. **Ne pas filtrer par
@@ -379,5 +427,17 @@ Ce qui a évité le plus d'erreurs :
 - Données factuelles uniquement (EAN, dates, formats) — non protégeables
   individuellement, mais le droit *sui generis* protège l'extraction d'une
   partie substantielle d'une base
-- Aucun tracker. Compte optionnel via Google uniquement, aucune donnée
-  personnelle serveur tant que `collections` n'existe pas.
+- Aucun tracker. Compte optionnel via Google uniquement.
+- **`collections` existe depuis le 30 juillet 2026**, donc la phrase « aucune
+  donnée personnelle serveur » ne tiendra plus dès la fusion de
+  `compte-google` : un compte connecté fait vivre côté serveur son adresse et
+  son identifiant Google dans `auth.users`, et la liste de ses éditions dans
+  `collections`. Hébergement Supabase en Suède, dans l'Union — c'est ce
+  qu'annonce `/compte`. Aujourd'hui la branche n'est pas déployée, donc aucun
+  compte n'existe encore en pratique.
+- **Effacement (RGPD art. 17)** tenu par `public.supprimer_mon_compte()`,
+  atteignable depuis `/compte`, lui-même lié depuis le menu du bandeau et
+  depuis la politique de confidentialité — laquelle annonçait déjà la
+  suppression « accessible dans les réglages du compte ». Confirmation en deux
+  temps avec un mot à recopier, et en cas de refus du serveur on ne prétend pas
+  avoir supprimé.
