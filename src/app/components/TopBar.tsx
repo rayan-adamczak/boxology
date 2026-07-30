@@ -1,16 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { ChevronDown, Compass, Film, Settings, LogOut, Bookmark, Library, User as UserIcon } from "lucide-react";
+import { ChevronDown, Film, Settings, LogOut, Bookmark, Library, User as UserIcon } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { connexionGoogle, deconnexion, nomAffiche, useSession } from "../lib/auth";
 
-interface TopBarProps {
-  /** shown only on tablet to open the collapsed right ("Discover") sidebar */
-  onOpenDiscover?: () => void;
-  showDiscoverButton?: boolean;
-}
-
-export function TopBar({ onOpenDiscover, showDiscoverButton }: TopBarProps) {
+export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const session = useSession();
 
@@ -52,12 +46,6 @@ export function TopBar({ onOpenDiscover, showDiscoverButton }: TopBarProps) {
 
         {/* Right cluster */}
         <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-          {showDiscoverButton && (
-            <IconButton label="Ouvrir Découvrir" onClick={onOpenDiscover} className="hidden md:flex lg:hidden">
-              <Compass size={20} color="var(--reel-muted)" />
-            </IconButton>
-          )}
-
           {/*
             Trois états, pas deux : tant que la session n'est pas résolue on
             n'affiche rien à cet endroit, sinon un visiteur déjà connecté verrait
@@ -140,30 +128,6 @@ export function TopBar({ onOpenDiscover, showDiscoverButton }: TopBarProps) {
         </div>
       </div>
     </header>
-  );
-}
-
-function IconButton({
-  children,
-  label,
-  onClick,
-  className = "",
-}: {
-  children: React.ReactNode;
-  label: string;
-  onClick?: () => void;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className={`relative flex h-10 w-10 items-center justify-center rounded-full outline-none transition hover:bg-[var(--reel-surface)] focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] ${className}`}
-    >
-      {children}
-    </button>
   );
 }
 

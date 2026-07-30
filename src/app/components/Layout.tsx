@@ -1,9 +1,8 @@
 import { Suspense, useState } from "react";
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { TopBar } from "./TopBar";
-import { RightSidebar } from "./RightSidebar";
 import { BottomTabBar } from "./BottomTabBar";
 import { Footer } from "./Footer";
 
@@ -20,7 +19,6 @@ function AttentePage() {
 
 export function Layout() {
   const [mobileTab, setMobileTab] = useState<MobileTab>("home");
-  const [discoverOpen, setDiscoverOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -63,7 +61,7 @@ export function Layout() {
         fontFamily: "var(--reel-font)",
       }}
     >
-      <TopBar showDiscoverButton onOpenDiscover={() => setDiscoverOpen(true)} />
+      <TopBar />
 
       {/* Les pages chargées à la demande passent par ici. La frontière est
           placée autour de l'Outlet et non autour du routeur, pour que la barre
@@ -74,34 +72,6 @@ export function Layout() {
       </Suspense>
 
       <Footer />
-
-      {/* Discover slide-over — tablet fallback for the collapsed right sidebar */}
-      {discoverOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Discover">
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: "rgba(10,12,14,0.6)" }}
-            onClick={() => setDiscoverOpen(false)}
-          />
-          <div
-            className="absolute right-0 top-0 h-full w-[320px] max-w-[85vw] overflow-y-auto p-4"
-            style={{ backgroundColor: "var(--reel-bg)", borderLeft: "1px solid var(--reel-border)" }}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 style={{ fontSize: "20px", fontWeight: 600, color: "var(--reel-text)" }}>Discover</h2>
-              <button
-                type="button"
-                onClick={() => setDiscoverOpen(false)}
-                aria-label="Close Discover"
-                className="flex h-9 w-9 items-center justify-center rounded-full outline-none transition hover:bg-[var(--reel-surface)] focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
-              >
-                <X size={20} color="var(--reel-muted)" />
-              </button>
-            </div>
-            <RightSidebar />
-          </div>
-        </div>
-      )}
 
       <BottomTabBar active={activeTab} onChange={onMobileTab} />
 
