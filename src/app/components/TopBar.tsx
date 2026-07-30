@@ -105,8 +105,8 @@ export function TopBar() {
                     <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>{session.user.email}</p>
                   </div>
                   <MenuItem icon={<UserIcon size={16} />} to="/profil">Mon profil</MenuItem>
-                  <MenuItem icon={<Bookmark size={16} />} to="/mes-envies">Mes envies</MenuItem>
-                  <MenuItem icon={<Library size={16} />} to="/ma-collection">Ma collection</MenuItem>
+                  <MenuItem icon={<Library size={16} />} to="/profil">Ma collection</MenuItem>
+                  <MenuItem icon={<Bookmark size={16} />} to="/profil?liste=envies">Mes envies</MenuItem>
                   {/*
                     Vers `/compte`, qui porte la suppression du compte. La
                     politique de confidentialité annonce que l'effacement est

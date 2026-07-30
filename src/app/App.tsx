@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Layout } from "./components/Layout";
 import { BrowsePage } from "./pages/BrowsePage";
 import { FilmDetailPage } from "./pages/FilmDetailPage";
-import { StatusListPage } from "./pages/StatusListPage";
 
 /*
  * Pages chargées à la demande : rarement visitées, les embarquer dans le bundle
@@ -30,9 +29,6 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<BrowsePage />} />
           <Route path="/films/:id" element={<FilmDetailPage />} />
-          <Route path="/mes-envies" element={<StatusListPage statut="envie" />} />
-          <Route path="/ma-collection" element={<StatusListPage statut="possede" />} />
-
           <Route path="/profil" element={<ProfilPage />} />
           <Route path="/compte" element={<ComptePage />} />
 
@@ -40,9 +36,13 @@ export default function App() {
           <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
           <Route path="/confidentialite" element={<ConfidentialitePage />} />
 
-          {/* `/wishlist` était l'écran du prototype vers lequel pointait la
-              barre mobile ; l'équivalent réel est `/mes-envies`. */}
-          <Route path="/wishlist" element={<Navigate to="/mes-envies" replace />} />
+          {/* « Ma collection » et « Mes envies » ont fusionné dans le profil,
+              qui montre les mêmes listes groupées par film. Redirections plutôt
+              que suppression sèche : ces adresses ont été en ligne, et le pied
+              de page comme la barre mobile y menaient. */}
+          <Route path="/ma-collection" element={<Navigate to="/profil" replace />} />
+          <Route path="/mes-envies" element={<Navigate to="/profil?liste=envies" replace />} />
+          <Route path="/wishlist" element={<Navigate to="/profil?liste=envies" replace />} />
 
           <Route path="*" element={<IntrouvablePage />} />
         </Route>

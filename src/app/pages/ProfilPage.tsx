@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Loader2 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { UserAvatar } from "../components/UserAvatar";
@@ -16,19 +16,24 @@ import { useSeo } from "../lib/seo";
 /**
  * Profil : la collection d'une personne, vue comme une étagère.
  *
- * `/ma-collection` liste les éditions à plat ; ici elles sont regroupées par
- * film, avec un badge ×N quand plusieurs éditions du même titre sont possédées.
- * C'est la lecture qu'attend quelqu'un qui regarde une collection — on possède
- * *Dune*, pas trois lignes de catalogue.
+ * Remplace « Ma collection » et « Mes envies », qui listaient les éditions à
+ * plat : ici elles sont regroupées par film, avec un badge ×N quand plusieurs
+ * éditions du même titre sont possédées. C'est la lecture qu'attend quelqu'un
+ * qui regarde une collection — on possède *Dune*, pas trois lignes de catalogue.
  *
- * Aujourd'hui la page ne montre que le compte connecté, à lui seul :
- * `collections` n'est lisible que par son propriétaire, et la politique de
- * confidentialité promet que les listes servent à se retrouver entre appareils,
- * pas à être publiées. Un profil public demandera une table `profils`, une
- * policy de lecture conditionnée à un choix explicite, et une mise à jour de
- * cette politique — d'où la séparation ci-dessous : `VueProfil` ne connaît que
- * des données reçues en props, et acceptera telles quelles celles d'un autre
- * compte le jour où elles existeront.
+ * Fonctionne avec ou sans compte. Sans, les listes viennent de localStorage et
+ * la page n'affiche ni avatar ni identité ; les deux anciennes pages marchaient
+ * sans connexion, exiger un compte ici aurait retiré au visiteur le seul accès
+ * à ses listes.
+ *
+ * Elle ne montre en revanche que *ses propres* listes : `collections` n'est
+ * lisible que par son propriétaire, et la politique de confidentialité promet
+ * qu'elles servent à se retrouver entre appareils, pas à être publiées. Un
+ * profil public demandera une table `profils`, une policy de lecture
+ * conditionnée à un choix explicite, et une mise à jour de cette politique —
+ * d'où la séparation ci-dessous : `VueProfil` ne connaît que des données reçues
+ * en props, et acceptera telles quelles celles d'un autre compte le jour où
+ * elles existeront.
  *
  * Volontairement absents du design d'origine : Follow, Message, Followers,
  * Following et le fil d'activité. Rien ne les alimente, et afficher des
@@ -80,10 +85,16 @@ function grouper(editions: EditionWithFilm[]): Entree[] {
 
 export function ProfilPage() {
   const session = useSession();
-  const [statut, setStatut] = useState<StatutValue>("possede");
   const [parStatut, setParStatut] = useState<Record<StatutValue, Entree[]> | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [chargement, setChargement] = useState(true);
+
+  // L'onglet vit dans l'URL : `/mes-envies` y redirige, et une liste partagée
+  // ou remise en favori rouvre la bonne.
+  const [params, setParams] = useSearchParams();
+  const statut: StatutValue = params.get("liste") === "envies" ? "envie" : "possede";
+  const setStatut = (s: StatutValue) =>
+    setParams(s === "envie" ? { liste: "envies" } : {}, { replace: true });
 
   useSeo({
     titre: "Mon profil",
@@ -92,11 +103,11 @@ export function ProfilPage() {
   });
 
   useEffect(() => {
+    // On charge aussi sans compte : `idsParStatut` lit alors localStorage
+    // (cf. lib/collections.ts). Cette page a remplacé « Ma collection » et
+    // « Mes envies », qui fonctionnaient sans connexion — exiger un compte ici
+    // retirerait au visiteur non connecté le seul accès à ses listes.
     if (session === undefined) return;
-    if (session === null) {
-      setChargement(false);
-      return;
-    }
 
     let annule = false;
     setChargement(true);
@@ -129,7 +140,7 @@ export function ProfilPage() {
     // chaque rafraîchissement de jeton.
   }, [session === undefined, session?.user.id]);
 
-  if (session === undefined || (chargement && session)) {
+  if (session === undefined || chargement) {
     return (
       <Cadre>
         <div className="flex justify-center py-20">
@@ -138,8 +149,6 @@ export function ProfilPage() {
       </Cadre>
     );
   }
-
-  if (session === null) return <SansCompte />;
 
   if (erreur) {
     return (
@@ -151,8 +160,13 @@ export function ProfilPage() {
 
   return (
     <VueProfil
-      nom={nomAffiche(session)}
-      sousTitre={session.user.email ?? ""}
+      connecte={session !== null}
+      nom={session ? nomAffiche(session) : "Ma collection"}
+      sousTitre={
+        session
+          ? session.user.email ?? ""
+          : "Enregistrée dans ce navigateur. Un compte la retrouve sur vos autres appareils."
+      }
       parStatut={parStatut ?? { possede: [], envie: [] }}
       statut={statut}
       onStatut={setStatut}
@@ -162,12 +176,15 @@ export function ProfilPage() {
 
 /** Présentation pure : tout arrive en props, rien n'est lu de la session. */
 function VueProfil({
+  connecte,
   nom,
   sousTitre,
   parStatut,
   statut,
   onStatut,
 }: {
+  /** Sans compte, pas d'avatar ni d'identité : la page montre des listes locales. */
+  connecte: boolean;
   nom: string;
   sousTitre: string;
   parStatut: Record<StatutValue, Entree[]>;
@@ -212,18 +229,38 @@ function VueProfil({
       <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8 lg:px-16">
         {/* L'en-tête chevauche la bannière, comme dans la maquette. */}
         <header className="-mt-12 flex flex-wrap items-end gap-3">
-          <span
-            className="rounded-full p-1"
-            style={{ backgroundColor: "var(--reel-bg)" }}
-          >
-            <UserAvatar name={nom} size={96} />
-          </span>
+          {connecte && (
+            <span
+              className="rounded-full p-1"
+              style={{ backgroundColor: "var(--reel-bg)" }}
+            >
+              <UserAvatar name={nom} size={96} />
+            </span>
+          )}
           <div className="pb-1">
             <h1 style={{ fontSize: "24px", fontWeight: 700, color: "var(--reel-text)" }}>{nom}</h1>
             {sousTitre && (
-              <p style={{ fontSize: "15px", color: "var(--reel-muted)" }}>{sousTitre}</p>
+              <p className="max-w-[520px]" style={{ fontSize: "15px", color: "var(--reel-muted)" }}>
+                {sousTitre}
+              </p>
             )}
           </div>
+          {!connecte && (
+            <button
+              type="button"
+              onClick={() => { void connexionGoogle("/profil"); }}
+              className="mb-1 ml-auto rounded-full px-4 py-2 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+              style={{
+                fontSize: "14px",
+                fontWeight: 600,
+                backgroundColor: "var(--reel-accent)",
+                color: "#ffffff",
+                border: "1px solid var(--reel-accent)",
+              }}
+            >
+              Se connecter
+            </button>
+          )}
         </header>
 
         <div className="grid grid-cols-2 gap-3 pt-6 md:grid-cols-3">
@@ -427,33 +464,4 @@ function Affiche({ entree }: { entree: Entree }) {
 
 function Cadre({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto w-full max-w-[1440px] px-4 pt-[88px] md:px-8 lg:px-16">{children}</div>;
-}
-
-function SansCompte() {
-  return (
-    <Cadre>
-      <div className="mx-auto max-w-[560px] py-20 text-center">
-        <h1 style={{ fontSize: "24px", fontWeight: 700, color: "var(--reel-text)" }}>Mon profil</h1>
-        <p className="pt-3" style={{ fontSize: "15px", lineHeight: "24px", color: "var(--reel-muted)" }}>
-          Le profil rassemble votre collection regroupée par film. Il demande un compte, parce qu’il
-          lit des listes rattachées à un compte — sans connexion, vos listes restent dans ce
-          navigateur et se consultent depuis « Ma collection ».
-        </p>
-        <button
-          type="button"
-          onClick={() => { void connexionGoogle("/profil"); }}
-          className="mt-6 rounded-full px-4 py-2 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
-          style={{
-            fontSize: "14px",
-            fontWeight: 600,
-            backgroundColor: "var(--reel-accent)",
-            color: "#ffffff",
-            border: "1px solid var(--reel-accent)",
-          }}
-        >
-          Se connecter avec Google
-        </button>
-      </div>
-    </Cadre>
-  );
 }
