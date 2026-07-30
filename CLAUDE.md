@@ -53,8 +53,11 @@ Google Search Console — **ne pas le supprimer**, la validation tomberait.
 ### Courrier
 
 `contact@jaquette.app` posé le 30 juillet 2026 par **Cloudflare Email Routing**,
-gratuit. Une règle unique redirige vers `rayan.adamczak@gmail.com` ; le catch-all
-reste désactivé, donc toute autre adresse du domaine est jetée.
+gratuit. Une règle redirige `contact@` vers `rayan.adamczak@gmail.com`, et le
+**catch-all est actif** vers la même boîte : toute adresse du domaine arrive,
+`bonjour@` comme `xyz@`. Aucune faute de frappe n'est perdue, mais rien ne
+filtre non plus — si le spam monte, repasser le catch-all en « Supprimer » et
+n'ouvrir que les adresses utiles.
 
 Spaceship a été écarté : son transfert d'email et sa redirection d'URL supposent
 que la zone soit chez lui, et elle est chez Cloudflare — l'écran affiche
@@ -325,8 +328,9 @@ Ne pas se fier au sitemap : il annonçait 1 201 nouveautés, mais mêle figurine
 jeux et livres, et ne couvre que 1 477 URL sur 3 193.
 
 ### blu-ray.com — 2 546 éditions
-Crawlé en juillet 2026. **Accès désormais bloqué (HTTP 403)** sur le
-User-Agent du robot ; 3 100 fiches sur 5 486 récupérées avant blocage.
+Crawlé en juillet 2026, puis 3 100 fiches sur 5 486 seulement : le site
+renvoyait **403** sur le User-Agent du robot. **Blocage levé le 30 juillet
+2026**, vérifié à 200 sur une fiche avec le même `Boxology-catalog-bot/1.0`.
 
 Méthode : cookie pays via `setcountry.php?country=fr`, puis pagination de
 `movies.php`. Le sitemap seul ne donne pas le pays.
@@ -334,8 +338,28 @@ Méthode : cookie pays via `setcountry.php?country=fr`, puis pagination de
 Apporte : EAN (72 %), date de sortie, zone, formats, **piste audio française
 (77 %)**, packaging. **Pas de visuels** — copyright.
 
-Ne pas contourner le blocage (proxy, VPN, changement d'UA, session du compte).
+Ne pas contourner un blocage (proxy, VPN, changement d'UA, session du compte).
 Le compte créé sur le site implique l'acceptation de leurs conditions.
+
+**Leur `robots.txt` interdit nommément les agents Claude** — `ClaudeBot`,
+`Claude-SearchBot`, `Claude-Web` et `Claude-Code`, tous en `Disallow: /`. Un
+assistant ne doit donc pas récupérer leurs pages, quel que soit l'UA que le
+script enverrait : c'est l'agent qui est visé, pas l'outil. Le crawl se lance à
+la main. Le bloc `User-agent: *`, lui, n'interdit que `/cgi-bin/`,
+`/community/*.php`, `/link/`, `/search/`, `/movies/search.php` et
+`/news/search.php` — les fiches et `movies.php` restent ouverts, et aucun
+`Crawl-delay` n'est imposé à `*` là où bingbot et Applebot en ont 10 s.
+
+**`enum_fr.py` écrase `catalogue_fr.json`, il ne le fusionne pas.** Les deux
+énumérations de juillet ne se recouvrent qu'à 5 050 sur ~5 480 : 436 fiches
+connues sont sorties du listing, 431 y sont entrées. Le total presque identique
+— 5 486 contre 5 481 — masquait complètement cette rotation, et prendre la
+dernière aurait perdu une fiche sur huit. Le listing ne montre qu'une fenêtre ;
+une fiche qui en sort n'est pas retirée du site. **Toujours fusionner, et
+sauvegarder avant.** Union au 30 juillet 2026 : 5 917 ids.
+
+Le script s'annonce par ailleurs comme Chrome, là où `crawl_fr.py` déclare le
+robot. À aligner un jour : le 200 obtenu l'a été avec l'UA du robot.
 
 ### TMDB
 Métadonnées films et séries. Rattachement par titre **et année**.
@@ -854,6 +878,14 @@ Documentés parce qu'ils se reproduiront.
 - **`gzip.open(...).read()` lève `zlib.error` sur une page tronquée**, et
   `zlib.error` n'est ni `EOFError` ni `OSError`. Une passe sur 3 100 fichiers
   est tombée à la 2 000ᵉ. Rattraper les trois, et garder ce qui a été lu.
+- **Une reprise fondée sur le journal ne voit pas un cache abîmé.**
+  `crawl_fr.py` écrit la page gzippée *puis* la ligne de `donnees.jsonl`, et
+  reprend sur le second. Une coupure entre les deux est sans conséquence — la
+  fiche est refaite. Mais une page tronquée dont la ligne a été écrite devient
+  invisible : la reprise la croit faite, et elle le reste indéfiniment. Ce sont
+  les 12 pages abîmées du crawl de juillet. Remises dans la file le 30 juillet
+  2026 en retirant leur ligne et leur `.gz`. **Vérifier le cache, pas le
+  journal.**
 - **Tailwind 4 a changé son preflight** : les `<button>` reçoivent
   `cursor: default` là où Tailwind 3 posait `cursor: pointer`. Toute
   l'interface bâtie sur des boutons — onglets, capsules de format, cartes
