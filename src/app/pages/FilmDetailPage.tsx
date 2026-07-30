@@ -383,6 +383,9 @@ export function FilmDetailPage() {
                 }}
               >
                 {film.titre}
+                {film.annee && (
+                  <span style={{ fontWeight: 400, color: "var(--reel-muted)" }}> ({film.annee})</span>
+                )}
               </h1>
               {/* L'accroche vient de TMDB et manque souvent : jamais inventée. */}
               {film.tagline && (
@@ -396,15 +399,11 @@ export function FilmDetailPage() {
             </div>
 
             {/*
-              Année, durée et genres sur une seule ligne séparée par des points
-              médians. En capsules, « Aventure » devenait un objet visuel de
-              même poids qu'un filtre cliquable — l'œil ne pouvait plus
-              distinguer ce qui se clique de ce qui se lit.
+              Durée et genres suivent la réalisation sur la même ligne, séparées
+              par des points médians. En capsules, « Aventure » avait le même
+              poids visuel qu'un filtre cliquable ; sur une ligne à part, elle
+              séparait le titre de son auteur.
             */}
-            <p style={{ fontSize: "15px", color: "var(--reel-muted)", lineHeight: "22.5px" }}>
-              {[film.annee, durationFormatted, genres.join(", ")].filter(Boolean).join(" · ")}
-            </p>
-
             <p style={{ fontSize: "15px", color: "var(--reel-muted)", lineHeight: "22.5px" }}>
               {film.realisateur && (
                 <>
@@ -421,6 +420,9 @@ export function FilmDetailPage() {
                   </button>
                 </>
               )}
+              {[durationFormatted, genres.join(", ")].filter(Boolean).map((v) => (
+                <span key={v}>{film.realisateur ? " · " : ""}{v}</span>
+              ))}
             </p>
 
 
@@ -428,7 +430,11 @@ export function FilmDetailPage() {
             {film.note != null && film.note !== "" && (
               <div className="flex items-center gap-[6px]">
                 <Star size={18} color="#d9a441" fill="#d9a441" />
-                <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)" }}>{film.note}</span>
+                {/* TMDB rend 7.901 : trois décimales suggèrent une précision
+                    que la note n'a pas. Deux suffisent. */}
+                <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)" }}>
+                  {Number(film.note).toFixed(2)}
+                </span>
                 <span style={{ fontSize: "13px", color: "var(--reel-muted)" }}>/ 10</span>
               </div>
             )}
