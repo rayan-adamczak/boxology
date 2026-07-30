@@ -6,6 +6,12 @@
   URL sous /assets/. Les pages, elles, passent par la réécriture SPA et sont
   rendues par IntrouvablePage.
 
+  Ce fichier ne doit surtout PAS s'appeler 404.html : Cloudflare Pages sert
+  automatiquement un 404.html présent à la racine pour toute URL non trouvée,
+  en supplantant la réécriture SPA. Vérifié sur la prévisualisation le
+  30 juillet 2026 — /films/560 renvoyait alors 404, ce qui annulait la raison
+  même de la migration vers Cloudflare.
+
   Volontairement sans style ni script : un visiteur ne verra jamais ce fichier,
   seul un navigateur qui réclame un asset absent le reçoit — et il n'en lit que
   le code de statut.
