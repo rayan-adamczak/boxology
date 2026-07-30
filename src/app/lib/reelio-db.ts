@@ -102,7 +102,11 @@ export async function getEditionsByIds(ids: number[]): Promise<EditionWithFilm[]
   for (let debut = 0; debut < ids.length; debut += TRANCHE) {
     const { data, error } = await supabase
       .from("editions")
-      .select("*, film:films(id, titre, affiche_url)")
+      // `!film_id` désigne explicitement la colonne à suivre. Sans cet indice,
+      // PostgREST voit deux chemins entre `editions` et `films` — la colonne
+      // `film_id` et la table de liaison `edition_films` — et refuse la requête
+      // avec « more than one relationship was found ».
+      .select("*, film:films!film_id(id, titre, affiche_url)")
       .in("id", ids.slice(debut, debut + TRANCHE));
     if (error) throw new Error(`Erreur lors du chargement des éditions: ${error.message}`);
     resultat.push(...((data ?? []) as EditionWithFilm[]));
