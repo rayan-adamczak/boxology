@@ -35,6 +35,9 @@
  * dériverait au premier ajout d'éditeur, et la dérive serait invisible.
  */
 import { AXES, trouver, type NomAxe } from "../src/app/lib/regroupements";
+/* Même module que l'application, pour que les adresses et la fenêtre de
+   numéros servies soient exactement celles qu'elle rendra ensuite. */
+import { PAR_PAGE, cheminPage, fenetrePages, nombreDePages } from "../src/app/lib/pagination";
 
 /* Types minimaux : @cloudflare/workers-types n'est pas installé, et le
    `tsconfig.json` ne couvre pas ce dossier. Ce qui est déclaré ici est le peu
@@ -430,9 +433,6 @@ function injecter(reponse: Response, film: FilmSeo, canonical: string) {
 /* Pages de regroupement                                                      */
 /* ------------------------------------------------------------------------ */
 
-/** Nombre de lignes servies, aligné sur `PLAFOND` de `src/app/lib/listes.ts`. */
-const PLAFOND_LISTE = 60;
-
 /** `/formats/steelbook` rend `formats`. Null hors des trois axes. */
 function axeDeChemin(chemin: string): NomAxe | null {
   const premier = chemin.split("/").filter(Boolean)[0];
@@ -448,52 +448,84 @@ interface LigneListe {
   lien: string | null;
 }
 
-/** Charge les lignes d'une page de regroupement. */
-async function lireListe(axe: NomAxe, libelle: string): Promise<LigneListe[]> {
+/**
+ * Charge une page de regroupement, et le total de la sélection entière.
+ *
+ * Le total vient de l'en-tête `content-range` que PostgREST renvoie avec
+ * `Prefer: count=exact`. Il est indispensable : sans lui on ne sait pas
+ * combien de pages existent, donc ni quoi mettre en pied de page, ni quand
+ * répondre 404.
+ *
+ * Le tri secondaire par `id` n'est pas décoratif. Sans ordre total, `offset`
+ * s'applique à un ensemble non ordonné et PostgREST répète et saute des lignes
+ * d'une page à l'autre, piège déjà consigné au §9.
+ */
+async function lireListe(
+  axe: NomAxe,
+  libelle: string,
+  page: number,
+): Promise<{ lignes: LigneListe[]; total: number }> {
   const base = `https://${PROJET}.supabase.co/rest/v1`;
   const filtre = encodeURIComponent(`{"${libelle.replace(/"/g, '\\"')}"}`);
+  const debut = (page - 1) * PAR_PAGE;
+  const tranche = `&offset=${debut}&limit=${PAR_PAGE}`;
 
   let url: string;
   if (axe === "genres") {
     /* `edition_films!inner` écarte les films sans édition, comme le sitemap :
        un film sans jaquette au catalogue n'a rien à faire dans une liste
        d'éditions physiques. `nullslast` est indispensable, PostgreSQL classant
-       les nuls en premier sur un `desc`. */
+       les nuls en premier sur un `desc`.
+
+       Le décompte reste juste malgré la jointure : PostgREST rend un film par
+       ligne, ses liens dans un tableau imbriqué, pas un produit cartésien. */
     url =
       `${base}/films?genres=cs.${filtre}` +
       `&select=id,titre,slug,annee,realisateur,edition_films!inner(edition_id)` +
-      `&order=popularite.desc.nullslast&limit=${PLAFOND_LISTE}`;
+      `&order=popularite.desc.nullslast,id.asc${tranche}`;
   } else {
     const critere =
       axe === "formats"
         ? `formats_extraits=cs.${filtre}&order=image_url.asc.nullslast,id.desc`
-        : `editeur=eq.${encodeURIComponent(libelle)}&order=date_parution.desc.nullslast`;
+        : `editeur=eq.${encodeURIComponent(libelle)}&order=date_parution.desc.nullslast,id.desc`;
     url =
       `${base}/editions?${critere}` +
       `&select=id,titre,editeur,formats_extraits,date_parution,ean,` +
-      `edition_films(film:films(id,titre,slug,annee))&limit=${PLAFOND_LISTE}`;
+      `edition_films(film:films(id,titre,slug,annee))${tranche}`;
   }
 
   const reponse = await fetch(url, {
-    headers: { apikey: CLE_ANON, Authorization: `Bearer ${CLE_ANON}` },
+    headers: {
+      apikey: CLE_ANON,
+      Authorization: `Bearer ${CLE_ANON}`,
+      Prefer: "count=exact",
+    },
     cf: { cacheTtl: CACHE_SECONDES, cacheEverything: true },
   } as RequestInit);
-  if (!reponse.ok) throw new Error(`${axe}/${libelle} : HTTP ${reponse.status}`);
-  const lignes = (await reponse.json()) as any[];
+  /* PostgREST répond **416** quand l'`offset` dépasse le total, et il met
+     quand même le total dans `content-range`. Ce n'est pas une panne, c'est la
+     réponse à « page 94 sur 93 » : on lit le total et on rend zéro ligne, ce
+     qui fait répondre 404 à l'appelant. Traité comme une erreur, le repli
+     servait la page générique en 200, soit un « soft 404 ». */
+  if (!reponse.ok && reponse.status !== 416) {
+    throw new Error(`${axe}/${libelle} : HTTP ${reponse.status}`);
+  }
+  // `content-range: 0-59/559`. Le total est après la barre, `*` s'il est inconnu.
+  const total = Number((reponse.headers.get("content-range") ?? "").split("/")[1]) || 0;
+  const lignes = reponse.status === 416 ? [] : ((await reponse.json()) as any[]);
 
   if (axe === "genres") {
-    const vus = new Set<number>();
-    return lignes
-      // Un film à plusieurs éditions ressort autant de fois que de liens.
-      .filter((f) => !vus.has(f.id) && vus.add(f.id))
-      .map((f) => ({
+    return {
+      total,
+      lignes: lignes.map((f) => ({
         libelle: f.titre,
         details: [f.annee, f.realisateur].filter(Boolean).join(" · "),
         lien: f.slug ? `/films/${f.slug}/${f.id}` : `/films/${f.id}`,
-      }));
+      })),
+    };
   }
 
-  return lignes.map((e) => {
+  const converties = lignes.map((e) => {
     const film = e.edition_films?.[0]?.film ?? null;
     return {
       libelle: e.titre ?? film?.titre ?? "Édition",
@@ -508,10 +540,19 @@ async function lireListe(axe: NomAxe, libelle: string): Promise<LigneListe[]> {
       lien: film ? (film.slug ? `/films/${film.slug}/${film.id}` : `/films/${film.id}`) : null,
     };
   });
+
+  return { lignes: converties, total };
 }
 
-/** Titre et description d'une page de regroupement, sommaire ou détail. */
-function metaRegroupement(axe: NomAxe, libelle: string | null, nombre: number) {
+/**
+ * Titre et description d'une page de regroupement, sommaire ou détail.
+ *
+ * `total` est l'effectif de la sélection entière, pas celui de la page servie.
+ * Le numéro entre dans le titre à partir de la deuxième page : sans lui, les
+ * 93 pages de `/formats/blu-ray` porteraient le même et Google les traiterait
+ * en doublons. Doit rendre exactement ce que `RegroupementPage` rendra.
+ */
+function metaRegroupement(axe: NomAxe, libelle: string | null, total: number, page = 1, pages = 1) {
   const nom = AXES[axe].titre;
   if (libelle === null) {
     return {
@@ -526,11 +567,12 @@ function metaRegroupement(axe: NomAxe, libelle: string | null, nombre: number) {
   }
   const description =
     axe === "formats"
-      ? `Les ${nombre} éditions ${libelle} les plus récemment recensées au catalogue, avec leur film, leur éditeur et leur code-barres quand il est connu.`
+      ? `${total} éditions ${libelle} recensées au catalogue, avec leur film, leur éditeur et leur code-barres quand il est connu.`
       : axe === "editeurs"
-      ? `Les ${nombre} dernières éditions publiées par ${libelle} : formats, dates de parution et codes-barres.`
-      : `${nombre} films de genre ${libelle.toLowerCase()} disponibles en édition physique : Blu-ray, 4K, steelbooks et coffrets.`;
-  return { titre: `${libelle}, ${nom.toLowerCase()} | ${SITE_NOM}`, description };
+      ? `${total} éditions publiées par ${libelle} : formats, dates de parution et codes-barres.`
+      : `${total} films de genre ${libelle.toLowerCase()} disponibles en édition physique : Blu-ray, 4K, steelbooks et coffrets.`;
+  const suffixe = page > 1 ? `, page ${page} sur ${pages}` : "";
+  return { titre: `${libelle}, ${nom.toLowerCase()}${suffixe} | ${SITE_NOM}`, description };
 }
 
 /** Corps servi pour un sommaire d'axe. Aucune requête, la table suffit. */
@@ -551,8 +593,35 @@ function corpsSommaire(axe: NomAxe): string {
   );
 }
 
+/** Liens de pagination, en `<a>` : un crawler suit des href, il ne clique pas. */
+function paginationHtml(base: string, slug: string, page: number, pages: number): string {
+  if (pages <= 1) return "";
+  const style = "color:var(--reel-accent-clair,#6ea8ff);margin-right:10px";
+  const morceaux: string[] = [];
+  if (page > 1) {
+    morceaux.push(`<a rel="prev" href="${cheminPage(base, slug, page - 1)}" style="${style}">← Précédent</a>`);
+  }
+  for (const n of fenetrePages(page, pages)) {
+    if (n === 0) morceaux.push(`<span style="opacity:.5;margin-right:10px">…</span>`);
+    else if (n === page) morceaux.push(`<strong style="margin-right:10px">${n}</strong>`);
+    else morceaux.push(`<a href="${cheminPage(base, slug, n)}" style="${style}">${n}</a>`);
+  }
+  if (page < pages) {
+    morceaux.push(`<a rel="next" href="${cheminPage(base, slug, page + 1)}" style="${style}">Suivant →</a>`);
+  }
+  return `<nav style="margin:32px 0 0">${morceaux.join("")}</nav>`;
+}
+
 /** Corps servi pour une page de regroupement. */
-function corpsRegroupement(axe: NomAxe, libelle: string, lignes: LigneListe[]): string {
+function corpsRegroupement(
+  axe: NomAxe,
+  entree: { slug: string; libelle: string },
+  lignes: LigneListe[],
+  total: number,
+  page: number,
+  pages: number,
+): string {
+  const libelle = entree.libelle;
   const items = lignes
     .map((l) => {
       const nom = echapper(l.libelle);
@@ -571,13 +640,14 @@ function corpsRegroupement(axe: NomAxe, libelle: string, lignes: LigneListe[]): 
   return enveloppe(
     `<nav style="opacity:.7;margin:0 0 12px"><a href="/" style="color:inherit">Catalogue</a> › ` +
       `<a href="${base}" style="color:inherit">${echapper(nomAxe)}</a></nav>` +
-      `<h1 style="font-family:var(--reel-font-titre,inherit);font-size:38px;margin:0 0 12px">${echapper(libelle)}</h1>` +
-      `<p style="margin:0 0 28px">${echapper(metaRegroupement(axe, libelle, lignes.length).description)}` +
-      (lignes.length >= PLAFOND_LISTE
-        ? ` Le catalogue en compte davantage, cette page en montre ${PLAFOND_LISTE}.`
-        : "") +
+      `<h1 style="font-family:var(--reel-font-titre,inherit);font-size:38px;margin:0 0 12px">${echapper(libelle)}` +
+      (page > 1 ? `<span style="font-weight:200;opacity:.7">\u00a0\u00a0page ${page}</span>` : "") +
+      `</h1>` +
+      `<p style="margin:0 0 28px">${echapper(metaRegroupement(axe, libelle, total, page, pages).description)}` +
+      (pages > 1 ? ` Page ${page} sur ${pages}, ${PAR_PAGE} par page.` : "") +
       `</p>` +
       (items ? `<ul style="list-style:none;padding:0;margin:0">${items}</ul>` : "") +
+      paginationHtml(AXES[axe].base, entree.slug, page, pages) +
       // Ce qui relie les 72 pages entre elles : sans ce bloc, chacune est une
       // impasse que seul le sitemap fait découvrir.
       `<nav style="margin:40px 0 0"><h2 style="font-size:20px;margin:0 0 12px">Autres ${echapper(nomAxe.toLowerCase())}</h2>` +
@@ -603,13 +673,28 @@ function enveloppe(interieur: string): string {
   );
 }
 
-/** JSON-LD d'une liste : `CollectionPage` portant un `ItemList` ordonné. */
-function donneesListe(titre: string, canonical: string, lignes: LigneListe[], origine: string) {
+/**
+ * JSON-LD d'une liste : `CollectionPage` portant un `ItemList` ordonné.
+ *
+ * `position` est le rang dans la sélection entière, pas dans la page : sur la
+ * page 3, le premier élément est le 121ᵉ. Redémarrer à 1 à chaque page
+ * décrirait dix listes qui commencent toutes au même rang.
+ */
+function donneesListe(
+  titre: string,
+  canonical: string,
+  lignes: LigneListe[],
+  origine: string,
+  page: number,
+  total: number,
+) {
+  const decalage = (page - 1) * PAR_PAGE;
   const elements = lignes
-    .filter((l) => l.lien)
-    .map((l, i) => ({
+    .map((l, i) => ({ l, rang: decalage + i + 1 }))
+    .filter(({ l }) => l.lien)
+    .map(({ l, rang }) => ({
       "@type": "ListItem",
-      position: i + 1,
+      position: rang,
       name: l.libelle,
       url: `${origine}${l.lien}`,
     }));
@@ -619,7 +704,7 @@ function donneesListe(titre: string, canonical: string, lignes: LigneListe[], or
     "@type": "CollectionPage",
     name: titre,
     url: canonical,
-    mainEntity: { "@type": "ItemList", numberOfItems: elements.length, itemListElement: elements },
+    mainEntity: { "@type": "ItemList", numberOfItems: total, itemListElement: elements },
   }).replace(/</g, "\\u003c");
 }
 
@@ -630,6 +715,10 @@ function injecterListe(
   canonical: string,
   corps: string,
   jsonLd: string | null,
+  /* `rel="prev"` et `rel="next"` ne servent plus à Google depuis 2019, mais
+     Bing les lit encore et ils ne coûtent rien. */
+  precedent: string | null = null,
+  suivant: string | null = null,
 ) {
   const poserContenu = { element: (el: any) => el.setAttribute("content", meta.description) };
   return new HTMLRewriter()
@@ -646,6 +735,8 @@ function injecterListe(
         if (jsonLd) {
           el.after(`<script type="application/ld+json">${jsonLd}</script>`, { html: true });
         }
+        if (precedent) el.after(`<link rel="prev" href="${precedent}" />`, { html: true });
+        if (suivant) el.after(`<link rel="next" href="${suivant}" />`, { html: true });
       },
     })
     .on("#root", { element: (el: any) => el.setInnerContent(corps, { html: true }) })
@@ -669,21 +760,42 @@ async function servirRegroupement(
   next: () => Promise<Response>,
 ): Promise<Response> {
   const segments = url.pathname.split("/").filter(Boolean);
-  // `/formats/a/b` n'existe pas plus qu'un slug inconnu : même 404, sinon la
-  // réécriture SPA en fait un 200 sur une page vide.
-  if (segments.length > 2) return pageIntrouvable(next);
+  // `/formats/a/b/c` n'existe pas : vrai 404, sinon la réécriture SPA en fait
+  // un 200 sur une page vide.
+  if (segments.length > 3) return pageIntrouvable(next);
 
   const slug = segments[1] ?? null;
-  // Un slug hors table est une adresse qui n'existe pas : vrai 404, pas un 200
-  // sur une page vide.
+  // Un slug hors table est une adresse qui n'existe pas.
   const entree = slug === null ? null : trouver(axe, slug);
   if (slug !== null && !entree) return pageIntrouvable(next);
 
-  const canonique = `${url.origin}/${segments.join("/")}`;
+  const base = AXES[axe].base;
+  const numero = segments[2] ?? null;
+
+  if (numero !== null) {
+    // Un sommaire n'est pas paginé, et un numéro non entier n'existe pas.
+    if (!entree || !/^[0-9]+$/.test(numero)) return pageIntrouvable(next);
+    /* `/x/y/1` redirige vers `/x/y` : deux adresses pour le même contenu sont
+       deux doublons, et c'est la forme courte qui fait autorité. */
+    if (Number(numero) === 1) {
+      return Response.redirect(`${url.origin}${base}/${entree.slug}${url.search}`, 301);
+    }
+    if (Number(numero) < 1) return pageIntrouvable(next);
+  }
+
+  const page = numero === null ? 1 : Number(numero);
+  const canonique = `${url.origin}${entree ? cheminPage(base, entree.slug, page) : base}`;
 
   try {
-    const lignes = entree ? await lireListe(axe, entree.libelle) : [];
-    const meta = metaRegroupement(axe, entree?.libelle ?? null, lignes.length);
+    const resultat = entree
+      ? await lireListe(axe, entree.libelle, page)
+      : { lignes: [] as LigneListe[], total: 0 };
+    const pages = nombreDePages(resultat.total);
+
+    // Une page au-delà de la dernière n'a pas de contenu à montrer.
+    if (entree && page > pages) return pageIntrouvable(next);
+
+    const meta = metaRegroupement(axe, entree?.libelle ?? null, resultat.total, page, pages);
 
     const reponse = await next();
     if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
@@ -692,10 +804,16 @@ async function servirRegroupement(
       reponse,
       meta,
       canonique,
-      entree ? corpsRegroupement(axe, entree.libelle, lignes) : corpsSommaire(axe),
+      entree
+        ? corpsRegroupement(axe, entree, resultat.lignes, resultat.total, page, pages)
+        : corpsSommaire(axe),
       /* Le nom du `CollectionPage` est le libellé nu : le suffixe « | jaquette.app »
          appartient au `<title>` de l'onglet, pas au nom de l'entité. */
-      entree ? donneesListe(entree.libelle, canonique, lignes, url.origin) : null,
+      entree
+        ? donneesListe(entree.libelle, canonique, resultat.lignes, url.origin, page, resultat.total)
+        : null,
+      entree && page > 1 ? `${url.origin}${cheminPage(base, entree.slug, page - 1)}` : null,
+      entree && page < pages ? `${url.origin}${cheminPage(base, entree.slug, page + 1)}` : null,
     );
   } catch {
     /* Même règle que pour les fiches : le référencement se dégrade, la

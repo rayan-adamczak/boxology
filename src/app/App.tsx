@@ -182,10 +182,13 @@ export default function App() {
               introuvable et la Pages Function répond 404. */}
           <Route path="/formats" element={<IndexRegroupementsPage axe="formats" />} />
           <Route path="/formats/:slug" element={<RegroupementPage axe="formats" />} />
+          <Route path="/formats/:slug/:page" element={<RegroupementPage axe="formats" />} />
           <Route path="/editeurs" element={<IndexRegroupementsPage axe="editeurs" />} />
           <Route path="/editeurs/:slug" element={<RegroupementPage axe="editeurs" />} />
+          <Route path="/editeurs/:slug/:page" element={<RegroupementPage axe="editeurs" />} />
           <Route path="/genres" element={<IndexRegroupementsPage axe="genres" />} />
           <Route path="/genres/:slug" element={<RegroupementPage axe="genres" />} />
+          <Route path="/genres/:slug/:page" element={<RegroupementPage axe="genres" />} />
 
           <Route path="/bienvenue" element={<BienvenuePage />} />
           <Route path="/a-propos" element={<AProposPage />} />

@@ -111,10 +111,62 @@ const regroupements = [
   ["/genres", slugsDe("GENRES")],
 ];
 
-const urlsRegroupements = regroupements.flatMap(([base, slugs]) => [
-  urlXml(base, "0.6"),
-  ...slugs.map((slug) => urlXml(`${base}/${slug}`, "0.6")),
-]);
+/* Les libellés, pour reconstruire le filtre PostgREST qui donne l'effectif.
+   Ils sont dans la même table que les slugs, dans le même ordre. */
+function libellesDe(nomTable) {
+  const bloc = tables.match(new RegExp(`export const ${nomTable}[^=]*= \\[([^\\]]*)\\]`, "s"));
+  return [...bloc[1].matchAll(/libelle: "((?:[^"\\\\]|\\\\.)*)"/g)].map((m) =>
+    m[1].replace(/\\"/g, '"'),
+  );
+}
+
+/** Pagination : 60 par page, comme `src/app/lib/pagination.ts`. */
+const PAR_PAGE = 60;
+
+/**
+ * Effectif d'un regroupement, lu dans l'en-tête `content-range`.
+ *
+ * On ne se fie pas au `compte` de la table générée : pour les genres il compte
+ * tous les films, alors que la page n'affiche que ceux qui ont une édition.
+ * Sur *Horreur* l'écart est de 570 contre 559, soit une page de trop annoncée
+ * au sitemap, donc un 404 promis à Google.
+ */
+async function effectif(axe, libelle) {
+  const filtre = encodeURIComponent(`{"${libelle.replace(/"/g, '\\"')}"}`);
+  const url =
+    axe === "genres"
+      ? `${API}/films?genres=cs.${filtre}&select=id,edition_films!inner(edition_id)`
+      : axe === "formats"
+      ? `${API}/editions?formats_extraits=cs.${filtre}&select=id`
+      : `${API}/editions?editeur=eq.${encodeURIComponent(libelle)}&select=id`;
+  const reponse = await fetch(url, {
+    headers: { ...entetes, Prefer: "count=exact", Range: "0-0" },
+  });
+  if (!reponse.ok) throw new Error(`${axe}/${libelle} : HTTP ${reponse.status}`);
+  return Number((reponse.headers.get("content-range") ?? "").split("/")[1]) || 0;
+}
+
+const AXES_SITEMAP = [
+  ["formats", "/formats", slugsDe("FORMATS"), libellesDe("FORMATS")],
+  ["editeurs", "/editeurs", slugsDe("EDITEURS"), libellesDe("EDITEURS")],
+  ["genres", "/genres", slugsDe("GENRES"), libellesDe("GENRES")],
+];
+
+const urlsRegroupements = [];
+let pagesSuivantes = 0;
+for (const [axe, base, slugs, libelles] of AXES_SITEMAP) {
+  urlsRegroupements.push(urlXml(base, "0.6"));
+  for (let i = 0; i < slugs.length; i++) {
+    urlsRegroupements.push(urlXml(`${base}/${slugs[i]}`, "0.6"));
+    const pages = Math.max(1, Math.ceil((await effectif(axe, libelles[i])) / PAR_PAGE));
+    for (let n = 2; n <= pages; n++) {
+      // Priorité plus basse : une page 47 vaut moins que la première, et
+      // l'annoncer autrement serait mentir sur ce qu'on en pense.
+      urlsRegroupements.push(urlXml(`${base}/${slugs[i]}/${n}`, "0.4"));
+      pagesSuivantes++;
+    }
+  }
+}
 
 const pages = [
   urlXml("/", "1.0"),
@@ -133,5 +185,5 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
 writeFileSync(resolve(RACINE, "dist/sitemap.xml"), xml);
 console.log(
   `sitemap.xml : ${pages.length} URL (${filmIds.length} fiches films, ` +
-    `${urlsRegroupements.length} pages de regroupement)`,
+    `${urlsRegroupements.length} pages de regroupement dont ${pagesSuivantes} paginées)`,
 );

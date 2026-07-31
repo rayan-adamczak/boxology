@@ -3,9 +3,17 @@ import { Link, useParams } from "react-router";
 import { Loader2 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { splitList, type Film } from "../lib/reelio-db";
-import { getEditionsParEditeur, getEditionsParFormat, getFilmsParGenre, PLAFOND, type LigneEdition } from "../lib/listes";
+import {
+  getEditionsParEditeur,
+  getEditionsParFormat,
+  getFilmsParGenre,
+  nombreDePages,
+  PAR_PAGE,
+  type LigneEdition,
+} from "../lib/listes";
 import { AXES, trouver, type NomAxe } from "../lib/regroupements";
 import { lienFilm } from "../lib/liens";
+import { cheminPage, fenetrePages } from "../lib/pagination";
 import { useSeo, type Seo } from "../lib/seo";
 import { IntrouvablePage } from "./IntrouvablePage";
 
@@ -28,56 +36,70 @@ import { IntrouvablePage } from "./IntrouvablePage";
  * duplique rien, elle n'existe nulle part ailleurs.
  */
 
-const TEXTES: Record<NomAxe, { intro: (l: string, n: number) => string; vide: string }> = {
+/**
+ * Textes de la page. `total` est l'effectif entier de la sélection, pas celui
+ * de la page affichée : annoncer « 60 éditions » quand il y en a 5 572 était
+ * faux, et c'est précisément ce que la pagination vient corriger.
+ */
+const TEXTES: Record<NomAxe, { intro: (l: string, total: number) => string; vide: string }> = {
   formats: {
-    intro: (libelle, n) =>
-      `Les ${n} éditions ${libelle} les plus récemment recensées au catalogue, avec leur film, leur éditeur et leur code-barres quand il est connu.`,
+    intro: (libelle, total) =>
+      `${total} éditions ${libelle} recensées au catalogue, avec leur film, leur éditeur et leur code-barres quand il est connu.`,
     vide: "Aucune édition recensée dans ce format.",
   },
   editeurs: {
-    intro: (libelle, n) =>
-      `Les ${n} dernières éditions publiées par ${libelle} : formats, dates de parution et codes-barres.`,
+    intro: (libelle, total) =>
+      `${total} éditions publiées par ${libelle} : formats, dates de parution et codes-barres.`,
     vide: "Aucune édition recensée pour cet éditeur.",
   },
   genres: {
-    intro: (libelle, n) =>
-      `${n} films de genre ${libelle.toLowerCase()} disponibles en édition physique : Blu-ray, 4K, steelbooks et coffrets.`,
+    intro: (libelle, total) =>
+      `${total} films de genre ${libelle.toLowerCase()} disponibles en édition physique : Blu-ray, 4K, steelbooks et coffrets.`,
     vide: "Aucun film de ce genre n'a d'édition recensée.",
   },
 };
 
 export function RegroupementPage({ axe }: { axe: NomAxe }) {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug, page: pageBrute } = useParams<{ slug: string; page?: string }>();
   const entree = slug ? trouver(axe, slug) : null;
+
+  /* Une page non numérique, nulle ou négative n'existe pas. `/x/y/1` non plus :
+     la première page est `/x/y`, et la Pages Function y redirige en 301 pour
+     qu'une seule adresse porte ce contenu. */
+  const page = pageBrute === undefined ? 1 : Number(pageBrute);
+  const pageValide = Number.isInteger(page) && page >= 2 || pageBrute === undefined;
 
   const [editions, setEditions] = useState<LigneEdition[]>([]);
   const [films, setFilms] = useState<Film[]>([]);
+  const [total, setTotal] = useState(0);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!entree) return;
+    if (!entree || !pageValide) return;
     let annule = false;
     setChargement(true);
     setErreur(null);
 
-    /* `annule` couvre le changement d'axe autant que le démontage : passer de
-       `/genres/horreur` à `/formats/steelbook` relance l'effet, et sans ce
-       garde la réponse de la première requête écraserait celle de la seconde
+    /* `annule` couvre le changement d'axe et de page autant que le démontage :
+       passer de `/genres/horreur` à `/genres/horreur/2` relance l'effet, et sans
+       ce garde la réponse de la première requête écraserait celle de la seconde
        si elle arrivait en retard. */
     async function charger(libelle: string) {
       try {
         if (axe === "genres") {
-          const resultat = await getFilmsParGenre(libelle);
+          const resultat = await getFilmsParGenre(libelle, page);
           if (annule) return;
-          setFilms(resultat);
+          setFilms(resultat.lignes);
           setEditions([]);
+          setTotal(resultat.total);
         } else {
           const lire = axe === "formats" ? getEditionsParFormat : getEditionsParEditeur;
-          const resultat = await lire(libelle);
+          const resultat = await lire(libelle, page);
           if (annule) return;
-          setEditions(resultat);
+          setEditions(resultat.lignes);
           setFilms([]);
+          setTotal(resultat.total);
         }
       } catch (e) {
         if (!annule) setErreur(e instanceof Error ? e.message : "Chargement impossible");
@@ -91,26 +113,34 @@ export function RegroupementPage({ axe }: { axe: NomAxe }) {
     return () => {
       annule = true;
     };
-  }, [axe, entree?.libelle]);
+  }, [axe, entree?.libelle, page, pageValide]);
 
   const nombre = axe === "genres" ? films.length : editions.length;
+  const pages = nombreDePages(total);
 
   /* Tant que le chargement n'a rien rendu, on passe `null` : `useSeo` laisse
      alors le <head> intact plutôt que d'annoncer un décompte provisoire qu'un
-     crawler pourrait capturer. */
+     crawler pourrait capturer.
+
+     Le numéro entre dans le titre à partir de la deuxième page : sans lui, dix
+     pages porteraient le même titre et Google les traiterait en doublons. */
   const seo = useMemo<Seo | null>(() => {
     if (!entree || chargement) return null;
+    const suffixe = page > 1 ? `, page ${page} sur ${pages}` : "";
     return {
-      titre: `${entree.libelle}, ${AXES[axe].titre.toLowerCase()}`,
-      description: nombre > 0 ? TEXTES[axe].intro(entree.libelle, nombre) : TEXTES[axe].vide,
+      titre: `${entree.libelle}, ${AXES[axe].titre.toLowerCase()}${suffixe}`,
+      description: total > 0 ? TEXTES[axe].intro(entree.libelle, total) : TEXTES[axe].vide,
     };
-  }, [axe, entree?.libelle, chargement, nombre]);
+  }, [axe, entree?.libelle, chargement, total, page, pages]);
 
   useSeo(seo);
 
-  // Un slug hors table est une adresse qui n'existe pas. La Pages Function y
-  // répond déjà 404 en production ; ici on rend l'écran correspondant.
-  if (!entree) return <IntrouvablePage />;
+  // Un slug hors table, ou un numéro de page invalide, sont des adresses qui
+  // n'existent pas. La Pages Function y répond déjà 404 en production ; ici on
+  // rend l'écran correspondant.
+  if (!entree || !pageValide) return <IntrouvablePage />;
+  // Page au-delà de la dernière : même traitement, une fois le total connu.
+  if (!chargement && !erreur && page > pages) return <IntrouvablePage />;
 
   return (
     <div className="mx-auto w-full max-w-[1200px] px-6 pb-24 pt-[120px]">
@@ -135,15 +165,20 @@ export function RegroupementPage({ axe }: { axe: NomAxe }) {
         }}
       >
         {entree.libelle}
+        {page > 1 && (
+          <span style={{ fontWeight: 200, color: "var(--reel-muted)" }}>
+            {"  "}page {page}
+          </span>
+        )}
       </h1>
 
-      {!chargement && nombre > 0 && (
+      {!chargement && total > 0 && (
         <p className="pt-3 max-w-[720px]" style={{ fontSize: "15px", color: "var(--reel-muted)" }}>
-          {TEXTES[axe].intro(entree.libelle, nombre)}
-          {nombre >= PLAFOND && (
+          {TEXTES[axe].intro(entree.libelle, total)}
+          {pages > 1 && (
             <>
               {" "}
-              Le catalogue en compte davantage, cette page en montre {PLAFOND}.
+              Page {page} sur {pages}, {PAR_PAGE} par page.
             </>
           )}
         </p>
@@ -166,6 +201,10 @@ export function RegroupementPage({ axe }: { axe: NomAxe }) {
         <GrilleFilms films={films} />
       ) : (
         <GrilleEditions editions={editions} montrerEditeur={axe !== "editeurs"} />
+      )}
+
+      {!chargement && !erreur && pages > 1 && (
+        <Pagination base={AXES[axe].base} slug={entree.slug} page={page} pages={pages} />
       )}
 
       <AutresDeLAxe axe={axe} slugCourant={entree.slug} />
@@ -266,6 +305,80 @@ function GrilleEditions({
         );
       })}
     </div>
+  );
+}
+
+/**
+ * Navigation entre les pages.
+ *
+ * Des `<Link>` et non des boutons : un crawler ne clique pas, il suit des
+ * `href`. Une pagination en JavaScript pur laisserait les 92 pages suivantes
+ * de `/formats/blu-ray` aussi invisibles qu'avant.
+ *
+ * `rel="prev"` et `rel="next"` ne servent plus à Google depuis 2019, mais Bing
+ * les lit encore, et ils ne coûtent rien.
+ */
+function Pagination({
+  base,
+  slug,
+  page,
+  pages,
+}: {
+  base: string;
+  slug: string;
+  page: number;
+  pages: number;
+}) {
+  const lien = (n: number) => cheminPage(base, slug, n);
+  const styleLien = {
+    fontSize: "14px",
+    color: "var(--reel-accent-clair)",
+    padding: "6px 10px",
+    borderRadius: "6px",
+  } as const;
+
+  return (
+    <nav
+      className="mt-12 flex flex-wrap items-center gap-1"
+      aria-label={`Pages de ${slug}`}
+    >
+      {page > 1 && (
+        <Link to={lien(page - 1)} rel="prev" style={styleLien} className="hover:underline">
+          ← Précédent
+        </Link>
+      )}
+
+      {fenetrePages(page, pages).map((n, i) =>
+        n === 0 ? (
+          <span key={`coupure-${i}`} style={{ ...styleLien, color: "var(--reel-muted)" }}>
+            …
+          </span>
+        ) : n === page ? (
+          <span
+            key={n}
+            aria-current="page"
+            style={{
+              ...styleLien,
+              color: "var(--reel-text)",
+              fontWeight: 700,
+              backgroundColor: "var(--reel-surface-2)",
+            }}
+          >
+            {n}
+          </span>
+        ) : (
+          <Link key={n} to={lien(n)} style={styleLien} className="hover:underline">
+            {n}
+          </Link>
+        ),
+      )}
+
+      {page < pages && (
+        <Link to={lien(page + 1)} rel="next" style={styleLien} className="hover:underline">
+          Suivant →
+        </Link>
+      )}
+    </nav>
   );
 }
 
