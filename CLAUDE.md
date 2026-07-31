@@ -692,11 +692,25 @@ de vrai avant la migration, colonne absente, PostgREST rendant 400 : la page
 sort en 200. Le §9 garde la trace de deux mises à terre en une journée, on
 n'ajoute pas un troisième point de rupture sur le chemin de consultation.
 
-Contrepartie assumée : quand le repli joue, la page perd son `<head>` enrichi
-**sans rien signaler**. Des injections manquées ont été observées dans les
-minutes suivant le déploiement, plus reproductibles ensuite sur 120 requêtes.
-Propagation d'edge, sans doute. Si le symptôme revient à froid, c'est là qu'il
-faut regarder, et non du côté du rendu.
+Contrepartie assumée : quand le repli joue, la page perd son enrichissement
+**sans rien signaler**.
+
+**Ne pas confondre le repli avec le déploiement en cours.** Après chacun des
+trois déploiements du 31 juillet 2026, une requête sur quatre environ est
+revenue sans la nouveauté du jour, pendant quelques minutes. Le réflexe est de
+soupçonner le repli ; c'est faux, et la signature le prouve : ces réponses
+portaient exactement l'état de la version **précédente**, jamais l'état de
+départ. Après le déploiement du corps, elles avaient `<title>`, canonical et
+JSON-LD, et un corps à 48 octets. Le repli, lui, aurait tout retiré d'un coup.
+
+C'est donc la propagation d'une version à l'autre sur le réseau, et ça se
+résorbe seul : mesuré `cf-cache-status: DYNAMIC` sans `age` sur les réponses
+fautives, donc pas un cache à purger, puis 10 sur 10 et 12 fiches sur 12
+quelques minutes plus tard. **Ne rien purger, ne rien corriger, attendre.**
+
+Le vrai repli se reconnaît à ce qu'il retire tout : titre générique, ni
+canonical, ni JSON-LD, corps vide. S'il apparaît à froid, longtemps après un
+déploiement, c'est là qu'il faut regarder, et non du côté du rendu.
 
 `wrangler pages dev dist` rejoue tout ça hors ligne, `functions/` compris.
 C'est la seule façon d'éprouver ce fichier : le serveur Vite ne le voit pas, et
