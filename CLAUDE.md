@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films` — 4 684 lignes
+### `films` — 4 581 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -119,6 +119,15 @@ l'ancienne supprimée du tableau de bord.
 
 Deux lignes seulement n'ont pas de `tmdb_id` — elles échappent donc à toutes
 les passes d'enrichissement, qui énumèrent `tmdb_id=not.is.null`.
+
+**103 œuvres sans aucune édition ont été supprimées le 31 juillet 2026.**
+C'était le résidu des corrections de genre : quand une édition passe du film
+`Bleach` à la série `Bleach`, la fiche film reste, vide. Un catalogue d'éditions
+physiques n'a rien à faire d'une œuvre qu'aucun disque ne porte, et le sitemap
+ne les listait déjà pas. Sauvegarde complète dans
+`films_supprimes_20260731.json` — c'est le seul retour arrière, la suppression
+en base est définitive. Vérifié avant écriture : aucun lien, aucun
+`editions.film_id`, aucune ligne de `collections` ne les référençait.
 
 **`titre` est un instantané pris à l'import, pas un miroir de TMDB.** Réaligné
 le 30 juillet 2026 : 91 des 3 554 films alors en base avaient divergé, 89 réécrits
@@ -225,7 +234,7 @@ requête, ce qui permet de les corriger au fil des signalements :
 **L'app lit les éditions via cette table**, pas via `editions.film_id`
 (cf. `getEditionsForFilm` dans `src/app/lib/reelio-db.ts`).
 
-### `collections` — appliquée le 30 juillet 2026, vide
+### `collections` — appliquée le 30 juillet 2026, 2 lignes
 Listes utilisateur : `user_id`, `edition_id` (bigint), `statut`
 (`envie|possede`), `cree_le`. Clé primaire composite `(user_id, edition_id)`
 plutôt qu'un `id` identity, pour que `on conflict (user_id, edition_id)`
@@ -302,7 +311,7 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 4 684 (3 969 films, 713 séries, 2 coffrets) |
+| Films | 4 581 (3 867 films, 712 séries, 2 coffrets) |
 | Éditions | 8 471 |
 | Codes-barres | 4 930 |
 | Éditions rattachées | 7 941 (93,7 %) |
@@ -1634,13 +1643,13 @@ Ce qui a évité le plus d'erreurs :
   individuellement, mais le droit *sui generis* protège l'extraction d'une
   partie substantielle d'une base
 - Aucun tracker. Compte optionnel via Google uniquement.
-- **`collections` existe depuis le 30 juillet 2026**, donc la phrase « aucune
-  donnée personnelle serveur » ne tiendra plus dès la fusion de
-  `compte-google` : un compte connecté fait vivre côté serveur son adresse et
-  son identifiant Google dans `auth.users`, et la liste de ses éditions dans
-  `collections`. Hébergement Supabase en Suède, dans l'Union — c'est ce
-  qu'annonce `/compte`. Aujourd'hui la branche n'est pas déployée, donc aucun
-  compte n'existe encore en pratique.
+- **`collections` n'est plus vide.** Elle porte deux lignes au 31 juillet 2026,
+  un « possédé » et une « envie ». La phrase « aucune donnée personnelle
+  serveur » est donc **fausse depuis qu'un compte a été utilisé** : un compte
+  connecté fait vivre côté serveur son adresse et son identifiant Google dans
+  `auth.users`, et la liste de ses éditions dans `collections`. Hébergement
+  Supabase en Suède, dans l'Union — c'est ce qu'annonce `/compte`. À vérifier
+  que les mentions publiées disent bien cela, et non l'inverse.
 - **Effacement (RGPD art. 17)** tenu par `public.supprimer_mon_compte()`,
   atteignable depuis `/compte`, lui-même lié depuis le menu du bandeau et
   depuis la politique de confidentialité — laquelle annonçait déjà la
