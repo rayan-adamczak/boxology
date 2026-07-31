@@ -365,6 +365,12 @@ d'attente.
 `promouvoir_visuels.py` l'a promu en principal et retiré des secondaires. Les
 deux sans rien sont passées à `null`.
 
+**`image_url` et `images_secondaires` n'ont pas du tout la même taille.** La
+principale est une vignette, 172 × 233 pixels, et il n'existe pas de version
+plus grande : le même chemin sans le préfixe `vignette-` répond **404**. Les
+secondaires, elles, sont les fichiers pleins, autour de 1 024 px. C'est ce qui
+plafonne l'agrandissement de la visionneuse (cf. §8).
+
 `editions.image_url_source` et `images_secondaires_source` gardent l'URL
 d'origine, ligne à ligne : la bascule est réversible et l'appariement
 vérifiable. Migration `20260731_images_miroir.sql`, scripts `miroir_images.py`
@@ -1208,6 +1214,46 @@ de la fiche film et les parutions de l'accueil. Ses flèches se centrent sur
 le `34 %` d'origine visait le portrait d'un acteur et tombait au-dessus des
 jaquettes, plus hautes. Mesurer libère le composant de la forme de ce qu'il
 transporte.
+
+### Visionneuse d'images, en place le 31 juillet 2026
+
+`src/app/components/Lanterne.tsx`. L'affiche du héros et chaque vignette
+d'édition s'ouvrent en grand. Le site montre des objets physiques dont le détail
+est l'intérêt, la tranche d'un steelbook, la mention « édition limitée »
+imprimée en petit, et la vignette de 56 px de la liste n'en montrait rien.
+
+Une édition ouvre `image_url` puis ses `images_secondaires` (dos, tranche,
+intérieur), avec flèches, clavier et compteur. 2 877 éditions en ont.
+
+**Une seule dimension est pilotée, la largeur ; la hauteur suit le rapport.**
+C'est ce qui rend la déformation impossible. Les trois limites entrent dans le
+même `min()`, la contrainte verticale étant traduite en largeur :
+
+    min(92vw, natif × 2,2, calc(82vh × rapport))
+
+Un `max-height` avait été essayé d'abord et **écrasait les affiches** : il
+rattrape la hauteur sans toucher à la largeur déjà imposée. Ne pas y revenir.
+
+**Le plafond de 2,2 vient de la source, pas du goût.** Les `image_url`
+d'editioncollector sont de vraies vignettes, 172 × 233, et il n'existe pas de
+version pleine taille : le même chemin sans le préfixe `vignette-` répond
+**404**. Les étirer à l'écran donnerait une bouillie. Les `images_secondaires`,
+elles, font 1 024 px et ne sont pas concernées par ce plafond.
+
+`max-width` seul ne suffit pas : une image se rend à sa taille native tant qu'on
+ne lui impose pas une largeur, et la vignette restait à 180 px malgré la place.
+
+Trois détails qui ne se devinent pas à la relecture :
+
+- le défilement de la page est bloqué à l'ouverture, **avec compensation de la
+  barre** — sans elle, la masquer élargit la page et tout le contenu saute ;
+- le fond ferme, l'image non : on clique dessus pour regarder de plus près ;
+- le sous-titre donne le nom de l'édition, qu'une jaquette agrandie et sortie de
+  sa liste ne dit plus.
+
+`pleineResolution()` remplace `w500` par `original` dans une URL TMDB, la taille
+faisant partie du chemin. Une URL d'une autre origine, comme le miroir
+d'images, passe sans être touchée.
 
 **Note à deux décimales** partout. TMDB rend `7.901` ; trois décimales suggèrent
 une précision que la note n'a pas.
