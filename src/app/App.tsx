@@ -23,6 +23,12 @@ const ProfilPage = lazy(() =>
   import("./pages/ProfilPage").then((m) => ({ default: m.ProfilPage })));
 const IntrouvablePage = lazy(() =>
   import("./pages/IntrouvablePage").then((m) => ({ default: m.IntrouvablePage })));
+/* Les 72 pages de regroupement partagent deux composants, donc deux morceaux,
+   quel que soit le nombre d'entrées dans les tables. */
+const RegroupementPage = lazy(() =>
+  import("./pages/RegroupementPage").then((m) => ({ default: m.RegroupementPage })));
+const IndexRegroupementsPage = lazy(() =>
+  import("./pages/IndexRegroupementsPage").then((m) => ({ default: m.IndexRegroupementsPage })));
 
 /**
  * Position de défilement de chaque entrée d'historique, par `location.key`.
@@ -152,6 +158,19 @@ export default function App() {
           <Route path="/films/:id" element={<FilmDetailPage />} />
           <Route path="/profil" element={<ProfilPage />} />
           <Route path="/compte" element={<ComptePage />} />
+
+          {/* Pages de regroupement. Elles captent la requête de navigation
+              (« steelbooks 4K », « éditions Carlotta ») et, surtout, donnent
+              au crawler un chemin vers les fiches profondes : sans elles la
+              profondeur de clic est accueil, 50 films, mur. Le slug est validé
+              contre la table générée ; hors table, la page rend l'écran
+              introuvable et la Pages Function répond 404. */}
+          <Route path="/formats" element={<IndexRegroupementsPage axe="formats" />} />
+          <Route path="/formats/:slug" element={<RegroupementPage axe="formats" />} />
+          <Route path="/editeurs" element={<IndexRegroupementsPage axe="editeurs" />} />
+          <Route path="/editeurs/:slug" element={<RegroupementPage axe="editeurs" />} />
+          <Route path="/genres" element={<IndexRegroupementsPage axe="genres" />} />
+          <Route path="/genres/:slug" element={<RegroupementPage axe="genres" />} />
 
           <Route path="/bienvenue" element={<BienvenuePage />} />
           <Route path="/a-propos" element={<AProposPage />} />

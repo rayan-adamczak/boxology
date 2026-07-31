@@ -26,6 +26,16 @@
  * n'ajoute pas un troisième point de rupture sur le chemin de consultation.
  */
 
+/**
+ * La table des slugs est **importée**, pas recopiée.
+ *
+ * `regroupements.ts` est généré et ne dépend de rien : ni React, ni navigateur.
+ * Les Pages Functions passent par esbuild, donc l'import fonctionne, et
+ * l'application comme la périphérie lisent la même liste. Une seconde copie ici
+ * dériverait au premier ajout d'éditeur, et la dérive serait invisible.
+ */
+import { AXES, trouver, type NomAxe } from "../src/app/lib/regroupements";
+
 /* Types minimaux : @cloudflare/workers-types n'est pas installé, et le
    `tsconfig.json` ne couvre pas ce dossier. Ce qui est déclaré ici est le peu
    qu'on utilise réellement. */
@@ -416,6 +426,284 @@ function injecter(reponse: Response, film: FilmSeo, canonical: string) {
     .transform(reponse);
 }
 
+/* ------------------------------------------------------------------------ */
+/* Pages de regroupement                                                      */
+/* ------------------------------------------------------------------------ */
+
+/** Nombre de lignes servies, aligné sur `PLAFOND` de `src/app/lib/listes.ts`. */
+const PLAFOND_LISTE = 60;
+
+/** `/formats/steelbook` rend `formats`. Null hors des trois axes. */
+function axeDeChemin(chemin: string): NomAxe | null {
+  const premier = chemin.split("/").filter(Boolean)[0];
+  return premier && premier in AXES ? (premier as NomAxe) : null;
+}
+
+interface LigneListe {
+  /** Ce qui s'affiche. */
+  libelle: string;
+  /** Précisions en seconde ligne, déjà assemblées. */
+  details: string;
+  /** Destination, ou null quand l'édition n'est rattachée à aucun film. */
+  lien: string | null;
+}
+
+/** Charge les lignes d'une page de regroupement. */
+async function lireListe(axe: NomAxe, libelle: string): Promise<LigneListe[]> {
+  const base = `https://${PROJET}.supabase.co/rest/v1`;
+  const filtre = encodeURIComponent(`{"${libelle.replace(/"/g, '\\"')}"}`);
+
+  let url: string;
+  if (axe === "genres") {
+    /* `edition_films!inner` écarte les films sans édition, comme le sitemap :
+       un film sans jaquette au catalogue n'a rien à faire dans une liste
+       d'éditions physiques. `nullslast` est indispensable, PostgreSQL classant
+       les nuls en premier sur un `desc`. */
+    url =
+      `${base}/films?genres=cs.${filtre}` +
+      `&select=id,titre,slug,annee,realisateur,edition_films!inner(edition_id)` +
+      `&order=popularite.desc.nullslast&limit=${PLAFOND_LISTE}`;
+  } else {
+    const critere =
+      axe === "formats"
+        ? `formats_extraits=cs.${filtre}&order=image_url.asc.nullslast,id.desc`
+        : `editeur=eq.${encodeURIComponent(libelle)}&order=date_parution.desc.nullslast`;
+    url =
+      `${base}/editions?${critere}` +
+      `&select=id,titre,editeur,formats_extraits,date_parution,ean,` +
+      `edition_films(film:films(id,titre,slug,annee))&limit=${PLAFOND_LISTE}`;
+  }
+
+  const reponse = await fetch(url, {
+    headers: { apikey: CLE_ANON, Authorization: `Bearer ${CLE_ANON}` },
+    cf: { cacheTtl: CACHE_SECONDES, cacheEverything: true },
+  } as RequestInit);
+  if (!reponse.ok) throw new Error(`${axe}/${libelle} : HTTP ${reponse.status}`);
+  const lignes = (await reponse.json()) as any[];
+
+  if (axe === "genres") {
+    const vus = new Set<number>();
+    return lignes
+      // Un film à plusieurs éditions ressort autant de fois que de liens.
+      .filter((f) => !vus.has(f.id) && vus.add(f.id))
+      .map((f) => ({
+        libelle: f.titre,
+        details: [f.annee, f.realisateur].filter(Boolean).join(" · "),
+        lien: f.slug ? `/films/${f.slug}/${f.id}` : `/films/${f.id}`,
+      }));
+  }
+
+  return lignes.map((e) => {
+    const film = e.edition_films?.[0]?.film ?? null;
+    return {
+      libelle: e.titre ?? film?.titre ?? "Édition",
+      details: [
+        axe === "formats" ? e.editeur : null,
+        (e.formats_extraits ?? []).join(", ") || null,
+        e.date_parution,
+        e.ean ? `EAN ${e.ean}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      lien: film ? (film.slug ? `/films/${film.slug}/${film.id}` : `/films/${film.id}`) : null,
+    };
+  });
+}
+
+/** Titre et description d'une page de regroupement, sommaire ou détail. */
+function metaRegroupement(axe: NomAxe, libelle: string | null, nombre: number) {
+  const nom = AXES[axe].titre;
+  if (libelle === null) {
+    return {
+      titre: `${nom} du catalogue | ${SITE_NOM}`,
+      description:
+        axe === "formats"
+          ? "Blu-ray, 4K, steelbook, digipack, coffret. Le format est relevé sur la fiche de l'édition, jamais déduit du titre."
+          : axe === "editeurs"
+          ? "Les éditeurs vidéo présents au catalogue. L'information vient de la fiche technique du disque, elle qualifie donc l'objet et non l'œuvre."
+          : "Les genres des films du catalogue, tels que TMDB les renseigne.",
+    };
+  }
+  const description =
+    axe === "formats"
+      ? `Les ${nombre} éditions ${libelle} les plus récemment recensées au catalogue, avec leur film, leur éditeur et leur code-barres quand il est connu.`
+      : axe === "editeurs"
+      ? `Les ${nombre} dernières éditions publiées par ${libelle} : formats, dates de parution et codes-barres.`
+      : `${nombre} films de genre ${libelle.toLowerCase()} disponibles en édition physique : Blu-ray, 4K, steelbooks et coffrets.`;
+  return { titre: `${libelle}, ${nom.toLowerCase()} | ${SITE_NOM}`, description };
+}
+
+/** Corps servi pour un sommaire d'axe. Aucune requête, la table suffit. */
+function corpsSommaire(axe: NomAxe): string {
+  const { titre, tables, base } = AXES[axe];
+  const items = tables
+    .map(
+      (e) =>
+        `<li style="margin:0 0 8px"><a href="${base}/${e.slug}" ` +
+        `style="color:var(--reel-accent-clair,#6ea8ff)">${echapper(e.libelle)}</a> ` +
+        `<span style="opacity:.6">${e.compte}</span></li>`,
+    )
+    .join("");
+  return enveloppe(
+    `<h1 style="font-family:var(--reel-font-titre,inherit);font-size:38px;margin:0 0 12px">${echapper(titre)}</h1>` +
+      `<p style="margin:0 0 28px">${echapper(metaRegroupement(axe, null, 0).description)}</p>` +
+      `<ul style="list-style:none;padding:0;margin:0">${items}</ul>`,
+  );
+}
+
+/** Corps servi pour une page de regroupement. */
+function corpsRegroupement(axe: NomAxe, libelle: string, lignes: LigneListe[]): string {
+  const items = lignes
+    .map((l) => {
+      const nom = echapper(l.libelle);
+      const titre = l.lien
+        ? `<a href="${l.lien}" style="color:var(--reel-accent-clair,#6ea8ff)">${nom}</a>`
+        : `<strong>${nom}</strong>`;
+      return (
+        `<li style="margin:0 0 10px">${titre}` +
+        (l.details ? `<br /><span style="opacity:.75">${echapper(l.details)}</span>` : "") +
+        `</li>`
+      );
+    })
+    .join("");
+
+  const { base, titre: nomAxe } = AXES[axe];
+  return enveloppe(
+    `<nav style="opacity:.7;margin:0 0 12px"><a href="/" style="color:inherit">Catalogue</a> › ` +
+      `<a href="${base}" style="color:inherit">${echapper(nomAxe)}</a></nav>` +
+      `<h1 style="font-family:var(--reel-font-titre,inherit);font-size:38px;margin:0 0 12px">${echapper(libelle)}</h1>` +
+      `<p style="margin:0 0 28px">${echapper(metaRegroupement(axe, libelle, lignes.length).description)}` +
+      (lignes.length >= PLAFOND_LISTE
+        ? ` Le catalogue en compte davantage, cette page en montre ${PLAFOND_LISTE}.`
+        : "") +
+      `</p>` +
+      (items ? `<ul style="list-style:none;padding:0;margin:0">${items}</ul>` : "") +
+      // Ce qui relie les 72 pages entre elles : sans ce bloc, chacune est une
+      // impasse que seul le sitemap fait découvrir.
+      `<nav style="margin:40px 0 0"><h2 style="font-size:20px;margin:0 0 12px">Autres ${echapper(nomAxe.toLowerCase())}</h2>` +
+      AXES[axe].tables
+        .map(
+          (e) =>
+            `<a href="${base}/${e.slug}" style="color:var(--reel-accent-clair,#6ea8ff);` +
+            `margin-right:14px;display:inline-block">${echapper(e.libelle)}</a>`,
+        )
+        .join("") +
+      `</nav>`,
+  );
+}
+
+/** Coquille commune aux corps injectés, mêmes jetons que le site. */
+function enveloppe(interieur: string): string {
+  return (
+    `<main style="max-width:860px;margin:0 auto;padding:48px 24px;` +
+    `background:var(--reel-bg,#101720);color:var(--reel-text,#e8e8e8);` +
+    `font-family:var(--reel-font,Inter,system-ui,sans-serif);line-height:1.55">` +
+    interieur +
+    `</main>`
+  );
+}
+
+/** JSON-LD d'une liste : `CollectionPage` portant un `ItemList` ordonné. */
+function donneesListe(titre: string, canonical: string, lignes: LigneListe[], origine: string) {
+  const elements = lignes
+    .filter((l) => l.lien)
+    .map((l, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: l.libelle,
+      url: `${origine}${l.lien}`,
+    }));
+
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: titre,
+    url: canonical,
+    mainEntity: { "@type": "ItemList", numberOfItems: elements.length, itemListElement: elements },
+  }).replace(/</g, "\\u003c");
+}
+
+/** Réécrit `<head>` et `<body>` d'une page de regroupement. */
+function injecterListe(
+  reponse: Response,
+  meta: { titre: string; description: string },
+  canonical: string,
+  corps: string,
+  jsonLd: string | null,
+) {
+  const poserContenu = { element: (el: any) => el.setAttribute("content", meta.description) };
+  return new HTMLRewriter()
+    .on("title", { element: (el: any) => el.setInnerContent(meta.titre) })
+    .on('meta[name="description"]', poserContenu)
+    .on('meta[property="og:description"]', poserContenu)
+    .on('meta[property="og:title"]', {
+      element: (el: any) => el.setAttribute("content", meta.titre),
+    })
+    .on('meta[property="og:site_name"]', {
+      element: (el: any) => {
+        el.after(`<link rel="canonical" href="${canonical}" />`, { html: true });
+        el.after(`<meta property="og:url" content="${canonical}" />`, { html: true });
+        if (jsonLd) {
+          el.after(`<script type="application/ld+json">${jsonLd}</script>`, { html: true });
+        }
+      },
+    })
+    .on("#root", { element: (el: any) => el.setInnerContent(corps, { html: true }) })
+    .transform(reponse);
+}
+
+/**
+ * Sert `/formats`, `/editeurs`, `/genres` et leurs pages.
+ *
+ * Ces pages captent la requête de navigation, mais leur premier rôle est de
+ * donner au crawler un chemin vers les fiches profondes : sans elles, la
+ * profondeur de clic du site est accueil, 50 films, mur, et le reste du
+ * catalogue n'existe que par le sitemap.
+ *
+ * Elles doivent donc être lisibles sans JavaScript, sinon elles ne servent
+ * précisément à rien.
+ */
+async function servirRegroupement(
+  axe: NomAxe,
+  url: URL,
+  next: () => Promise<Response>,
+): Promise<Response> {
+  const segments = url.pathname.split("/").filter(Boolean);
+  // `/formats/a/b` n'existe pas plus qu'un slug inconnu : même 404, sinon la
+  // réécriture SPA en fait un 200 sur une page vide.
+  if (segments.length > 2) return pageIntrouvable(next);
+
+  const slug = segments[1] ?? null;
+  // Un slug hors table est une adresse qui n'existe pas : vrai 404, pas un 200
+  // sur une page vide.
+  const entree = slug === null ? null : trouver(axe, slug);
+  if (slug !== null && !entree) return pageIntrouvable(next);
+
+  const canonique = `${url.origin}/${segments.join("/")}`;
+
+  try {
+    const lignes = entree ? await lireListe(axe, entree.libelle) : [];
+    const meta = metaRegroupement(axe, entree?.libelle ?? null, lignes.length);
+
+    const reponse = await next();
+    if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
+
+    return injecterListe(
+      reponse,
+      meta,
+      canonique,
+      entree ? corpsRegroupement(axe, entree.libelle, lignes) : corpsSommaire(axe),
+      /* Le nom du `CollectionPage` est le libellé nu : le suffixe « | jaquette.app »
+         appartient au `<title>` de l'onglet, pas au nom de l'entité. */
+      entree ? donneesListe(entree.libelle, canonique, lignes, url.origin) : null,
+    );
+  } catch {
+    /* Même règle que pour les fiches : le référencement se dégrade, la
+       consultation ne s'arrête pas. */
+    return next();
+  }
+}
+
 /** Sert la coquille SPA avec un vrai statut 404 et une consigne `noindex`. */
 async function pageIntrouvable(next: () => Promise<Response>): Promise<Response> {
   const shell = await next();
@@ -437,10 +725,14 @@ export async function onRequest(context: Contexte): Promise<Response> {
   const { request, next } = context;
 
   /* Chemin rapide. Le middleware voit passer tout le trafic, assets compris :
-     ce qui ne concerne pas une fiche film doit ressortir immédiatement. */
+     ce qui ne le concerne pas doit ressortir immédiatement. */
   if (request.method !== "GET" && request.method !== "HEAD") return next();
 
   const url = new URL(request.url);
+
+  const axe = axeDeChemin(url.pathname);
+  if (axe) return servirRegroupement(axe, url, next);
+
   if (!url.pathname.startsWith("/films/")) return next();
 
   const segments = url.pathname.split("/").filter(Boolean);

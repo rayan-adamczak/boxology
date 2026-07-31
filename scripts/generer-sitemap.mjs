@@ -94,12 +94,35 @@ if (filmIds.length === 0) {
   throw new Error("aucun film rattaché à une édition — sitemap non généré");
 }
 
+/* Pages de regroupement, lues dans la table générée plutôt que recalculées :
+   `src/app/lib/regroupements.ts` est la seule source des slugs, et le sitemap
+   ne doit pas pouvoir en inventer un que l'application ne servirait pas. */
+const tables = readFileSync(resolve(RACINE, "src/app/lib/regroupements.ts"), "utf8");
+
+function slugsDe(nomTable) {
+  const bloc = tables.match(new RegExp(`export const ${nomTable}[^=]*= \\[([^\\]]*)\\]`, "s"));
+  if (!bloc) throw new Error(`regroupements.ts : table ${nomTable} introuvable`);
+  return [...bloc[1].matchAll(/slug: "([^"]+)"/g)].map((m) => m[1]);
+}
+
+const regroupements = [
+  ["/formats", slugsDe("FORMATS")],
+  ["/editeurs", slugsDe("EDITEURS")],
+  ["/genres", slugsDe("GENRES")],
+];
+
+const urlsRegroupements = regroupements.flatMap(([base, slugs]) => [
+  urlXml(base, "0.6"),
+  ...slugs.map((slug) => urlXml(`${base}/${slug}`, "0.6")),
+]);
+
 const pages = [
   urlXml("/", "1.0"),
   urlXml("/bienvenue", "0.7"),
   urlXml("/a-propos", "0.5"),
   urlXml("/mentions-legales", "0.3"),
   urlXml("/confidentialite", "0.3"),
+  ...urlsRegroupements,
   ...filmIds.map((id) => urlXml(cheminFilm(id), "0.8")),
 ];
 
@@ -108,4 +131,7 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
   `${pages.join("\n")}\n</urlset>\n`;
 
 writeFileSync(resolve(RACINE, "dist/sitemap.xml"), xml);
-console.log(`sitemap.xml : ${pages.length} URL (${filmIds.length} fiches films)`);
+console.log(
+  `sitemap.xml : ${pages.length} URL (${filmIds.length} fiches films, ` +
+    `${urlsRegroupements.length} pages de regroupement)`,
+);

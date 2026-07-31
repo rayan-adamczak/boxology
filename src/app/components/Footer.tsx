@@ -60,6 +60,16 @@ export function Footer() {
             <LienInterne to="/a-propos">À propos</LienInterne>
           </Colonne>
 
+          {/* Les trois sommaires de regroupement. Ils sont ici et non dans une
+              page perdue : le pied de page est sur toutes les pages, donc c'est
+              le seul endroit qui garantisse au crawler d'y arriver depuis
+              n'importe quelle fiche. */}
+          <Colonne titre="Parcourir">
+            <LienInterne to="/formats">Formats</LienInterne>
+            <LienInterne to="/editeurs">Éditeurs</LienInterne>
+            <LienInterne to="/genres">Genres</LienInterne>
+          </Colonne>
+
           {/* Aucun compte de réseau social ouvert pour l'instant : de simples
               mentions, pas des liens morts. À remplacer par des <a> le jour où
               ils existent. Rien à voir avec les comptes utilisateurs, qui eux
