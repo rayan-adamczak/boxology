@@ -8,14 +8,16 @@
  * générique. Google, lui, rend, mais avec une file d'attente de plusieurs jours
  * qui se voit dans la Search Console sur un catalogue de 3 349 fiches.
  *
- * Ce fichier répond à trois choses, dans cet ordre :
+ * Ce fichier répond à quatre choses, dans cet ordre :
  *
  *   1. l'URL canonique d'une fiche est `/films/<slug>/<id>` ; toute autre forme
  *      est redirigée en 301 vers elle ;
  *   2. un id qui n'existe pas répond un vrai 404, là où la réécriture SPA
  *      répondait 200 sur une page vide, un « soft 404 » aux yeux de Google ;
  *   3. le `<head>` est rempli au vol par `HTMLRewriter`, avec les mêmes valeurs
- *      que celles que `useSeo` posera ensuite côté client.
+ *      que celles que `useSeo` posera ensuite côté client ;
+ *   4. le corps est écrit dans `#root`, pour qu'un moteur qui n'exécute pas le
+ *      JavaScript ait enfin du texte à lire (voir `corpsFilm`).
  *
  * Règle de conduite : **ce code ne doit jamais pouvoir casser le site.** Une
  * panne de Supabase, une réponse inattendue, une exception quelconque retombent
@@ -135,6 +137,9 @@ function editionsDe(film: FilmSeo): EditionSeo[] {
 
 /** Métadonnées d'une fiche film, alignées sur celles de `FilmDetailPage`. */
 function metadonnees(film: FilmSeo) {
+  /* Espace ordinaire, comme `FilmDetailPage.tsx:343` : ce titre-ci part dans
+     `<title>` et dans la description, où `useSeo` écrit la même chaîne. Le
+     `<h1>` du corps, lui, prend deux insécables (voir `corpsFilm`). */
   const annee = film.annee ? ` (${film.annee})` : "";
   const nb = editionsDe(film).length;
 
@@ -154,6 +159,100 @@ function metadonnees(film: FilmSeo) {
 /** Chemin canonique d'une fiche. Sans slug, la forme nue reste valable. */
 function cheminCanonique(film: FilmSeo): string {
   return film.slug ? `/films/${film.slug}/${film.id}` : `/films/${film.id}`;
+}
+
+/** Texte vers HTML. `setInnerContent(..., {html:true})` n'échappe rien. */
+function echapper(texte: unknown): string {
+  return String(texte ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Contenu servi dans `#root`, avant que React démarre.
+ *
+ * Le `<head>` était rempli depuis le 31 juillet, mais le corps restait à
+ * 48 octets : `<div id="root"></div>` et rien d'autre. Un moteur qui n'exécute
+ * pas le JavaScript n'avait donc aucun texte à lire, et une fiche ne pouvait
+ * pas répondre à « dune steelbook 4k » alors que la page porte la réponse.
+ *
+ * **Ce n'est pas du cloaking** : on écrit ce que React affiche, pas une version
+ * enrichie pour les moteurs. `createRoot().render()` remplace ce contenu au
+ * montage, donc le visiteur voit l'application habituelle.
+ *
+ * Les jetons de couleur viennent de la feuille de style, qui est bloquante et
+ * donc déjà appliquée quand le corps peint : pas d'éclair blanc avant React.
+ *
+ * Écrit plutôt que rendu : construire ce HTML depuis les composants React
+ * supposerait un rendu serveur, donc React dans le Worker. Le prix, c'est que
+ * ce bloc et `FilmDetailPage` doivent dire la même chose. Il reste volontairement
+ * pauvre pour que la dérive soit lente : titre, réalisation, note, synopsis,
+ * liste des éditions. Rien qui demande une mise en forme.
+ */
+function corpsFilm(film: FilmSeo): string {
+  const editions = editionsDe(film);
+  const note = Number(film.note);
+  const votes = Number(film.nb_votes);
+  /* Deux espaces insécables et des parenthèses, comme le héros de
+     `FilmDetailPage` : à cette taille l'espace ordinaire est trop serrée et
+     l'année colle au dernier mot. Sur un titre qui est lui-même un nombre,
+     « 1917 2019 », les parenthèses sont ce qui empêche de lire une seule
+     valeur. */
+  const annee = film.annee ? `\u00a0\u00a0(${film.annee})` : "";
+
+  const lignes: string[] = [];
+  if (film.realisateur) lignes.push(`Réalisé par ${echapper(film.realisateur)}`);
+  if (Number.isFinite(note) && note > 0) {
+    const arrondie = (Math.round(note * 100) / 100).toString().replace(".", ",");
+    lignes.push(
+      Number.isFinite(votes) && votes > 0
+        ? `Note ${arrondie} sur 10, ${votes} votes`
+        : `Note ${arrondie} sur 10`,
+    );
+  }
+  if (film.duree) lignes.push(`${film.duree} minutes`);
+  if (film.genres?.length) lignes.push(echapper(film.genres.join(", ")));
+
+  /* Toutes les éditions, sans plafond : le plus fourni du catalogue en porte
+     61, et deux films seulement dépassent 30. Tronquer coûterait plus en
+     exactitude que ça ne gagnerait en octets. */
+  const items = editions.map((e) => {
+    const details = [
+      e.formats_extraits?.length ? echapper(e.formats_extraits.join(", ")) : null,
+      e.editeur ? echapper(e.editeur) : null,
+      e.date_parution ? echapper(e.date_parution) : null,
+      e.ean ? `EAN ${echapper(e.ean)}` : null,
+    ].filter(Boolean);
+    return (
+      `<li style="margin:0 0 10px"><strong>${echapper(e.titre ?? film.titre)}</strong>` +
+      (details.length ? `<br /><span style="opacity:.75">${details.join(" · ")}</span>` : "") +
+      `</li>`
+    );
+  });
+
+  const titreEditions = editions.length
+    ? `${editions.length} édition${editions.length > 1 ? "s" : ""} recensée${editions.length > 1 ? "s" : ""}`
+    : "Aucune édition recensée";
+
+  return (
+    `<main style="max-width:860px;margin:0 auto;padding:48px 24px;` +
+    `background:var(--reel-bg,#101720);color:var(--reel-text,#e8e8e8);` +
+    `font-family:var(--reel-font,Inter,system-ui,sans-serif);line-height:1.55">` +
+    `<h1 style="font-family:var(--reel-font-titre,inherit);font-size:38px;margin:0 0 12px">` +
+    `${echapper(film.titre)}` +
+    (annee
+      ? `<span style="font-weight:200;color:var(--reel-muted,#9aa4b2)">${echapper(annee)}</span>`
+      : "") +
+    `</h1>` +
+    (lignes.length ? `<p style="margin:0 0 20px;opacity:.8">${lignes.join(" · ")}</p>` : "") +
+    (film.synopsis ? `<p style="margin:0 0 32px">${echapper(film.synopsis)}</p>` : "") +
+    `<h2 style="font-family:var(--reel-font-titre,inherit);font-size:22px;margin:0 0 16px">` +
+    `${titreEditions}</h2>` +
+    (items.length ? `<ul style="list-style:none;padding:0;margin:0">${items.join("")}</ul>` : "") +
+    `</main>`
+  );
 }
 
 /** Retire les clés nulles, vides ou à tableau vide d'un objet JSON-LD. */
@@ -308,6 +407,11 @@ function injecter(reponse: Response, film: FilmSeo, canonical: string) {
           { html: true },
         );
       },
+    })
+    /* Le corps servi au crawler. React l'efface à son montage : `createRoot`
+       remplace le contenu du conteneur, il ne l'hydrate pas. */
+    .on("#root", {
+      element: (el: any) => el.setInnerContent(corpsFilm(film), { html: true }),
     })
     .transform(reponse);
 }

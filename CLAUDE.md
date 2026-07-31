@@ -650,7 +650,7 @@ n'exécutant pas le JavaScript, ils ne voyaient que les `og:` génériques
 d'`index.html`. Google rendait, mais avec une file d'attente de plusieurs jours
 sur un catalogue de milliers de fiches.
 
-Elle fait trois choses, et **seulement sur `/films/`**. Tout le reste ressort
+Elle fait quatre choses, et **seulement sur `/films/`**. Tout le reste ressort
 par `next()` au premier test :
 
 1. l'adresse canonique d'une fiche est `/films/<slug>/<id>` ; toute autre forme
@@ -658,7 +658,33 @@ par `next()` au premier test :
 2. un id inexistant répond un **vrai 404**, là où la réécriture SPA répondait
    200 sur une page vide, soit un « soft 404 » aux yeux de Google ;
 3. `HTMLRewriter` remplit le `<head>` au vol, avec exactement les valeurs que
-   `useSeo` posera ensuite côté client, plus le JSON-LD.
+   `useSeo` posera ensuite côté client, plus le JSON-LD ;
+4. **le corps est écrit dans `#root`**, depuis le 31 juillet 2026.
+
+**Le corps, parce que le `<head>` ne suffisait pas.** Le corps servi faisait
+48 octets, `<div id="root"></div>` et rien d'autre : un moteur qui n'exécute
+pas le JavaScript n'avait aucun texte à lire, et une fiche ne pouvait pas
+répondre à « dune steelbook 4k » alors qu'elle porte la réponse. On y écrit
+titre, réalisation, note, durée, genres, synopsis, et la liste complète des
+éditions avec formats, éditeur, date et EAN. De 48 octets à 2 000 en moyenne,
+13 300 sur *Game of Thrones*.
+
+**Ce n'est pas du cloaking** : c'est ce que React affiche, pas une version
+enrichie pour les moteurs. `createRoot().render()` remplace le contenu du
+conteneur au montage, il ne l'hydrate pas, donc le visiteur voit l'application
+habituelle. Vérifié : un seul `<h1>` après montage, aucun reste du bloc injecté.
+
+Pas de plafond sur la liste des éditions : le film le plus fourni en porte 61 et
+deux seulement dépassent 30. Tronquer coûterait plus en exactitude que ça ne
+gagnerait en octets.
+
+**Le corps injecté et `FilmDetailPage` doivent dire la même chose**, et rien ne
+le garantit : le rendre depuis les composants supposerait React dans le Worker.
+Le bloc reste donc volontairement pauvre, pour que la dérive soit lente. Piège
+déjà rencontré : l'année s'écrit `\u0020(2019)`, espace ordinaire, dans le
+`<title>` et la description, et `\u00a0\u00a0(2019)`, deux insécables, en
+graisse 200 dans le `<h1>`. Les deux formes existent dans le même fichier, à
+quelques lignes d'écart, et les intervertir passe inaperçu.
 
 **Toute erreur retombe sur `next()`.** Panne Supabase, réponse inattendue,
 exception : on sert la page telle qu'elle était avant ce fichier. Éprouvé pour
@@ -757,11 +783,48 @@ fermerait la balise par surprise.
 - **Pas de `WebSite` + `SearchAction`.** La recherche de l'accueil est un état
   React sans paramètre d'URL ; déclarer une `SearchAction` pointerait vers une
   adresse qui ne filtre rien. À rouvrir si la recherche gagne un `?q=`.
-- **Aucune page d'édition ni de regroupement.** 5 739 éditions, zéro URL, alors
-  que `editions.slug` existe déjà et n'est lu nulle part. Rien non plus sur
-  `/steelbook`, `/editeurs/<nom>` ou `/genres/<nom>`, qui capteraient la
-  moyenne traîne et donneraient au crawler un chemin vers les fiches profondes.
-  Aujourd'hui la profondeur de clic est : accueil, 50 films, mur.
+- **Aucune page de regroupement.** Rien sur `/steelbook`, `/editeurs/<nom>` ou
+  `/genres/<nom>`, qui capteraient la requête de navigation et donneraient au
+  crawler un chemin vers les fiches profondes. Aujourd'hui la profondeur de
+  clic est : accueil, 50 films, mur. Les données sont déjà là : `editions.editeur`
+  2 512, `resolution` 2 530, `packaging`, `films.genres`, `date_parution`.
+  Cent à trois cents pages, chacune une vraie liste. **C'est le prochain
+  chantier utile.**
+
+### Pages éditions : écarté, et pourquoi
+
+L'idée revient naturellement, `editions.slug` existant déjà sans être lu nulle
+part : une URL par édition, soit 8 471 pages neuves. **Mesuré le 31 juillet
+2026, ça ne tient pas.**
+
+| | |
+|---|---|
+| éditions | 8 471 |
+| **sans rien de technique** | **5 925** (70 %) |
+| avec specs (résolution, audio, ratio) | 2 530 |
+| avec visuel | 3 188 |
+| **avec specs *et* visuel** | **0** |
+
+Trois raisons, dans l'ordre de gravité :
+
+- **Le non-recouvrement du §3 est total, pas approximatif.** Zéro édition porte
+  à la fois une jaquette et une fiche technique : les specs viennent de
+  blu-ray.com qui ne publie aucune image, les visuels d'editioncollector qui ne
+  publie aucune spec. Aucune page édition ne pourrait montrer les deux.
+- **70 % seraient du contenu mince** : un titre, parfois une image, parfois un
+  EAN. Six mille pages de ça, c'est ce que le système « contenu utile » de
+  Google sanctionne, et la sanction porte sur le site entier.
+- **2 583 films sur 4 418 n'ont qu'une seule édition** (58 %). Pour eux la page
+  édition serait un doublon de la fiche film : deux URL faibles qui se disputent
+  « dune steelbook 4k » au lieu d'une qui la gagne.
+
+L'argument qui avait porté l'idée était « ×3 la surface indexable ». C'est du
+raisonnement au volume, et depuis les mises à jour « contenu utile » le volume
+de pages minces est un passif, pas un actif.
+
+**Ce qu'il fallait faire à la place** était l'injection du corps : la fiche film
+*contient déjà* ce qu'une page édition dirait, elle ne le montrait simplement
+pas au crawler.
 
 ---
 
