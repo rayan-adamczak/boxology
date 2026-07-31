@@ -35,6 +35,12 @@ export interface Film {
   budget: number | null;
   /** Compositeur de la musique originale. */
   musique: string | null;
+  /**
+   * Champ `popularity` de TMDB, recalculé chez eux tous les jours à partir des
+   * consultations et des recherches récentes. Mesure ce qu'on regarde *en ce
+   * moment* — et se périme donc sans repasse du script.
+   */
+  popularite: number | null;
 }
 
 export interface Edition {
@@ -63,6 +69,12 @@ export interface Edition {
   packaging: string | null;
   /** Éditeur vidéo du disque. Remplace le distributeur, absent de TMDB. */
   editeur: string | null;
+  /**
+   * Date de parution du disque, analysée depuis `date_sortie` — qui reste du
+   * texte anglais, inutilisable pour trier. Nulle sur les éditions
+   * editioncollector, qui ne publient pas de date.
+   */
+  date_parution: string | null;
 }
 
 export interface PisteAudio {
@@ -211,12 +223,75 @@ export interface EditionWithFilm extends Edition {
 
 /* ---- Films ---- */
 
+/**
+ * Recherche par titre, ou catalogue par défaut quand la requête est vide.
+ *
+ * **Le classement par défaut est la popularité TMDB, pas l'ordre alphabétique.**
+ * Une page d'accueil qui ouvre sur « …Et pour quelques dollars de plus » et
+ * « [REC] » ne montre pas un catalogue vivant, elle montre le début d'une liste.
+ * `popularite` est recalculé quotidiennement chez TMDB à partir des
+ * consultations et recherches récentes : la sortie du mois y remonte d'elle-même,
+ * là où `nb_votes` figerait les mêmes classiques pour toujours.
+ *
+ * `nulls: "last"` est indispensable : les films non encore enrichis ont une
+ * popularité nulle, et PostgreSQL classe les nuls en premier sur un tri
+ * descendant — la page se serait ouverte sur les fiches les moins renseignées.
+ *
+ * Une recherche explicite, elle, reste alphabétique : on cherche un titre
+ * connu, l'ordre attendu est celui du dictionnaire.
+ */
 export async function searchFilms(query: string): Promise<Film[]> {
-  let req = supabase.from("films").select("*").order("titre", { ascending: true }).limit(50);
-  if (query.trim()) req = req.ilike("titre", `%${query.trim()}%`);
+  const terme = query.trim();
+  let req = supabase.from("films").select("*").limit(50);
+  req = terme
+    ? req.ilike("titre", `%${terme}%`).order("titre", { ascending: true })
+    : req.order("popularite", { ascending: false, nullsFirst: false });
   const { data, error } = await req;
   if (error) throw new Error(`Erreur lors de la recherche de films: ${error.message}`);
   return (data ?? []) as Film[];
+}
+
+/**
+ * Dernières parutions, avec l'affiche de leur film.
+ *
+ * Triées sur `date_parution`, la colonne date normalisée — et non sur
+ * `date_sortie`, qui reste le texte anglais des sources (« Sep 30, 2025 ») et
+ * dont le tri SQL serait alphabétique, donc faux : « Apr » passerait avant
+ * « Sep » quelle que soit l'année.
+ *
+ * Le plafond à aujourd'hui écarte les annonces : 117 éditions portent une date
+ * de parution en 2026, dont certaines à venir. Une page qui titre « dernières
+ * parutions » et montre un disque qui sort dans deux mois se trompe de mot.
+ *
+ * `!inner` sur `edition_films` écarte les 377 éditions sans film — sans affiche
+ * ni titre d'œuvre, elles n'ont rien à montrer.
+ *
+ * **Ces éditions n'ont pas de visuel de boîtier, et c'est structurel.** Les
+ * 2 543 lignes datées viennent toutes de blu-ray.com, qui ne publie aucune
+ * image — les 3 193 visuels du catalogue sont chez editioncollector, qui ne
+ * publie aucune date. Le recouvrement est exactement nul. La carte retombe donc
+ * sur l'affiche TMDB du film, qui existe toujours ; filtrer sur `image_url`
+ * comme le faisait la première version vidait la liste.
+ */
+export async function getDernieresEditions(limite = 18): Promise<EditionWithFilm[]> {
+  const { data, error } = await supabase
+    .from("editions")
+    .select("*, edition_films!inner(film:films!inner(id, titre, affiche_url))")
+    .not("date_parution", "is", null)
+    .lte("date_parution", new Date().toISOString().slice(0, 10))
+    .order("date_parution", { ascending: false })
+    .limit(limite);
+  if (error) throw new Error(`Erreur lors du chargement des dernières éditions: ${error.message}`);
+
+  // PostgREST rend la jointure comme un tableau : une édition peut appartenir à
+  // plusieurs films quand c'est un coffret. On garde le premier, qui suffit à
+  // l'illustrer.
+  return (data ?? []).map((ligne) => {
+    const { edition_films: liens, ...edition } = ligne as Record<string, unknown> & {
+      edition_films?: { film: Pick<Film, "id" | "titre" | "affiche_url"> }[];
+    };
+    return { ...edition, film: liens?.[0]?.film ?? null } as EditionWithFilm;
+  });
 }
 
 export async function getFilm(id: number): Promise<Film | null> {

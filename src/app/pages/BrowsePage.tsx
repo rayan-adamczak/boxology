@@ -1,9 +1,49 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Library, Bookmark, Disc3, ScanBarcode } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { searchFilms, type Film } from "../lib/reelio-db";
+import { RailHorizontal } from "../components/RailHorizontal";
+import { ModaleConnexion } from "../components/ModaleConnexion";
+import { useSession } from "../lib/auth";
+import {
+  searchFilms,
+  getDernieresEditions,
+  splitList,
+  type Film,
+  type EditionWithFilm,
+} from "../lib/reelio-db";
 import { useSeo } from "../lib/seo";
+
+/**
+ * Chiffres du catalogue, écrits en dur et arrondis vers le bas.
+ *
+ * Les compter à l'exécution coûterait trois requêtes `count` avant le premier
+ * pixel, pour une phrase d'accroche. Arrondis par le bas parce qu'ils ne font
+ * que croître : « plus de 3 500 films » restera vrai sans qu'on y touche, là où
+ * un chiffre exact serait faux dès le prochain import.
+ */
+const CATALOGUE = { films: "3 500", editions: "5 700", codesBarres: "3 400" };
+
+const ARGUMENTS_COMPTE = [
+  {
+    icone: Library,
+    titre: "Votre collection, éditions comprises",
+    texte:
+      "Pas seulement « j’ai le film » : le steelbook Fnac, le digibook, la 4K. Deux éditions du même titre sont deux objets différents.",
+  },
+  {
+    icone: Bookmark,
+    titre: "Une liste d’envies qui sert en boutique",
+    texte:
+      "Le code-barres et la zone sont sur la fiche. De quoi vérifier en rayon que c’est bien l’édition que vous cherchez.",
+  },
+  {
+    icone: Disc3,
+    titre: "Ce qu’il y a vraiment sur le disque",
+    texte:
+      "Définition, HDR, pistes audio, sous-titres, éditeur. Relevé édition par édition, pas déduit du titre.",
+  },
+];
 
 export function BrowsePage() {
   useSeo({
@@ -13,12 +53,16 @@ export function BrowsePage() {
     racine: true,
   });
 
+  const session = useSession();
+  const [modaleOuverte, setModaleOuverte] = useState(false);
+
   const [query, setQuery] = useState("");
   const [films, setFilms] = useState<Film[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dernieres, setDernieres] = useState<EditionWithFilm[]>([]);
 
-  // Debounced live search of the films table by title.
+  // Recherche par titre, temporisée.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -40,83 +84,359 @@ export function BrowsePage() {
     };
   }, [query]);
 
+  /*
+    Les dernières éditions ne dépendent pas de la recherche : chargées une fois,
+    elles restent en place pendant qu'on tape. L'échec est silencieux — c'est un
+    bandeau d'illustration, pas une raison de barrer la page d'un message rouge.
+  */
+  useEffect(() => {
+    let cancelled = false;
+    getDernieresEditions(18)
+      .then((eds) => {
+        if (!cancelled) setDernieres(eds);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const recherche = query.trim().length > 0;
+  // `undefined` = session en cours de résolution. On n'affiche l'invitation
+  // qu'une fois la réponse connue, sinon elle apparaît puis disparaît sous les
+  // yeux d'un visiteur déjà connecté.
+  const invite = session === null;
+
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-[88px] md:px-8 md:pb-8 lg:px-16">
-      <header className="mb-6">
-        <h1 style={{ fontSize: "28px", fontWeight: 700, color: "var(--reel-text)" }}>Parcourir les films</h1>
-        <p className="mt-1" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
-          Recherchez dans votre catalogue par titre.
-        </p>
-      </header>
+    <div className="w-full pb-24 md:pb-8">
+      <ModaleConnexion ouverte={modaleOuverte} onFermer={() => setModaleOuverte(false)} retourVers="/" />
 
-      {/* Search bar */}
-      <label className="relative mb-8 block w-full max-w-[560px]">
-        <span className="sr-only">Rechercher un film par titre</span>
-        <Search
-          size={18}
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2"
-          color="var(--reel-muted)"
-        />
-        <input
-          type="search"
-          autoFocus
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher un film…"
-          className="w-full rounded-full py-3 pl-11 pr-4 outline-none transition focus:ring-2 focus:ring-[var(--reel-accent)]"
-          style={{
-            backgroundColor: "var(--reel-surface)",
-            border: "1px solid var(--reel-border)",
-            color: "var(--reel-text)",
-            fontSize: "15px",
-          }}
-        />
-      </label>
+      {/*
+        Accroche. Une mosaïque d'affiches derrière le texte plutôt qu'un aplat :
+        le sujet du site, ce sont les jaquettes, et une page d'accueil qui n'en
+        montre aucune vend mal un catalogue de 5 700 objets.
+      */}
+      <section className="relative overflow-hidden">
+        <MosaiqueAffiches editions={dernieres} />
 
-      {error && (
-        <p className="mb-6" style={{ fontSize: "14px", color: "#ff6b6b" }}>
-          {error}
-        </p>
-      )}
+        <div className="relative mx-auto max-w-[1440px] px-4 pb-16 pt-[124px] sm:px-6 sm:pb-24 sm:pt-[152px] lg:px-10">
+          <h1
+            className="max-w-[720px]"
+            style={{
+              fontFamily: "var(--reel-font-titre)",
+              // Même échelle que le héros de /bienvenue : les deux pages
+              // ouvrent le site, elles ne peuvent pas annoncer deux tailles.
+              fontSize: "clamp(38px, 6vw, 68px)",
+              fontWeight: 800,
+              lineHeight: 1.05,
+              letterSpacing: "-0.02em",
+              color: "var(--reel-text)",
+            }}
+          >
+            Le catalogue des éditions physiques
+          </h1>
+          <p
+            className="mt-6 max-w-[660px]"
+            style={{ fontSize: "19px", color: "var(--reel-text)", lineHeight: "31px" }}
+          >
+            Plus de {CATALOGUE.films} films et {CATALOGUE.editions} éditions françaises —
+            steelbooks, coffrets, 4K, digibooks — avec leurs formats, leurs zones et{" "}
+            {CATALOGUE.codesBarres} codes-barres.
+          </p>
 
-      {loading ? (
-        <div className="flex items-center gap-2" style={{ color: "var(--reel-muted)" }}>
-          <Loader2 size={18} className="animate-spin" />
-          <span style={{ fontSize: "14px" }}>Chargement…</span>
+          <label className="relative mt-9 block w-full max-w-[560px]">
+            <span className="sr-only">Rechercher un film par titre</span>
+            <Search
+              size={18}
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2"
+              color="var(--reel-muted)"
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher un film…"
+              className="w-full rounded-full py-3 pl-11 pr-4 outline-none transition focus:ring-2 focus:ring-[var(--reel-accent)]"
+              style={{
+                backgroundColor: "var(--reel-surface)",
+                border: "1px solid var(--reel-border)",
+                color: "var(--reel-text)",
+                fontSize: "15px",
+              }}
+            />
+          </label>
         </div>
-      ) : films.length === 0 ? (
-        <p style={{ fontSize: "14px", color: "var(--reel-muted)" }}>Aucun film trouvé.</p>
-      ) : (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {films.map((film) => (
-            <Link
-              key={film.id}
-              to={`/films/${film.id}`}
-              className="group block outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] rounded-[8px]"
-            >
-              <div
-                className="relative w-full overflow-hidden rounded-[8px]"
-                style={{ aspectRatio: "2 / 3", backgroundColor: "var(--reel-surface-2)" }}
-              >
-                <ImageWithFallback
-                  src={film.affiche_url ?? ""}
-                  alt={`Affiche de ${film.titre}`}
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04] group-hover:brightness-110"
-                />
+      </section>
+
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10">
+        {/*
+          Pendant une recherche, tout le reste s'efface : quelqu'un qui tape un
+          titre veut son résultat, pas une page d'accueil autour.
+        */}
+        {!recherche && (
+          <>
+            {dernieres.length > 0 && (
+              <section className="pt-10">
+                <div className="flex items-baseline justify-between gap-4">
+                  <h2 style={{ fontSize: "20px", fontWeight: 600, color: "var(--reel-text)" }}>
+                    Dernières parutions
+                  </h2>
+                </div>
+                <RailHorizontal ariaLabel="Dernières parutions">
+                  {dernieres.map((ed) => (
+                    <CarteEdition key={ed.id} edition={ed} />
+                  ))}
+                </RailHorizontal>
+              </section>
+            )}
+
+            {invite && <EncartInscription onSInscrire={() => setModaleOuverte(true)} />}
+
+            <section className="pt-12">
+              <h2 style={{ fontSize: "20px", fontWeight: 600, color: "var(--reel-text)" }}>
+                {invite ? "Pourquoi créer un compte" : "Ce que le compte apporte"}
+              </h2>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {ARGUMENTS_COMPTE.map(({ icone: Icone, titre, texte }) => (
+                  <div
+                    key={titre}
+                    className="rounded-[12px] px-5 py-5"
+                    style={{
+                      backgroundColor: "var(--reel-surface)",
+                      border: "1px solid var(--reel-border)",
+                    }}
+                  >
+                    <Icone size={20} color="var(--reel-accent-clair)" strokeWidth={2} />
+                    <h3
+                      className="mt-3"
+                      style={{ fontSize: "16px", fontWeight: 600, color: "var(--reel-text)" }}
+                    >
+                      {titre}
+                    </h3>
+                    <p
+                      className="mt-1.5"
+                      style={{ fontSize: "14px", color: "var(--reel-muted)", lineHeight: "22px" }}
+                    >
+                      {texte}
+                    </p>
+                  </div>
+                ))}
               </div>
-              <p
-                className="mt-2 line-clamp-2"
-                style={{ fontSize: "13px", fontWeight: 500, color: "var(--reel-text)" }}
-              >
-                {film.titre}
-              </p>
-              {film.annee && (
-                <p style={{ fontSize: "12px", color: "var(--reel-muted)" }}>{film.annee}</p>
-              )}
-            </Link>
-          ))}
-        </div>
+            </section>
+          </>
+        )}
+
+        <section className="pt-12">
+          <h2 style={{ fontSize: "20px", fontWeight: 600, color: "var(--reel-text)" }}>
+            {recherche ? "Résultats" : "Parcourir le catalogue"}
+          </h2>
+
+          {error && (
+            <p className="mt-4" style={{ fontSize: "14px", color: "#ff6b6b" }}>
+              {error}
+            </p>
+          )}
+
+          {loading ? (
+            <div className="mt-5 flex items-center gap-2" style={{ color: "var(--reel-muted)" }}>
+              <Loader2 size={18} className="animate-spin" />
+              <span style={{ fontSize: "14px" }}>Chargement…</span>
+            </div>
+          ) : films.length === 0 ? (
+            <p className="mt-5" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
+              Aucun film trouvé.
+            </p>
+          ) : (
+            <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              {films.map((film) => (
+                <Link
+                  key={film.id}
+                  to={`/films/${film.id}`}
+                  className="group block rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+                >
+                  <div
+                    className="relative w-full overflow-hidden rounded-[8px]"
+                    style={{ aspectRatio: "2 / 3", backgroundColor: "var(--reel-surface-2)" }}
+                  >
+                    <ImageWithFallback
+                      src={film.affiche_url ?? ""}
+                      alt={`Affiche de ${film.titre}`}
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04] group-hover:brightness-110"
+                    />
+                  </div>
+                  <p
+                    className="mt-2 line-clamp-2"
+                    style={{ fontSize: "13px", fontWeight: 500, color: "var(--reel-text)" }}
+                  >
+                    {film.titre}
+                  </p>
+                  {film.annee && (
+                    <p style={{ fontSize: "12px", color: "var(--reel-muted)" }}>{film.annee}</p>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Fond d'accroche : une bande d'affiches, fondue au noir.
+ *
+ * Même traitement que le héros de la fiche film — opacité basse, flou léger,
+ * dégradés — pour la même raison : l'image donne l'atmosphère, le texte reste
+ * lisible. Sans les dégradés, le titre passait sur des affiches claires.
+ *
+ * `aria-hidden` : ces affiches sont déjà listées plus bas, les répéter au
+ * lecteur d'écran n'apprendrait rien.
+ */
+function MosaiqueAffiches({ editions }: { editions: EditionWithFilm[] }) {
+  const affiches = editions
+    .map((e) => e.film?.affiche_url)
+    .filter((url): url is string => Boolean(url))
+    .slice(0, 12);
+
+  if (affiches.length === 0) return null;
+
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="flex h-full w-full gap-2">
+        {affiches.map((url, i) => (
+          <div key={i} className="h-full flex-1 overflow-hidden">
+            {/* Aucun filtre, ni ici ni sur un voile au-dessus.
+
+                Deux tentatives ont laissé la page dédoublée et décalée d'une
+                centaine de pixels : un `backdrop-filter` sur le voile d'abord,
+                puis un `filter: blur()` sur ces images. Les deux forcent une
+                couche de composition sur toute la largeur du héros, et le
+                navigateur y laisse des tuiles périmées quand la mise en page
+                se décale — apparition d'une barre de défilement, changement de
+                largeur de fenêtre.
+
+                L'atmosphère est donc obtenue sans filtre : opacité basse et
+                deux dégradés, comme sur le héros de la fiche film. */}
+            <img src={url} alt="" className="h-full w-full object-cover" style={{ opacity: 0.5 }} />
+          </div>
+        ))}
+      </div>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to right, rgba(16,23,32,0.97) 0%, rgba(16,23,32,0.92) 45%, rgba(16,23,32,0.7) 100%)",
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(16,23,32,0.85) 0%, rgba(16,23,32,0.55) 40%, var(--reel-bg) 100%)",
+        }}
+      />
+    </div>
+  );
+}
+
+/** Une jaquette du rail : le visuel du boîtier, le titre du film, les formats. */
+function CarteEdition({ edition }: { edition: EditionWithFilm }) {
+  const formats = splitList(edition.formats_extraits).slice(0, 2);
+  const lien = edition.film ? `/films/${edition.film.id}` : null;
+
+  const contenu = (
+    <>
+      <span
+        className="relative block w-full overflow-hidden rounded-[10px] ring-1 ring-transparent transition group-hover:ring-[var(--reel-accent-clair)]"
+        style={{ aspectRatio: "2 / 3", backgroundColor: "var(--reel-surface-2)" }}
+      >
+        <ImageWithFallback
+          src={edition.image_url ?? edition.film?.affiche_url ?? ""}
+          alt={edition.titre ?? "Édition"}
+          className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
+        />
+      </span>
+      <span
+        className="mt-2 line-clamp-2 block text-[var(--reel-text)] transition-colors group-hover:text-[var(--reel-accent-clair)]"
+        style={{ fontSize: "13px", fontWeight: 600, lineHeight: "18px" }}
+      >
+        {edition.film?.titre ?? edition.titre}
+      </span>
+      {formats.length > 0 && (
+        <span className="block" style={{ fontSize: "12px", color: "var(--reel-muted)" }}>
+          {formats.join(" · ")}
+        </span>
+      )}
+    </>
+  );
+
+  return (
+    <div className="w-[124px] shrink-0 sm:w-[140px]">
+      {lien ? (
+        <Link
+          to={lien}
+          className="group block rounded-[10px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
+        >
+          {contenu}
+        </Link>
+      ) : (
+        <div className="group block">{contenu}</div>
       )}
     </div>
+  );
+}
+
+/**
+ * L'invitation à créer un compte.
+ *
+ * Placée après les dernières éditions, pas avant : on demande un compte à
+ * quelqu'un qui a déjà vu ce que le site contient. En tête de page, elle
+ * réclame un engagement avant d'avoir rien montré.
+ */
+function EncartInscription({ onSInscrire }: { onSInscrire: () => void }) {
+  return (
+    <section
+      className="mt-12 overflow-hidden rounded-[16px] px-6 py-7 sm:px-8 sm:py-9"
+      style={{
+        border: "1px solid var(--reel-border)",
+        background:
+          "linear-gradient(120deg, var(--reel-accent) 0%, #17408c 45%, var(--reel-surface) 100%)",
+      }}
+    >
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="max-w-[620px]">
+          <h2
+            style={{
+              fontFamily: "var(--reel-font-titre)",
+              fontSize: "clamp(22px, 2.4vw, 30px)",
+              fontWeight: 800,
+              lineHeight: 1.15,
+              color: "#fff",
+            }}
+          >
+            Gardez la trace de ce que vous possédez
+          </h2>
+          <p className="mt-3" style={{ fontSize: "16px", color: "rgba(255,255,255,0.85)", lineHeight: "25px" }}>
+            Cochez vos éditions, notez celles que vous cherchez, et retrouvez la liste en rayon.
+            Compte gratuit avec Google, rien d’autre à remplir.
+          </p>
+        </div>
+
+        <div className="flex shrink-0 flex-col items-start gap-3">
+          <button
+            type="button"
+            onClick={onSInscrire}
+            className="rounded-full px-6 py-3 outline-none transition hover:brightness-105 focus-visible:ring-2 focus-visible:ring-white"
+            style={{ backgroundColor: "#fff", color: "var(--reel-accent)", fontSize: "16px", fontWeight: 600 }}
+          >
+            Créer mon compte
+          </button>
+          <span className="flex items-center gap-1.5" style={{ fontSize: "13px", color: "rgba(255,255,255,0.75)" }}>
+            <ScanBarcode size={14} /> Consultation libre, sans compte
+          </span>
+        </div>
+      </div>
+    </section>
   );
 }
