@@ -730,6 +730,37 @@ export async function onRequest(context: Contexte): Promise<Response> {
 
   const url = new URL(request.url);
 
+  /*
+   * Un asset ne doit jamais répondre du HTML, jamais.
+   *
+   * La réécriture SPA (`/* /index.html 200`) s'applique aussi à `/assets/*`
+   * quand le fichier n'est pas encore là, pendant la fenêtre de propagation
+   * d'un déploiement. Le navigateur reçoit alors `index.html` sous un nom de
+   * bundle, refuse d'exécuter un module en `text/html`, et la règle `/assets/*`
+   * de `public/_headers` estampille cette réponse pour 24 h : **le site ne
+   * démarre plus** tant que le cache n'expire pas.
+   *
+   * Arrivé trois fois, les 30 et 31 juillet 2026, la dernière sur le bundle
+   * principal lui-même. Le §9 le décrit comme un mystère parce que `curl`
+   * rendait les bons octets depuis une autre machine, donc un autre edge ; vu
+   * depuis la page, `fetch` rendait bien `text/html` et 2 716 octets.
+   *
+   * On coupe la cause : si la réponse d'un chemin d'asset est du HTML, c'est
+   * que le fichier manque, et un fichier manquant doit répondre 404. Le
+   * `no-store` est essentiel, sinon on remplacerait un cache empoisonné par un
+   * autre et le site resterait à terre après la propagation.
+   */
+  if (url.pathname.startsWith("/assets/")) {
+    const reponse = await next();
+    if ((reponse.headers.get("content-type") ?? "").includes("text/html")) {
+      return new Response("Asset introuvable", {
+        status: 404,
+        headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+      });
+    }
+    return reponse;
+  }
+
   const axe = axeDeChemin(url.pathname);
   if (axe) return servirRegroupement(axe, url, next);
 
