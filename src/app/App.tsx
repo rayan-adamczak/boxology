@@ -3,6 +3,29 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType 
 import { Layout } from "./components/Layout";
 import { BrowsePage } from "./pages/BrowsePage";
 import { FilmDetailPage } from "./pages/FilmDetailPage";
+/*
+ * Pages de regroupement et écran introuvable : embarqués, pas chargés à la
+ * demande, et ça coûte 3,3 Ko compressés au bundle initial.
+ *
+ * Elles ont d'abord été posées en `lazy()`, comme les autres pages secondaires.
+ * Le morceau `RegroupementPage` s'est retrouvé **empoisonné en cache dès le
+ * premier déploiement** : demandé pendant la fenêtre de propagation, il n'était
+ * pas encore là, la réécriture SPA a répondu `index.html` sous son nom, et la
+ * règle `/assets/*` de `public/_headers` l'a estampillé pour 24 h. Les 72 pages
+ * rendaient un écran vide sur `Failed to fetch dynamically imported module`.
+ * Signature du §9, à l'identique.
+ *
+ * Le §9 en tire déjà la règle : **aucun chemin de consultation ne doit dépendre
+ * d'un `import()` qui peut échouer.** Ces pages sont des portes d'entrée depuis
+ * les moteurs, donc des chemins de consultation. 3,3 Ko contre une panne déjà
+ * survenue, le compte est vite fait.
+ *
+ * `IntrouvablePage` suit, parce que `RegroupementPage` l'importe statiquement :
+ * la garder en `lazy()` ne déplaçait plus rien et Vite le signalait.
+ */
+import { RegroupementPage } from "./pages/RegroupementPage";
+import { IndexRegroupementsPage } from "./pages/IndexRegroupementsPage";
+import { IntrouvablePage } from "./pages/IntrouvablePage";
 
 /*
  * Pages chargées à la demande : rarement visitées, les embarquer dans le bundle
@@ -21,14 +44,6 @@ const ComptePage = lazy(() =>
   import("./pages/ComptePage").then((m) => ({ default: m.ComptePage })));
 const ProfilPage = lazy(() =>
   import("./pages/ProfilPage").then((m) => ({ default: m.ProfilPage })));
-const IntrouvablePage = lazy(() =>
-  import("./pages/IntrouvablePage").then((m) => ({ default: m.IntrouvablePage })));
-/* Les 72 pages de regroupement partagent deux composants, donc deux morceaux,
-   quel que soit le nombre d'entrées dans les tables. */
-const RegroupementPage = lazy(() =>
-  import("./pages/RegroupementPage").then((m) => ({ default: m.RegroupementPage })));
-const IndexRegroupementsPage = lazy(() =>
-  import("./pages/IndexRegroupementsPage").then((m) => ({ default: m.IndexRegroupementsPage })));
 
 /**
  * Position de défilement de chaque entrée d'historique, par `location.key`.
