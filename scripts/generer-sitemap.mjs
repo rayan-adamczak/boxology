@@ -65,6 +65,7 @@ if (filmIds.length === 0) {
 
 const pages = [
   urlXml("/", "1.0"),
+  urlXml("/bienvenue", "0.7"),
   urlXml("/a-propos", "0.5"),
   urlXml("/mentions-legales", "0.3"),
   urlXml("/confidentialite", "0.3"),

@@ -54,6 +54,7 @@ export function Footer() {
         <div className="flex flex-wrap gap-x-16 gap-y-10">
           <Colonne titre="Sections">
             <LienInterne to="/">Catalogue</LienInterne>
+            <LienInterne to="/bienvenue">Comment ça marche</LienInterne>
             <LienInterne to="/profil">Ma collection</LienInterne>
             <LienInterne to="/profil?liste=envies">Mes envies</LienInterne>
             <LienInterne to="/a-propos">À propos</LienInterne>

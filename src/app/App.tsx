@@ -9,6 +9,8 @@ import { FilmDetailPage } from "./pages/FilmDetailPage";
  * initial faisait payer leur poids à chaque visiteur d'une fiche film, qui est
  * le chemin d'entrée réel du site.
  */
+const BienvenuePage = lazy(() =>
+  import("./pages/BienvenuePage").then((m) => ({ default: m.BienvenuePage })));
 const AProposPage = lazy(() =>
   import("./pages/AProposPage").then((m) => ({ default: m.AProposPage })));
 const MentionsLegalesPage = lazy(() =>
@@ -144,6 +146,7 @@ export default function App() {
           <Route path="/profil" element={<ProfilPage />} />
           <Route path="/compte" element={<ComptePage />} />
 
+          <Route path="/bienvenue" element={<BienvenuePage />} />
           <Route path="/a-propos" element={<AProposPage />} />
           <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
           <Route path="/confidentialite" element={<ConfidentialitePage />} />
