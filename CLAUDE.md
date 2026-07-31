@@ -628,20 +628,140 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   et `og:` par page. Le canonical est **calculé depuis l'URL courante**, jamais
   passé en paramètre : une faute dans une page l'enverrait ailleurs.
 - **`index.html` ne porte ni canonical ni `og:url`.** Une valeur en dur y
-  ferait passer les 3 345 fiches pour des doublons de la racine. En l'absence
-  de canonical, un crawler retient l'URL demandée — le bon repli.
+  ferait passer les 4 418 fiches pour des doublons de la racine. En l'absence
+  de canonical, un crawler retient l'URL demandée, le bon repli. La Pages
+  Function les ajoute par fiche au lieu de les modifier, en se raccrochant à
+  `og:site_name`, une balise qui existe à coup sûr.
 - **`sitemap.xml`** généré au build par `scripts/generer-sitemap.mjs` depuis la
-  base. 3 500 URL, dont 3 495 fiches films — contre 2 105 avant les campagnes
+  base. 4 423 URL, dont 4 418 fiches films, contre 2 105 avant les campagnes
   de rattachement du 30 juillet 2026. Seuls les films rattachés à une édition y
-  figurent. Le script casse le build s'il ne trouve aucun film. Les pages fixes
-  y sont listées à la main, `/bienvenue` comprise.
+  figurent, en **adresse canonique avec slug**. Le script casse le build s'il ne
+  trouve aucun film, et aussi si `films.slug` manque : voir plus bas pourquoi
+  c'est le bon sens de la panne. Les pages fixes y sont listées à la main,
+  `/bienvenue` comprise.
 - **Search Console** — propriété Domaine validée, sitemap soumis et lu.
 - **Listes personnelles et écrans du prototype** en `noindex, follow`.
 
-**Limite connue** : les scrapers de Facebook, iMessage et Discord n'exécutent
-pas le JavaScript. Ils voient donc les `og:` génériques d'`index.html`, pas
-ceux de la fiche. Le correctif serait une Pages Function injectant les balises
-côté serveur — écartée pour l'instant.
+### Rendu du `<head>` à la périphérie, en place le 31 juillet 2026
+
+`functions/_middleware.ts`, Pages Function Cloudflare. Elle lève la limite
+consignée jusqu'ici : les scrapers de Facebook, iMessage et Discord
+n'exécutant pas le JavaScript, ils ne voyaient que les `og:` génériques
+d'`index.html`. Google rendait, mais avec une file d'attente de plusieurs jours
+sur un catalogue de milliers de fiches.
+
+Elle fait trois choses, et **seulement sur `/films/`**. Tout le reste ressort
+par `next()` au premier test :
+
+1. l'adresse canonique d'une fiche est `/films/<slug>/<id>` ; toute autre forme
+   part en **301** vers elle, chaîne de recherche conservée ;
+2. un id inexistant répond un **vrai 404**, là où la réécriture SPA répondait
+   200 sur une page vide, soit un « soft 404 » aux yeux de Google ;
+3. `HTMLRewriter` remplit le `<head>` au vol, avec exactement les valeurs que
+   `useSeo` posera ensuite côté client, plus le JSON-LD.
+
+**Toute erreur retombe sur `next()`.** Panne Supabase, réponse inattendue,
+exception : on sert la page telle qu'elle était avant ce fichier. Éprouvé pour
+de vrai avant la migration, colonne absente, PostgREST rendant 400 : la page
+sort en 200. Le §9 garde la trace de deux mises à terre en une journée, on
+n'ajoute pas un troisième point de rupture sur le chemin de consultation.
+
+Contrepartie assumée : quand le repli joue, la page perd son `<head>` enrichi
+**sans rien signaler**. Des injections manquées ont été observées dans les
+minutes suivant le déploiement, plus reproductibles ensuite sur 120 requêtes.
+Propagation d'edge, sans doute. Si le symptôme revient à froid, c'est là qu'il
+faut regarder, et non du côté du rendu.
+
+`wrangler pages dev dist` rejoue tout ça hors ligne, `functions/` compris.
+C'est la seule façon d'éprouver ce fichier : le serveur Vite ne le voit pas, et
+`tsconfig.json` ne couvre pas ce dossier, donc `tsc` ne le relit pas non plus.
+
+### URL des fiches : `/films/<slug>/<id>`
+
+Format repris de SensCritique. **Le slug est décoratif, l'id fait autorité.**
+C'est ce qui règle trois choses d'un coup :
+
+- `films.titre` est un instantané pris à l'import et il dérive, 89 titres
+  réécrits le 30 juillet. Un slug seul aurait rendu ces URL caduques ; ici l'id
+  continue de résoudre et la fonction redirige vers la forme courante ;
+- les homonymes, deux *Dune*, deux *Nosferatu*, n'ont besoin d'aucun suffixe
+  d'unicité bricolé, **donc aucune contrainte ni index sur la colonne** ;
+- un titre qui ne produit aucun slug reste servable sous sa forme nue.
+
+L'année est dans le slug : `dune-1984` et `dune-2021` se distinguent à l'œil
+dans une page de résultats, `dune` et `dune` non.
+
+`src/app/lib/liens.ts` est la seule fabrique d'URL de fiche. Un lien qui ne
+connaît que l'id n'est pas une faute, il coûte une redirection ; passer l'objet
+l'évite.
+
+**La slugification est en SQL**, `public.slug_film`, posée par un déclencheur
+`before insert or update`, si bien que les scripts d'import Python n'ont rien
+à savoir. Migration `20260731_films_slug.sql`. Les pièges du §9 s'y appliquent
+mot pour mot : l'apostrophe typographique de `L’Attaque des titans` doit se
+replier comme la droite, et `Alien³` doit rendre `alien3` pour rester distinct
+d'`Alien`. Vérifiée sur les 4 520 films : 4 504 slugs, aucun malformé, **16
+vides** à titre non latin (japonais, chinois, hébreu, coréen) qui retombent sur
+la forme nue.
+
+**Ordre de déploiement, à ne pas inverser** : migration d'abord, code ensuite.
+`reelio-db.ts` demande `slug` dans ses jointures ; déployé avant, le site
+rendrait une erreur PostgREST sur le rail de l'accueil et sur la fiche film.
+Le générateur de sitemap échoue exprès si la colonne manque, ce qui casse le
+build et empêche le déploiement. C'est l'interlock voulu : mieux vaut un
+déploiement qui ne part pas qu'un déploiement qui casse la consultation.
+
+### JSON-LD, en place le 31 juillet 2026
+
+Injecté par la même fonction. Le `<head>` servait du texte, ce bloc sert de la
+donnée : que `7.901` est une note sur 10 portée par 29 867 votes, que Chris
+Columbus est le réalisateur, et surtout que telle édition porte tel code-barres.
+
+Trois natures de nœud dans un `@graph` : l'œuvre en `Movie` ou **`TVSeries`
+selon `films.type`** (706 séries), un nœud par édition à code-barres, un
+`BreadcrumbList`. `og:type` suit le même partage, `video.tv_show` ou
+`video.movie`.
+
+**`gtin13` est le champ qui nous distingue.** 3 379 films sur les 4 418
+rattachés portent au moins une édition dont l'EAN est connu, sur 5 305 EAN au
+catalogue. C'est ce qui permet à un moteur de rapprocher notre fiche du même
+disque ailleurs sur le web. Ni TMDB ni SensCritique ne publient cette donnée.
+
+Les éditions **sans EAN sont écartées** : sans lui, le nœud n'apprend rien
+qu'un moteur ne lise déjà dans la page. Plafond à 20 éditions, pour les
+coffrets qui en portent parfois 44, comme *Game of Thrones*.
+
+Une édition porte **deux types**, `Product` et `CreativeWork`. Le premier est
+ce qui autorise `gtin13`, le second ce qui autorise `exampleOfWork` pour la
+rattacher à l'œuvre. `isRelatedTo`, essayé d'abord, attend un `Product` ou un
+`Service` et ne peut donc pas désigner un film.
+
+**Pas d'`Offer`, et c'est délibéré.** `prix_editeur` est un prix conseillé, pas
+une offre de vente : le site ne vend rien et aucun programme Awin n'est
+accepté. Déclarer une offre serait faux, et Google sanctionne le balisage qui
+ne correspond pas à ce que la page propose. Le `Product` est en place, il n'y
+aura qu'à lui accrocher ses offres le jour venu.
+
+Le chevron ouvrant est échappé en `<` : un `</script>` dans un synopsis
+fermerait la balise par surprise.
+
+**Limites restantes** :
+
+- **Pas de `lastmod` au sitemap.** Aucune colonne ne date une fiche film, et y
+  mettre la date du build annoncerait à Google que 4 418 pages changent à
+  chaque déploiement, ce qui est faux et se retourne contre nous. Demande une
+  colonne `maj_le`.
+- **`index.html` n'a toujours pas d'`og:image`** alors que son `twitter:card`
+  vaut `summary_large_image` : tout partage de l'accueil ou de `/bienvenue`
+  sort sans visuel.
+- **Pas de `WebSite` + `SearchAction`.** La recherche de l'accueil est un état
+  React sans paramètre d'URL ; déclarer une `SearchAction` pointerait vers une
+  adresse qui ne filtre rien. À rouvrir si la recherche gagne un `?q=`.
+- **Aucune page d'édition ni de regroupement.** 5 739 éditions, zéro URL, alors
+  que `editions.slug` existe déjà et n'est lu nulle part. Rien non plus sur
+  `/steelbook`, `/editeurs/<nom>` ou `/genres/<nom>`, qui capteraient la
+  moyenne traîne et donneraient au crawler un chemin vers les fiches profondes.
+  Aujourd'hui la profondeur de clic est : accueil, 50 films, mur.
 
 ---
 
