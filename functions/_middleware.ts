@@ -64,9 +64,6 @@ const SITE_NOM = "jaquette.app";
 /** Durée de cache de la lecture Supabase, à la périphérie. */
 const CACHE_SECONDES = 3600;
 
-/** Nombre d'éditions décrites en JSON-LD. Voir `donneesStructurees`. */
-const MAX_PRODUITS = 20;
-
 interface EditionSeo {
   id: number;
   titre: string | null;
@@ -286,20 +283,27 @@ function compacter<T extends Record<string, unknown>>(objet: T): T {
  * que `7.901` est une note sur 10 portée par 29 867 votes, que `Chris Columbus`
  * est le réalisateur, et surtout que telle édition porte tel code-barres.
  *
- * **`gtin13` est le champ qui nous distingue.** 3 379 films portent au moins une
- * édition dont l'EAN est connu ; c'est ce qui permet à un moteur de rapprocher
- * notre fiche du même disque ailleurs sur le web. Ni TMDB ni SensCritique ne
- * publient cette donnée.
+ * **Pas de nœud `Product`, et ce n'est pas un oubli.** Un par édition à
+ * code-barres a été posé le 31 juillet 2026, puis retiré le jour même : le test
+ * en direct de la Search Console les a tous déclarés non valides, avec le
+ * message « Il faut indiquer "offers", "review", ou "aggregateRating" ».
  *
- * Pas d'`Offer`, et c'est délibéré : `prix_editeur` est un prix conseillé, pas
- * une offre de vente. Le site ne vend rien et n'a pour l'instant aucun lien
- * d'affiliation actif. Déclarer une offre serait faux, et Google sanctionne le
- * balisage qui ne correspond pas à ce que la page propose. À rouvrir le jour
- * où un programme Awin est accepté : le `Product` est déjà là, il n'y aura
- * qu'à lui accrocher ses offres.
+ * Aucune de ces trois issues n'est honnête ici. On n'a pas d'avis. La note TMDB
+ * porte sur l'œuvre, l'accrocher à un disque serait faux. Et `prix_editeur` est
+ * un prix conseillé, pas une offre : le site ne vend rien, aucun programme Awin
+ * n'est accepté, et déclarer une disponibilité qu'on ignore est exactement ce
+ * que Google sanctionne.
+ *
+ * Un balisage qui ne peut produire aucun résultat enrichi et qui laisse une
+ * erreur permanente dans la Search Console est un passif : elle masquerait les
+ * vraies erreurs plus tard. **L'EAN reste dans le texte du corps injecté**
+ * (cf. `corpsFilm`), donc lisible par un moteur, ce qui préserve l'essentiel.
+ *
+ * À rouvrir le jour où un flux Awin est accepté : les offres seront réelles, le
+ * `Product` redeviendra valide, et `gtin13` est ce qui nous distingue, ni TMDB
+ * ni SensCritique ne publiant cette donnée.
  */
 function donneesStructurees(film: FilmSeo, canonical: string): string {
-  const editions = editionsDe(film);
   const note = Number(film.note);
   const votes = Number(film.nb_votes);
 
@@ -337,36 +341,6 @@ function donneesStructurees(film: FilmSeo, canonical: string): string {
         : null,
   });
 
-  /* Seules les éditions à code-barres sont décrites : sans `gtin13`, un
-     `Product` n'apprend rien à un moteur qu'il ne lise déjà dans la page.
-     Le plafond protège les coffrets, qui portent parfois des dizaines de
-     lignes ; au-delà, le bloc pèserait plus que le reste du document. */
-  const produits = editions
-    .filter((e) => e.ean)
-    .slice(0, MAX_PRODUITS)
-    .map((e) =>
-      compacter({
-        /* Deux types et non un : le disque est un objet qu'on achète, donc un
-           `Product` qui porte le `gtin13`, et une édition de l'œuvre, donc un
-           `CreativeWork`. Le second type est ce qui autorise `exampleOfWork`,
-           dont le domaine et la portée sont tous deux `CreativeWork` ;
-           `isRelatedTo`, essayé d'abord, attend un Product ou un Service et ne
-           peut donc pas désigner un film. */
-        "@type": ["Product", "CreativeWork"],
-        "@id": `${canonical}#edition-${e.id}`,
-        name: e.titre ?? film.titre,
-        gtin13: e.ean,
-        image: e.image_url,
-        brand: e.editeur ? { "@type": "Brand", name: e.editeur } : null,
-        category: (e.formats_extraits ?? []).join(", "),
-        releaseDate: e.date_parution,
-        /* « Ce disque est une édition de cette œuvre. » Sans ce lien, le moteur
-           voit un code-barres et un film posés côte à côte sans rapport
-           déclaré. */
-        exampleOfWork: { "@id": `${canonical}#oeuvre` },
-      }),
-    );
-
   const filAriane = {
     "@type": "BreadcrumbList",
     itemListElement: [
@@ -375,7 +349,7 @@ function donneesStructurees(film: FilmSeo, canonical: string): string {
     ],
   };
 
-  const graphe = { "@context": "https://schema.org", "@graph": [oeuvre, ...produits, filAriane] };
+  const graphe = { "@context": "https://schema.org", "@graph": [oeuvre, filAriane] };
 
   /* `</script>` dans un synopsis fermerait la balise par surprise. Échapper le
      chevron ouvrant suffit à l'empêcher, et reste du JSON valide. */
