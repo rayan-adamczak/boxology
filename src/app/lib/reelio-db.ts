@@ -81,6 +81,12 @@ export interface Edition {
    * editioncollector, qui ne publient pas de date.
    */
   date_parution: string | null;
+  /**
+   * Visuels supplémentaires du boîtier : dos, tranche, intérieur, goodies.
+   * Renseignés sur 2 877 éditions, toutes editioncollector. Sert la
+   * visionneuse, qui les enchaîne après l'image principale.
+   */
+  images_secondaires: string[] | null;
 }
 
 export interface PisteAudio {

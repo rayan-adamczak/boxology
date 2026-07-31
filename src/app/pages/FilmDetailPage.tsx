@@ -5,6 +5,7 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { PersonModal } from "../components/PersonModal";
 import { UserAvatar } from "../components/UserAvatar";
 import { RailHorizontal } from "../components/RailHorizontal";
+import { Lanterne, pleineResolution } from "../components/Lanterne";
 import { toast } from "sonner";
 import {
   getFilm,
@@ -274,6 +275,8 @@ export function FilmDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("Editions");
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
+  /** Visionneuse : la liste montrée et l'image courante, ou rien. */
+  const [lanterne, setLanterne] = useState<{ images: string[]; index: number; titre: string } | null>(null);
   const [formatFilter, setFormatFilter] = useState<string | null>(null);
   const [synopsisOuvert, setSynopsisOuvert] = useState(false);
   /** Vrai quand le synopsis déborde de ses quatre lignes, mesuré, pas deviné
@@ -564,9 +567,17 @@ export function FilmDetailPage() {
           l'affiche court sur les trois rangées.
         */}
         <div className="relative mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 pb-8 sm:pb-12 pt-4 sm:pt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-4 sm:gap-x-6 sm:grid-rows-[auto_auto_auto_1fr] items-start">
-          {/* Poster */}
-          <div
-            className="col-start-1 row-start-1 sm:row-span-4 shrink-0 rounded-[8px] overflow-hidden self-start"
+          {/* Affiche, agrandissable. Le bouton n'existe que s'il y a une image
+              à montrer : un cadre vide qui s'ouvre sur rien serait une panne. */}
+          <button
+            type="button"
+            disabled={!film.affiche_url}
+            onClick={() => {
+              const grande = pleineResolution(film.affiche_url);
+              if (grande) setLanterne({ images: [grande], index: 0, titre: `Affiche de ${film.titre}` });
+            }}
+            aria-label={film.affiche_url ? `Agrandir l'affiche de ${film.titre}` : undefined}
+            className="group col-start-1 row-start-1 sm:row-span-4 shrink-0 self-start overflow-hidden rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] disabled:cursor-default"
             style={{
               width: "clamp(120px, 22vw, 280px)",
               aspectRatio: "2 / 3",
@@ -578,9 +589,9 @@ export function FilmDetailPage() {
             <ImageWithFallback
               src={film.affiche_url ?? ""}
               alt={`Affiche de ${film.titre}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition duration-200 group-enabled:group-hover:scale-[1.03]"
             />
-          </div>
+          </button>
 
           {/* Titre, réalisation, note, la colonne à droite de l'affiche */}
           <div className="col-start-2 row-start-1 min-w-0 flex flex-col gap-2 sm:gap-1.5">
@@ -923,16 +934,30 @@ export function FilmDetailPage() {
                       style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
                     >
                       <div className="flex gap-3 items-center p-[13px]">
-                        <div
-                          className="rounded-[8px] overflow-hidden shrink-0"
-                          style={{ width: 56, height: 84, backgroundColor: "var(--reel-bg)" }}
-                        >
-                          <ImageWithFallback
-                            src={ed.image_url ?? ""}
-                            alt={ed.titre ?? "Édition"}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
+                        {(() => {
+                          // L'image principale d'abord, puis les visuels du dos
+                          // et de l'intérieur. `splitList` parce que la colonne
+                          // porte tantôt un tableau, tantôt une chaîne.
+                          const visuels = [ed.image_url, ...splitList(ed.images_secondaires)]
+                            .filter((u): u is string => Boolean(u));
+                          const nom = ed.titre ?? "Édition";
+                          return (
+                            <button
+                              type="button"
+                              disabled={visuels.length === 0}
+                              onClick={() => setLanterne({ images: visuels, index: 0, titre: nom })}
+                              aria-label={visuels.length ? `Agrandir les visuels de ${nom}` : undefined}
+                              className="group shrink-0 overflow-hidden rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] disabled:cursor-default"
+                              style={{ width: 56, height: 84, backgroundColor: "var(--reel-bg)" }}
+                            >
+                              <ImageWithFallback
+                                src={ed.image_url ?? ""}
+                                alt={nom}
+                                className="w-full h-full object-cover transition duration-200 group-enabled:group-hover:scale-[1.06]"
+                              />
+                            </button>
+                          );
+                        })()}
 
                         <div className="flex-1 min-w-0 flex flex-col gap-[6px]">
                           <p
@@ -1167,6 +1192,16 @@ export function FilmDetailPage() {
           <p style={{ fontSize: "14px", color: "var(--reel-muted)" }}>Section bientôt disponible.</p>
         )}
       </div>
+
+      {lanterne && (
+        <Lanterne
+          images={lanterne.images}
+          index={lanterne.index}
+          titre={lanterne.titre}
+          onFermer={() => setLanterne(null)}
+          onChanger={(index) => setLanterne((l) => (l ? { ...l, index } : l))}
+        />
+      )}
 
       {selectedPerson && (
         <PersonModal name={selectedPerson} onClose={() => setSelectedPerson(null)} />
