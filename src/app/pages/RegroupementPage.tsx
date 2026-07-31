@@ -61,16 +61,32 @@ export function RegroupementPage({ axe }: { axe: NomAxe }) {
     setChargement(true);
     setErreur(null);
 
-    const promesse =
-      axe === "genres"
-        ? getFilmsParGenre(entree.libelle).then((r) => !annule && (setFilms(r), setEditions([])))
-        : (axe === "formats" ? getEditionsParFormat : getEditionsParEditeur)(entree.libelle).then(
-            (r) => !annule && (setEditions(r), setFilms([])),
-          );
+    /* `annule` couvre le changement d'axe autant que le démontage : passer de
+       `/genres/horreur` à `/formats/steelbook` relance l'effet, et sans ce
+       garde la réponse de la première requête écraserait celle de la seconde
+       si elle arrivait en retard. */
+    async function charger(libelle: string) {
+      try {
+        if (axe === "genres") {
+          const resultat = await getFilmsParGenre(libelle);
+          if (annule) return;
+          setFilms(resultat);
+          setEditions([]);
+        } else {
+          const lire = axe === "formats" ? getEditionsParFormat : getEditionsParEditeur;
+          const resultat = await lire(libelle);
+          if (annule) return;
+          setEditions(resultat);
+          setFilms([]);
+        }
+      } catch (e) {
+        if (!annule) setErreur(e instanceof Error ? e.message : "Chargement impossible");
+      } finally {
+        if (!annule) setChargement(false);
+      }
+    }
 
-    promesse
-      .catch((e) => !annule && setErreur(e instanceof Error ? e.message : "Chargement impossible"))
-      .finally(() => !annule && setChargement(false));
+    charger(entree.libelle);
 
     return () => {
       annule = true;
