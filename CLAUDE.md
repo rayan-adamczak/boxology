@@ -592,9 +592,10 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   ferait passer les 3 345 fiches pour des doublons de la racine. En l'absence
   de canonical, un crawler retient l'URL demandée — le bon repli.
 - **`sitemap.xml`** généré au build par `scripts/generer-sitemap.mjs` depuis la
-  base. 3 349 URL, dont 3 345 fiches films — contre 2 105 avant les campagnes
+  base. 3 500 URL, dont 3 495 fiches films — contre 2 105 avant les campagnes
   de rattachement du 30 juillet 2026. Seuls les films rattachés à une édition y
-  figurent. Le script casse le build s'il ne trouve aucun film.
+  figurent. Le script casse le build s'il ne trouve aucun film. Les pages fixes
+  y sont listées à la main, `/bienvenue` comprise.
 - **Search Console** — propriété Domaine validée, sitemap soumis et lu.
 - **Listes personnelles et écrans du prototype** en `noindex, follow`.
 
@@ -669,6 +670,51 @@ validation, pas la détection.
   mot-clé** : « Opération Dragon », « Opération Tonnerre » et « Nosferatu, une
   symphonie de l'horreur » sont des films. Les concerts, eux, sont gardés — TMDB
   les référence.
+
+### Page de bienvenue — en ligne le 31 juillet 2026
+
+`/bienvenue`, `src/app/pages/BienvenuePage.tsx`, chargée en `lazy()` (23 Ko,
+6,6 Ko compressé, bundle initial inchangé). Liée du pied de page et du sitemap.
+
+**Le catalogue reste l'accueil.** C'est lui qui s'indexe, et on entre sur le
+site par une fiche film. `/bienvenue` est l'autre porte : celle qu'on donne en
+lien quand on présente le site. Structure calquée sur la page d'accueil de
+Letterboxd — héros, six étapes numérotées à ancre propre (`#posseder`,
+`#envies`, `#comparer`, `#fiche-technique`, `#coffrets`, `#compte`), tour des
+grandes sections, puis l'invitation à créer un compte. Elle vient en dernier :
+on ne demande un compte qu'après avoir montré à quoi il sert.
+
+**Vignettes bâties, pas capturées.** Une capture vieillit à la première retouche
+d'interface. Les blocs emploient les jetons du site et lisent titres, visuels et
+formats en base. Les exemples sont **désignés par identifiant** et non par
+titre — un titre en base est un instantané d'import et bouge. Ils se répondent
+d'une étape à l'autre : Blade Runner 2049 pour la collection puis la
+comparaison, le coffret Petrol Tank et ses quatre Mad Max pour les coffrets.
+Étiqueter des éditions réelles « steelbook » ou « coffret » au hasard serait
+faux à l'écran même si le propos est juste.
+
+**La liste d'envies tourne chaque semaine**, sans tâche planifiée
+(`src/app/lib/vitrine.ts`) : le numéro de semaine décale une fenêtre de trois
+films dans un vivier des vingt-quatre plus populaires sortis en salle depuis
+dix-huit mois et déjà édités. La page change même les semaines sans import.
+
+**Le tri ne peut pas partir des éditions.** `editions.date_parution` n'existe
+que sur les lignes blu-ray.com, sans visuel ; les visuels sont chez
+editioncollector, qui ne date rien. Recouvrement **exactement nul** : une
+requête « récent *et* illustré » rend zéro ligne. Le classement part donc de
+`films.popularite`, avec la sortie salle pour fenêtre, et les vignettes retombent
+sur l'affiche TMDB quand l'édition n'a pas de jaquette. Même raison pour la
+mosaïque du héros, qui prend des affiches et non des boîtiers.
+
+**Le défilement vers une ancre entrante est repris à la main** : la cible
+n'existe pas encore quand le navigateur lit le fragment, et `GestionDefilement`
+remet en haut à chaque navigation. On réessaie en `requestAnimationFrame`
+jusqu'à une seconde.
+
+`getFilmsByIds` et `getAffichesHero` vivent dans `vitrine.ts` et non dans
+`reelio-db.ts` : le module partagé était retouché par une autre session, et
+mêler les deux aurait emporté son travail dans le commit. À y remonter le jour
+où un second appelant apparaît.
 
 ### Direction artistique — arrêtée le 30 juillet 2026
 
@@ -972,6 +1018,33 @@ Documentés parce qu'ils se reproduiront.
   ainsi perdu a fait écran blanc sur tout le site sans que le build bronche.
   `strict` reste désactivé — les écrans hérités de Figma Make noieraient le
   signal sous des centaines d'erreurs de nullité.
+- **Un `tsc` vert en local ne dit rien du build Cloudflare** quand plusieurs
+  sessions travaillent dans le même répertoire. Le 31 juillet 2026, la page de
+  bienvenue importait `getDernieresEditions` de `reelio-db.ts` — fonction qui
+  n'existait que dans l'arbre de travail, l'autre session ne l'ayant pas encore
+  poussée. Build local vert, déploiement rouge sur
+  `error TS2305: has no exported member`. Le serveur de build ne voit que ce qui
+  est commité. **Vérifier dans un worktree détaché sur HEAD** avec ses seuls
+  fichiers copiés par-dessus, c'est la situation exacte du serveur :
+
+      git worktree add --detach /tmp/verif HEAD
+      cp src/app/pages/MaPage.tsx /tmp/verif/src/app/pages/
+      ln -s "$PWD/node_modules" /tmp/verif/node_modules
+      cd /tmp/verif && npx tsc --noEmit
+
+  Corollaire : ne commiter que ses propres fichiers, et si une fonction commune
+  manque, la poser dans un module à soi plutôt que d'emporter le travail en
+  cours d'une autre session.
+- **Un déploiement Cloudflare n'écrit rien dans GitHub.** Ni check, ni
+  `deployments` : `gh api .../deployments` ne rend que les vieux `github-pages`
+  de juillet. Pour savoir si un push est parti, comparer le hachage du bundle
+  servi ou compter les URL du sitemap — et lire le journal dans le tableau de
+  bord Pages, seule source de la cause d'un échec.
+- **Après un déploiement, la première visite peut rendre l'ancienne page.**
+  L'`index.html` en cache navigateur pointe l'ancien bundle : sur une route
+  neuve, on obtient la page « introuvable » alors que tout est en ligne. Un
+  rechargement suffit, il n'y a rien à purger. Ne pas confondre avec l'incident
+  d'asset estampillé `immutable`, qui, lui, ne se répare pas seul.
 - **PostgREST plafonne à 1 000 lignes.** Paginer, toujours. Le piège s'est
   reproduit : un `limit=1893` a silencieusement traité 1 000 lignes.
 - **TMDB numérote films et séries séparément.** Le film 1639 est *Speed 2*, la
