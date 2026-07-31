@@ -13,6 +13,7 @@ import {
   type EditionWithFilm,
 } from "../lib/reelio-db";
 import { useSeo } from "../lib/seo";
+import { lienFilm } from "../lib/liens";
 
 /**
  * Chiffres du catalogue, écrits en dur et arrondis vers le bas.
@@ -251,7 +252,7 @@ export function BrowsePage() {
               {films.map((film) => (
                 <Link
                   key={film.id}
-                  to={`/films/${film.id}`}
+                  to={lienFilm(film)}
                   className="group block rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
                 >
                   <div
@@ -343,7 +344,7 @@ function MosaiqueAffiches({ editions }: { editions: EditionWithFilm[] }) {
 /** Une jaquette du rail : le visuel du boîtier, le titre du film, les formats. */
 function CarteEdition({ edition }: { edition: EditionWithFilm }) {
   const formats = splitList(edition.formats_extraits).slice(0, 2);
-  const lien = edition.film ? `/films/${edition.film.id}` : null;
+  const lien = lienFilm(edition.film);
 
   const contenu = (
     <>

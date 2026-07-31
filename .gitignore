@@ -15,6 +15,9 @@ dist-ssr/
 # Local tooling
 .claude/settings.local.json
 
+# État local de `wrangler pages dev`, qui sert à éprouver functions/ hors ligne.
+.wrangler/
+
 # Logs
 *.log
 npm-debug.log*

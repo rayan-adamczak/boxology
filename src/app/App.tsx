@@ -142,6 +142,13 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<BrowsePage />} />
+          {/* L'adresse canonique porte le slug ; la forme nue reste servie
+              parce qu'elle a été indexée et qu'un lien peut ne connaître que
+              l'id. La Pages Function redirige la seconde vers la première en
+              301, mais elle ne tourne qu'en production : les deux routes
+              doivent fonctionner ici aussi. Le slug n'est jamais lu, seul l'id
+              compte (cf. `lib/liens.ts`). */}
+          <Route path="/films/:slug/:id" element={<FilmDetailPage />} />
           <Route path="/films/:id" element={<FilmDetailPage />} />
           <Route path="/profil" element={<ProfilPage />} />
           <Route path="/compte" element={<ComptePage />} />

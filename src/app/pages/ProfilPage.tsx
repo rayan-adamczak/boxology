@@ -12,6 +12,7 @@ import {
   type StatutValue,
 } from "../lib/reelio-db";
 import { useSeo } from "../lib/seo";
+import { lienFilm } from "../lib/liens";
 
 /**
  * Profil : la collection d'une personne, vue comme une étagère.
@@ -42,7 +43,8 @@ import { useSeo } from "../lib/seo";
 /** Un titre de la collection, avec toutes les éditions possédées de ce titre. */
 interface Entree {
   cle: string;
-  filmId: number | null;
+  /** Cible du lien, slug compris quand le film en porte un. Null hors film. */
+  lien: string | null;
   titre: string;
   affiche: string | null;
   editions: EditionWithFilm[];
@@ -72,7 +74,7 @@ function grouper(editions: EditionWithFilm[]): Entree[] {
     }
     parCle.set(cle, {
       cle,
-      filmId: ed.film?.id ?? null,
+      lien: lienFilm(ed.film),
       titre: ed.film?.titre ?? ed.titre ?? "Édition sans titre",
       affiche: ed.film?.affiche_url ?? ed.image_url ?? null,
       editions: [ed],
@@ -444,11 +446,11 @@ function Affiche({ entree }: { entree: Entree }) {
       ? `${entree.titre} (${entree.editions.length} éditions)`
       : entree.titre;
 
-  if (entree.filmId === null) return <div title={libelle}>{contenu}</div>;
+  if (entree.lien === null) return <div title={libelle}>{contenu}</div>;
 
   return (
     <Link
-      to={`/films/${entree.filmId}`}
+      to={entree.lien}
       aria-label={libelle}
       className="outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
     >

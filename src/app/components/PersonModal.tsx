@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { X, Loader2 } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { searchFilmsByPerson, type Film } from "../lib/reelio-db";
+import { lienFilm } from "../lib/liens";
 
 interface PersonModalProps {
   name: string;
@@ -88,7 +89,7 @@ export function PersonModal({ name, onClose }: PersonModalProps) {
                 {films.map((film) => (
                   <Link
                     key={film.id}
-                    to={`/films/${film.id}`}
+                    to={lienFilm(film)}
                     onClick={onClose}
                     className="group block outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] rounded-[8px]"
                   >

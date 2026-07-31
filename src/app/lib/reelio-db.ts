@@ -5,6 +5,12 @@ import { supabase } from "./supabase";
 export interface Film {
   id: number;
   titre: string;
+  /**
+   * Segment lisible de l'URL, dérivé de `titre` et `annee` par un déclencheur
+   * en base. Décoratif : c'est l'id qui identifie la fiche (cf. `lib/liens.ts`).
+   * Nul tant que la migration `20260731_films_slug.sql` n'est pas appliquée.
+   */
+  slug: string | null;
   realisateur: string | null;
   duree: string | null;
   note: string | number | null;
@@ -218,7 +224,7 @@ export function agregerSpecs(editions: Edition[]): SpecsFilm {
 
 /** An edition joined with its parent film, used by the list pages. */
 export interface EditionWithFilm extends Edition {
-  film: Pick<Film, "id" | "titre" | "affiche_url"> | null;
+  film: Pick<Film, "id" | "titre" | "affiche_url" | "slug"> | null;
 }
 
 /* ---- Films ---- */
@@ -276,7 +282,7 @@ export async function searchFilms(query: string): Promise<Film[]> {
 export async function getDernieresEditions(limite = 18): Promise<EditionWithFilm[]> {
   const { data, error } = await supabase
     .from("editions")
-    .select("*, edition_films!inner(film:films!inner(id, titre, affiche_url))")
+    .select("*, edition_films!inner(film:films!inner(id, titre, affiche_url, slug))")
     .not("date_parution", "is", null)
     .lte("date_parution", new Date().toISOString().slice(0, 10))
     .order("date_parution", { ascending: false })
@@ -355,7 +361,7 @@ export async function getEditionsByIds(ids: number[]): Promise<EditionWithFilm[]
       // PostgREST voit deux chemins entre `editions` et `films`, la colonne
       // `film_id` et la table de liaison `edition_films`, et refuse la requête
       // avec « more than one relationship was found ».
-      .select("*, film:films!film_id(id, titre, affiche_url)")
+      .select("*, film:films!film_id(id, titre, affiche_url, slug)")
       .in("id", ids.slice(debut, debut + TRANCHE));
     if (error) throw new Error(`Erreur lors du chargement des éditions: ${error.message}`);
     resultat.push(...((data ?? []) as EditionWithFilm[]));

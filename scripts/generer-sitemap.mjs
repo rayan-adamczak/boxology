@@ -57,6 +57,37 @@ function urlXml(chemin, priorite) {
 const liens = await lireTout("edition_films", "film_id");
 const filmIds = [...new Set(liens.map((l) => l.film_id))].sort((a, b) => a - b);
 
+/* Le sitemap doit annoncer l'adresse canonique, `/films/<slug>/<id>`. Y mettre
+   la forme nue ferait rediriger en 301 chacune des 3 349 URL soumises : ça
+   marche, mais ça gaspille le budget de crawl et Google note l'écart entre
+   l'URL déclarée et celle qu'il finit par indexer.
+
+   Si la colonne manque, ce script échoue et casse le build. C'est voulu, et
+   c'est le bon sens de la panne : `reelio-db.ts` demande `slug` dans ses
+   jointures, donc déployé avant la migration, le site rendrait une erreur
+   PostgREST sur le rail de l'accueil et sur la fiche film. Mieux vaut un
+   déploiement qui ne part pas qu'un déploiement qui casse la consultation. */
+let films;
+try {
+  films = await lireTout("films", "id,slug");
+} catch (erreur) {
+  throw new Error(
+    "films.slug introuvable : appliquer supabase/migrations/20260731_films_slug.sql " +
+      `avant de déployer (${erreur.message})`,
+  );
+}
+const slugParId = new Map(films.map((f) => [f.id, f.slug]));
+
+function cheminFilm(id) {
+  const slug = slugParId.get(id);
+  return slug ? `/films/${slug}/${id}` : `/films/${id}`;
+}
+
+const sansSlug = filmIds.filter((id) => !slugParId.get(id)).length;
+if (sansSlug > 0) {
+  console.warn(`sitemap.xml : ${sansSlug} film(s) sans slug, adresse nue employée`);
+}
+
 // Un scan qui renvoie « rien » ressemble à un scan négatif : mieux vaut casser
 // le build que publier un sitemap vide qui désindexerait le catalogue.
 if (filmIds.length === 0) {
@@ -69,7 +100,7 @@ const pages = [
   urlXml("/a-propos", "0.5"),
   urlXml("/mentions-legales", "0.3"),
   urlXml("/confidentialite", "0.3"),
-  ...filmIds.map((id) => urlXml(`/films/${id}`, "0.8")),
+  ...filmIds.map((id) => urlXml(cheminFilm(id), "0.8")),
 ];
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +

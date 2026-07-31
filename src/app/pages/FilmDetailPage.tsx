@@ -19,6 +19,7 @@ import { basculerStatut, chargerStatuts, CompteRequis } from "../lib/collections
 import { ModaleConnexion } from "../components/ModaleConnexion";
 import { useSession } from "../lib/auth";
 import { useSeo, extrait, type Seo } from "../lib/seo";
+import { lienFilm } from "../lib/liens";
 
 /* ---- helpers ---- */
 
@@ -1174,7 +1175,7 @@ export function FilmDetailPage() {
       <ModaleConnexion
         ouverte={modaleOuverte}
         onFermer={() => setModaleOuverte(false)}
-        retourVers={`/films/${filmId}`}
+        retourVers={lienFilm(film) ?? `/films/${filmId}`}
       />
 
     </div>
