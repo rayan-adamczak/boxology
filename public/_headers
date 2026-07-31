@@ -33,3 +33,17 @@
 
 # Rien pour /index.html : il doit rester revalidé, sinon un déploiement ne
 # serait pas vu par les visiteurs déjà venus.
+
+# Les polices sont auto-hébergées depuis juillet 2026 et leur nom ne porte pas
+# de hachage : un remplacement réutiliserait le même chemin. D'où trente jours
+# et non un an, avec `stale-while-revalidate` pour que la réponse reste
+# instantanée pendant la revalidation. Comme pour /assets/*, jamais `immutable` :
+# une entrée empoisonnée par la réécriture SPA doit pouvoir se réparer, et le
+# middleware interdit désormais à ces chemins de rendre du HTML.
+/fonts/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=2592000
+
+# Visuel de partage. Les scrapers sociaux le récupèrent une fois puis le gardent
+# de leur côté ; un jour de cache suffit et permet de le corriger vite.
+/og-jaquette.jpg
+  Cache-Control: public, max-age=86400

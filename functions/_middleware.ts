@@ -404,17 +404,37 @@ function injecter(reponse: Response, film: FilmSeo, canonical: string) {
     .on('meta[property="og:type"]', {
       element: (el: any) => el.setAttribute("content", ogType),
     })
-    /* `index.html` ne porte ni canonical ni og:url ni og:image : une valeur en
-       dur y ferait passer les 4 400 fiches pour des doublons de la racine. On
-       les ajoute donc au lieu de les modifier, en se raccrochant à une balise
-       qui existe à coup sûr. */
+    /* L'affiche du film **remplace** le visuel de partage par défaut plutôt que
+       de s'y ajouter : deux `og:image` laisseraient chaque scraper choisir, et
+       ils ne choisissent pas tous pareil. Les dimensions suivent, l'affiche
+       TMDB étant servie en `w500`, donc 500×750 et non 1200×630. */
+    .on('meta[property="og:image"]', {
+      element: (el: any) => {
+        if (meta.image) el.setAttribute("content", meta.image);
+      },
+    })
+    .on('meta[property="og:image:width"]', {
+      element: (el: any) => {
+        if (meta.image) el.setAttribute("content", "500");
+      },
+    })
+    .on('meta[property="og:image:height"]', {
+      element: (el: any) => {
+        if (meta.image) el.setAttribute("content", "750");
+      },
+    })
+    .on('meta[property="og:image:alt"]', {
+      element: (el: any) => {
+        if (meta.image) el.setAttribute("content", `Affiche de ${film.titre}`);
+      },
+    })
+    /* `index.html` ne porte ni canonical ni og:url : une valeur en dur y ferait
+       passer les 4 400 fiches pour des doublons de la racine. On les ajoute
+       donc, en se raccrochant à une balise qui existe à coup sûr. */
     .on('meta[property="og:site_name"]', {
       element: (el: any) => {
         el.after(`<link rel="canonical" href="${canonical}" />`, { html: true });
         el.after(`<meta property="og:url" content="${canonical}" />`, { html: true });
-        if (meta.image) {
-          el.after(`<meta property="og:image" content="${meta.image}" />`, { html: true });
-        }
         el.after(
           `<script type="application/ld+json">${donneesStructurees(film, canonical)}</script>`,
           { html: true },
@@ -851,8 +871,8 @@ export async function onRequest(context: Contexte): Promise<Response> {
   /*
    * Un asset ne doit jamais répondre du HTML, jamais.
    *
-   * La réécriture SPA (`/* /index.html 200`) s'applique aussi à `/assets/*`
-   * quand le fichier n'est pas encore là, pendant la fenêtre de propagation
+   * La réécriture SPA (`/* /index.html 200`) s'applique aussi à `/assets/*` et
+   * `/fonts/*` quand le fichier n'est pas encore là, pendant la propagation
    * d'un déploiement. Le navigateur reçoit alors `index.html` sous un nom de
    * bundle, refuse d'exécuter un module en `text/html`, et la règle `/assets/*`
    * de `public/_headers` estampille cette réponse pour 24 h : **le site ne
@@ -868,7 +888,7 @@ export async function onRequest(context: Contexte): Promise<Response> {
    * `no-store` est essentiel, sinon on remplacerait un cache empoisonné par un
    * autre et le site resterait à terre après la propagation.
    */
-  if (url.pathname.startsWith("/assets/")) {
+  if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/fonts/")) {
     const reponse = await next();
     if ((reponse.headers.get("content-type") ?? "").includes("text/html")) {
       return new Response("Asset introuvable", {

@@ -22,26 +22,53 @@
       <meta property="og:description" content="Retrouvez toutes les éditions physiques d’un film : steelbook, coffret collector, 4K, digibook. Comparez formats et contenus, et gardez la trace de votre collection." />
       <meta name="twitter:card" content="summary_large_image" />
 
+      <!--
+        Visuel de partage par défaut. `twitter:card` promettait une grande image
+        depuis le début sans qu'aucune ne soit déclarée : tout partage de
+        l'accueil, de /bienvenue ou d'une page de regroupement sortait sans
+        visuel.
+
+        En URL absolue, c'est une exigence d'Open Graph et non un excès de
+        prudence : les scrapers ne résolvent pas les chemins relatifs.
+
+        Les fiches films **remplacent** ce contenu par leur affiche, elles ne
+        l'ajoutent pas (cf. `functions/_middleware.ts`) : deux `og:image` sur la
+        même page laisseraient chaque scraper choisir, et ils ne choisissent pas
+        tous pareil. Les dimensions sont réécrites avec, l'affiche TMDB étant en
+        500×750 et non en 1200×630.
+
+        Fabriquée par `scripts/og/og-jaquette.html`, rendu par Chrome sans
+        interface. Le fichier source est gardé pour pouvoir la refaire ; une
+        capture d'écran, elle, aurait vieilli à la première retouche.
+      -->
+      <meta property="og:image" content="https://jaquette.app/og-jaquette.jpg" />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content="jaquette.app, le catalogue des éditions physiques de films" />
+
       <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
 
     <!--
-      Bricolage Grotesque porte les titres et le mot-symbole. `preconnect` évite
-      d'attendre la poignée de main TLS au moment où la police est demandée, et
-      `display=swap` affiche le texte en police système plutôt que de le laisser
-      invisible pendant le téléchargement.
+      Les polices sont auto-hébergées depuis juillet 2026, déclarations dans
+      `src/styles/fonts.css`. Plus aucun domaine tiers, donc plus de résolution
+      DNS ni de poignée de main TLS avant le premier glyphe.
 
-      Trois graisses et non deux : 800 pour les titres, 600 pour le mot-symbole,
-      200 pour l'année posée à côté du titre. Sans la 200 déclarée ici, un
-      `font-weight: 200` en CSS ne descend pas, le navigateur retombe sur la
-      graisse la plus proche parmi celles réellement chargées, soit 600, et le
-      réglage n'a aucun effet visible.
+      `preload` et non `preconnect` : le fichier est sur notre origine, dont la
+      connexion est déjà ouverte, mais le CSS qui le référence est un bundle
+      hashé que le navigateur doit d'abord télécharger et parser. Le `preload`
+      lance la police en parallèle, dès la lecture de ce `<head>`.
+
+      Seul le sous-ensemble `latin` est préchargé : c'est celui dont un visiteur
+      français a besoin. `latin-ext` reste déclaré dans le CSS et n'est cherché
+      que si un caractère l'exige. Précharger les deux ferait payer 116 Ko à
+      tout le monde pour un usage rare.
+
+      `crossorigin` est obligatoire même en même origine : une police est
+      toujours demandée en mode CORS, et sans cet attribut le préchargement ne
+      correspond à rien, le fichier est retéléchargé une seconde fois.
     -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200;12..96,600;12..96,800&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
     </head>
 
     <body>

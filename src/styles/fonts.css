@@ -1,1 +1,80 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/*
+ * Polices auto-hébergées, depuis `public/fonts/`.
+ *
+ * Elles venaient de Google Fonts, et Inter par un `@import` CSS, ce qui est le
+ * pire cas : le navigateur ne découvre la requête qu'après avoir parsé cette
+ * feuille, donc les deux allers-retours s'enchaînent au lieu de se recouvrir.
+ * Bricolage passait par un `<link>` dans `index.html`, mieux, mais toujours
+ * deux poignées de main TLS vers deux domaines tiers avant le premier glyphe.
+ *
+ * Les fichiers sont servis depuis notre propre origine : plus de `preconnect`,
+ * plus de résolution DNS tierce, et la connexion est déjà ouverte puisque le
+ * document en vient. Le `preload` d'`index.html` lance le téléchargement dès la
+ * lecture du `<head>`, sans attendre que le CSS soit parsé.
+ *
+ * Ce sont des **polices variables** : un seul fichier par sous-ensemble couvre
+ * toute la plage de graisses, d'où `font-weight: 200 800`. Déclarer une graisse
+ * fixe ferait synthétiser les autres par le navigateur, en plus gras et plus
+ * laid.
+ *
+ * `unicode-range` est repris tel quel de Google : c'est lui qui fait qu'un
+ * visiteur français ne télécharge que le sous-ensemble `latin`, jamais
+ * `latin-ext`. Le retirer téléchargerait les deux à chaque visite.
+ *
+ * Le sous-ensemble vietnamien est écarté, faute d'emploi. Les titres non latins
+ * du catalogue, japonais ou coréen, ne sont couverts par aucun des deux et
+ * retombent sur la police système, ce qui était déjà le cas avant.
+ *
+ * Les deux familles sont sous SIL Open Font License 1.1, qui autorise
+ * l'hébergement sur son propre domaine. Voir `public/fonts/OFL.txt`.
+ */
+
+/* ---- Bricolage Grotesque : titres et mot-symbole ---- */
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 200 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/bricolage-grotesque-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 200 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url('/fonts/bricolage-grotesque-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* ---- Inter : corps de texte ---- */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/inter-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
