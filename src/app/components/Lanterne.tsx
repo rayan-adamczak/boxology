@@ -33,8 +33,23 @@ export function Lanterne({
   /** Taille native de l'image affichée, connue seulement une fois chargée. */
   const [natif, setNatif] = useState<{ w: number; h: number } | null>(null);
 
-  // Chaque image a sa propre taille : le plafond doit être recalculé.
-  useEffect(() => setNatif(null), [index]);
+  /*
+    Chaque image a sa propre taille : le plafond doit être recalculé au
+    changement d'index.
+
+    La remise à zéro est explicitement sautée au montage. Un `useEffect([index])`
+    tourne aussi la première fois, et une image déjà en cache peut déclencher son
+    `load` avant que React ne vide ses effets : la taille relevée par `onLoad`
+    était alors effacée juste après. L'image ne se rechargeant plus, `onLoad` ne
+    repassait jamais et le plafond n'était plus jamais calculé, donc la vignette
+    de 172 px restait à 172 px au lieu des 378 permis.
+  */
+  const indexVu = useRef(index);
+  useEffect(() => {
+    if (indexVu.current === index) return;
+    indexVu.current = index;
+    setNatif(null);
+  }, [index]);
 
   useEffect(() => {
     // Le focus part sur la fermeture : au clavier comme au lecteur d'écran, on
@@ -107,7 +122,18 @@ export function Lanterne({
         de 233 à 512 pixels de haut : on distingue la mention « édition limitée »
         imprimée sur la tranche, ce que la liste ne permettait pas.
       */}
-      <figure className="relative flex max-h-[90vh] flex-col items-center gap-3">
+      {/*
+        `z-10` et non `relative` : la figure doit passer devant le voile, mais
+        rester non positionnée pour que les flèches en `sm:absolute` se calent
+        sur le dialogue et non sur elle.
+
+        Sans plan explicite, un bloc statique se peint avant les éléments
+        positionnés du même contexte, donc le voile à 94 % d'opacité recouvrait
+        l'image : visionneuse ouverte, écran noir. `z-index` s'applique bien à un
+        élément flex même statique, ce qui règle l'empilement sans toucher au
+        référentiel des flèches.
+      */}
+      <figure className="z-10 flex max-h-[90vh] flex-col items-center gap-3">
         <img
           src={images[index]}
           alt={titre}
@@ -147,17 +173,55 @@ export function Lanterne({
           }}
         />
 
-        {/* Le nom de l'édition sous l'image : agrandie et sortie de sa ligne,
-            une jaquette ne dit pas toujours de quelle édition il s'agit. */}
-        <figcaption
-          className="flex items-center gap-2 text-center [&>span+span]:before:mr-2 [&>span+span]:before:content-['·']"
-          style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "18px" }}
-        >
-          <span className="max-w-[70vw] truncate" style={{ color: "var(--reel-text)" }}>
-            {titre}
-          </span>
-          {plusieurs && <span>{index + 1} / {images.length}</span>}
-        </figcaption>
+        {/*
+          Barre de commande sous l'image : le nom de l'édition, encadré des
+          flèches sur mobile.
+
+          Sur un écran de 375 px, la jaquette occupe presque toute la largeur et
+          il n'existe aucune marge où poser les flèches à côté : elles se
+          superposaient au visuel, c'est-à-dire à ce qu'on est venu regarder.
+          Sous l'image, elles ne cachent plus rien et restent à portée du pouce.
+
+          À partir de `sm`, elles reprennent leur place sur les côtés, où le
+          geste est plus direct. Le passage se fait par `position` et non par
+          deux jeux de boutons : deux fois les mêmes commandes, ce sont deux
+          fois les mêmes libellés pour un lecteur d'écran.
+        */}
+        <div className="flex items-center gap-4">
+          {plusieurs && (
+            <button
+              type="button"
+              onClick={() => onChanger((index - 1 + images.length) % images.length)}
+              aria-label="Image précédente"
+              className={`${bouton} shrink-0 sm:absolute sm:left-6 sm:top-1/2 sm:-translate-y-1/2`}
+              style={styleBouton}
+            >
+              <ChevronLeft size={22} color="var(--reel-text)" />
+            </button>
+          )}
+
+          <figcaption
+            className="flex min-w-0 items-center gap-2 text-center [&>span+span]:before:mr-2 [&>span+span]:before:content-['·']"
+            style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "18px" }}
+          >
+            <span className="truncate" style={{ color: "var(--reel-text)" }}>
+              {titre}
+            </span>
+            {plusieurs && <span className="shrink-0">{index + 1} / {images.length}</span>}
+          </figcaption>
+
+          {plusieurs && (
+            <button
+              type="button"
+              onClick={() => onChanger((index + 1) % images.length)}
+              aria-label="Image suivante"
+              className={`${bouton} shrink-0 sm:absolute sm:right-6 sm:top-1/2 sm:-translate-y-1/2`}
+              style={styleBouton}
+            >
+              <ChevronRight size={22} color="var(--reel-text)" />
+            </button>
+          )}
+        </div>
       </figure>
 
       <button
@@ -170,29 +234,6 @@ export function Lanterne({
       >
         <X size={20} color="var(--reel-text)" />
       </button>
-
-      {plusieurs && (
-        <>
-          <button
-            type="button"
-            onClick={() => onChanger((index - 1 + images.length) % images.length)}
-            aria-label="Image précédente"
-            className={`absolute left-3 sm:left-6 ${bouton}`}
-            style={styleBouton}
-          >
-            <ChevronLeft size={22} color="var(--reel-text)" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onChanger((index + 1) % images.length)}
-            aria-label="Image suivante"
-            className={`absolute right-3 sm:right-6 ${bouton}`}
-            style={styleBouton}
-          >
-            <ChevronRight size={22} color="var(--reel-text)" />
-          </button>
-        </>
-      )}
     </div>
   );
 }
