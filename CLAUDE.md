@@ -849,6 +849,30 @@ Ces pages reçoivent le même traitement que les fiches, head, corps et JSON-LD
 sur une profondeur excessive comme `/formats/a/b`. **Sans ça elles seraient
 invisibles des moteurs, donc inutiles** : c'est toute leur raison d'être.
 
+**Ces pages ne sont pas en `lazy()`, et ça a coûté une panne de l'apprendre.**
+Posées en chargement à la demande comme les autres pages secondaires, le morceau
+`RegroupementPage` s'est retrouvé **empoisonné en cache dans les minutes suivant
+sa mise en ligne** : demandé pendant la fenêtre de propagation, il n'existait pas
+encore à cet edge, la réécriture SPA a répondu `index.html` sous son nom, et la
+règle `/assets/*` l'a estampillé pour 24 h. Les 72 pages rendaient un écran vide
+sur `Failed to fetch dynamically imported module`.
+
+Signature du §9 à l'identique, et vérifiée : la même URL rend `text/html` sans
+paramètre et `application/javascript` avec `?x=1`, donc le fichier existe et
+seul le cache est en cause. `cf-cache-status: HIT`, `max-age=86400` : il ne se
+serait pas réparé avant le lendemain.
+
+Les embarquer dans le bundle initial coûte **3,3 Ko compressés**, 92,63 à 95,86,
+et c'est en même temps le correctif : le morceau cesse d'exister, il n'y a rien
+à purger. **Toute page d'entrée depuis un moteur doit suivre cette règle** :
+c'est un chemin de consultation, et le §9 interdit déjà qu'un chemin de
+consultation dépende d'un `import()`.
+
+À retenir pour la prochaine fois : **un morceau `lazy()` neuf est exposé à ce
+piège à chaque déploiement qui l'introduit**, parce qu'il suffit d'une visite
+pendant la propagation. Le risque ne concerne pas les morceaux déjà en ligne,
+dont le nom ne change pas.
+
 **Les éditions illustrées remontent en tête sur les pages de format**,
 `order=image_url.asc.nullslast`. Ce n'est pas de la coquetterie : les visuels
 sont chez editioncollector et les specs chez blu-ray.com sans recouvrement (§3),
