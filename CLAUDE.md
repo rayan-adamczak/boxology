@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films` — 3 606 lignes
+### `films` — 4 521 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -151,7 +151,7 @@ toujours. Au 31 juillet 2026 la tête de liste est *L'Odyssée* (1 167),
 indéfiniment les succès du jour de l'import — d'où la tâche hebdomadaire
 décrite au §6.
 
-### `editions` — 5 739 lignes
+### `editions` — 8 471 lignes
 `id` (identity **ajoutée en juillet 2026** — elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `formats_extraits` (text[]), `url_source`, `contenu_brut`, `image_url`,
@@ -159,7 +159,7 @@ applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `langues`, `nb_commentaires`, `nb_wishlist`, `prix_fnac_extrait`,
 `film_id` (film principal), **`source`**, **`source_id`**.
 
-`source` vaut `editioncollector.fr` (3 193) ou `bluray.com` (2 546).
+`source` vaut `editioncollector.fr` (3 193) ou `bluray.com` (5 278).
 
 **`date_parution` (date), ajoutée le 31 juillet 2026.** Migration
 `20260731_dates_et_popularite.sql`, index décroissant, remplie par
@@ -204,15 +204,15 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films` — 6 898 liens
+### `edition_films` — 10 255 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
-Répartition : `film_id` 2 622, `bluray_page` 1 153, `bluray_tmdb` 1 037,
-`bluray_page_partiel` 933, `corrige_manuel` 650, `probable` 236,
+Répartition : `bluray_page` 2 537, `film_id` 2 622, `bluray_tmdb` 2 510,
+`bluray_page_partiel` 1 421, `corrige_manuel` 662, `probable` 236,
 `collection_tmdb` 199, `corrige_annee` 68.
 
-6 898 liens pour **5 362 éditions rattachées** : l'écart, ce sont les coffrets,
+10 255 liens pour **7 720 éditions rattachées** : l'écart, ce sont les coffrets,
 qui portent un lien par film.
 
 **`probable` marque les rattachements écrits sans relecture**, le 30 juillet
@@ -302,11 +302,11 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 3 606 (3 099 films, 505 séries, 2 coffrets) |
-| Éditions | 5 739 |
-| Codes-barres | 3 428 |
-| Éditions rattachées | 5 362 |
-| Éditions sans film | 377 |
+| Films | 4 521 (3 813 films, 706 séries, 2 coffrets) |
+| Éditions | 8 471 |
+| Codes-barres | 4 930 |
+| Éditions rattachées | 7 720 (91,1 %) |
+| Éditions sans film | 751 |
 | URL au sitemap | 3 349 |
 
 `editions.film_id` est `null` sur 858 lignes, ce qui ne veut plus rien dire :
@@ -321,8 +321,10 @@ dans les six langues retenues (`en`, `es`, `de`, `it`, `ja`, `pt`).
 Le budget est le champ le moins couvert, et c'est normal : TMDB rend `0` quand
 il l'ignore, et `0` est écrit `NULL` plutôt qu'affiché comme une mesure.
 
-Deux campagnes le 30 juillet 2026 : 1 893 → 1 256, puis **1 256 → 377**. Au
-total 1 516 éditions rendues visibles et 920 films créés.
+Trois campagnes : 1 893 → 1 256 puis **1 256 → 377** le 30 juillet 2026, puis
+le crawl complet du 31 juillet, qui a fait entrer 2 732 éditions d'un coup et
+laissé 751 orphelines sur 8 471 — soit **91,1 % de rattachement**, contre 93,4 %
+sur un catalogue deux fois plus petit la veille.
 
 La seconde campagne est partie d'une relecture des pages blu-ray.com brutes
 conservées dans `crawl/pages/`. Le parseur d'origine n'en gardait que le codec,
@@ -342,8 +344,21 @@ des concerts que TMDB ne référence pas.
 ## 5. Sources de données
 
 ### editioncollector.fr — 3 193 éditions
-Source d'origine. **Seule à fournir des visuels** (`image_url` pointant vers
-leur S3 — hotlink, donc fragile : ils peuvent couper à tout moment).
+Source d'origine, **seule à fournir des visuels**.
+
+**Les images ne sont plus en hotlink depuis le 31 juillet 2026.** Les 7 220 URL
+distinctes ont été recopiées sur un bucket Cloudflare R2 et sont servies par
+`img.jaquette.app` : 7 212 objets, 0,78 Go, egress gratuit et CDN devant le
+bucket. Les huit manquantes étaient déjà mortes chez eux — trois 404, cinq 403 —
+donc cassées sur le site avant même la bascule ; leur `image_url` est passée à
+`null`, une carte sans visuel se dégradant mieux qu'un visuel brisé.
+
+`editions.image_url_source` et `images_secondaires_source` gardent l'URL
+d'origine, ligne à ligne : la bascule est réversible et l'appariement
+vérifiable. Migration `20260731_images_miroir.sql`, scripts `miroir_images.py`
+et `basculer_images.py`. Le site ne dépend donc plus d'un tiers pour ses
+visuels — c'était le seul point où une décision extérieure pouvait tout casser
+du jour au lendemain.
 
 Leur `robots.txt` ne contient aucune règle `User-agent: *`, seulement deux
 entrées SiteAuditBot. Rien n'interdit un crawl poli.
@@ -357,9 +372,10 @@ Ne pas se fier au sitemap : il annonçait 1 201 nouveautés, mais mêle figurine
 jeux et livres, et ne couvre que 1 477 URL sur 3 193.
 
 ### blu-ray.com — 2 546 éditions
-Crawlé en juillet 2026, puis 3 100 fiches sur 5 486 seulement : le site
-renvoyait **403** sur le User-Agent du robot. **Blocage levé le 30 juillet
-2026**, vérifié à 200 sur une fiche avec le même `Boxology-catalog-bot/1.0`.
+Crawlé en juillet 2026, d'abord 3 100 fiches sur 5 486 seulement : le site
+renvoyait **403** sur le User-Agent du robot. Blocage levé, vérifié à 200 avec
+le même `Boxology-catalog-bot/1.0`, et **catalogue crawlé en entier le
+31 juillet 2026 — 5 917 fiches, zéro page abîmée**.
 
 Méthode : cookie pays via `setcountry.php?country=fr`, puis pagination de
 `movies.php`. Le sitemap seul ne donne pas le pays.
@@ -435,9 +451,32 @@ retournée (cf. §10).
 | `crawl_fr.py` | Crawl reprenable, verrou `flock`, tranches d'1 h |
 | `parseur.py` | Extraction des fiches (séparé exprès du crawl) |
 | `import_1_charger.py` | JSONL → `bluray_import` |
+| `import_1b_dedupliquer.py` | Classe `charge` en `a_creer` / `doublon` (`--apply`) |
 | `import_2_resoudre.py` | Résolution TMDB, **lecture seule** |
 | `import_3_ecrire.py` | Création films + éditions + liens |
 | `import_4_titres.py` | Nettoyage des titres (`--apply` pour écrire) |
+
+**L'étape 1b manquait**, et ne s'est vue qu'en rejouant la chaîne le 31 juillet
+2026 : les fiches chargées restent en statut `charge`, que l'étape 2 ne lit pas.
+Le tri avait été fait à la main en juillet. Elle écarte le rapprochement par
+titre, qui avait produit 464 `a_verifier` jamais relus depuis — une édition en
+double, visible et corrigeable, vaut mieux que deux produits fusionnés à tort.
+
+Trois défauts silencieux corrigés dans la même reprise :
+
+- **le détecteur de série ignorait les pluriels.** `\bseason\b` ne matche pas
+  « Seasons 1 and 2 », ni `complete series` la mention « The Original TV
+  Series ». `Defiance: Seasons 1 and 2` partait donc vers *Les Insurgés* (2008)
+  et `Batman (The Original TV Series)` vers le film de 1989. 66 fiches remises
+  dans le bon catalogue ;
+- **`on_conflict=tmdb_id` ne correspondait à aucune contrainte** — l'unique
+  index porte sur `(tmdb_id, type)` depuis juillet — et l'index des films
+  existants, keyé sur `tmdb_id` seul, écrasait une série par un film du même
+  numéro ;
+- **une lecture qui échoue doit se voir.** `if st != 200: break` rendait une
+  liste vide indistinguable d'un résultat vide, et a fait sortir un
+  « editions a creer : 0 » sans un mot d'explication. La fonction sort
+  désormais en erreur.
 
 ### Mise à jour editioncollector (2026-07-30)
 
@@ -609,7 +648,19 @@ côté serveur — écartée pour l'instant.
 ## 8. Chantiers ouverts
 
 ### Décisions en attente sur les orphelines
-Il reste **377 éditions sans film**, après la campagne du 30 juillet 2026 :
+Il reste **751 éditions sans film** après le crawl complet du 31 juillet 2026 :
+585 blu-ray.com et 166 editioncollector. Le catalogue ayant doublé, le nombre
+absolu remonte alors que le taux de rattachement se tient à 91,1 %.
+
+Ce que la relecture des cas ambigus a appris, le 31 juillet : **le sous-titre de
+la page porte souvent la réponse.** `Train to Busan Blu-ray (SteelBook)` annonce
+« 2 Movies » sur un disque unique de 118 min, ce qui paraissait absurde — son
+sous-titre dit `incl. Seoul Station`, le préquel animé de la même année. Le
+contrôle automatique avait bien refusé le candidat *Peninsula* (2020),
+postérieur au disque, mais il ne savait pas quoi mettre à la place. Même leçon
+qu'ailleurs : relire la page, pas le champ qu'on en avait extrait.
+
+État de la campagne précédente, pour mémoire :
 
 - **116 coffrets blu-ray.com sans liste de contenu** — `Ozu en 20 films`,
   `Douglas Sirk - Les Mélodrames allemands`. La page annonce le nombre de films
