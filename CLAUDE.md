@@ -654,7 +654,7 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   Function les ajoute par fiche au lieu de les modifier, en se raccrochant à
   `og:site_name`, une balise qui existe à coup sûr.
 - **`sitemap.xml`** généré au build par `scripts/generer-sitemap.mjs` depuis la
-  base. 4 661 URL, dont 4 581 fiches films et 75 pages de regroupement, contre
+  base. 5 072 URL, dont 4 581 fiches films et 486 pages de regroupement, contre
   2 105 avant les campagnes de rattachement du 30 juillet 2026. Seuls les films
   rattachés à une édition y figurent, en **adresse canonique avec slug**. Le
   script casse le build s'il ne trouve aucun film, et aussi si `films.slug`
@@ -819,9 +819,6 @@ fermerait la balise par surprise.
 - **Pas de `WebSite` + `SearchAction`.** La recherche de l'accueil est un état
   React sans paramètre d'URL ; déclarer une `SearchAction` pointerait vers une
   adresse qui ne filtre rien. À rouvrir si la recherche gagne un `?q=`.
-- **Pas de pagination sur les pages de regroupement.** Elles montrent 60 lignes
-  et le disent, mais `/formats/blu-ray` en couvre 5 572. Le reste n'est pas
-  atteignable de là.
 
 ### Pages de regroupement, en place le 31 juillet 2026
 
@@ -900,6 +897,46 @@ sont chez editioncollector et les specs chez blu-ray.com sans recouvrement (§3)
 donc sans ce tri `/formats/steelbook` s'ouvrait sur soixante lignes de texte nu.
 Les pages d'éditeur, elles, sont entièrement blu-ray.com, donc sans image : la
 vignette retombe sur l'affiche du film.
+
+#### Pagination, en place le 31 juillet 2026
+
+`/formats/blu-ray` couvre ses **93 pages**, `/genres/horreur` ses 10. Le sitemap
+passe de 4 661 à **5 072 URL**, dont 411 pages suivantes.
+
+`/genres/horreur` pour la première page, `/genres/horreur/3` ensuite. **Pas de
+`/1`** : deux adresses pour le même contenu sont deux doublons, et le middleware
+redirige la forme longue vers la courte en 301. Le numéro entre dans le titre à
+partir de la deuxième page, sinon 93 pages porteraient le même et Google les
+traiterait en doublons. Canonical auto-référent, `rel="prev"` et `rel="next"`
+posés pour Bing, que Google n'exploite plus depuis 2019.
+
+Le total vient de `content-range` avec `Prefer: count=exact`. Il est
+indispensable pour savoir combien de pages existent, donc quand répondre 404.
+**Le décompte reste juste malgré `edition_films!inner`** : PostgREST rend un
+film par ligne, ses liens dans un tableau imbriqué, jamais un produit
+cartésien. Vérifié, il n'y avait aucun doublon à écarter.
+
+Le JSON-LD compte en absolu : sur la page 3 le premier élément est le 121ᵉ, et
+`numberOfItems` porte le total de la sélection, pas les 60 de la page.
+
+**Deux pièges, tous deux rencontrés :**
+
+- **PostgREST répond 416 quand l'`offset` dépasse le total**, en mettant quand
+  même le total dans `content-range`. Traité comme une erreur, le repli servait
+  la page générique en 200, soit un « soft 404 » sur `/formats/blu-ray/94`. Ce
+  n'est pas une panne, c'est la réponse à « page 94 sur 93 ».
+- **Le tri secondaire par `id` n'est pas décoratif.** Sans ordre total,
+  `offset` s'applique à un ensemble non ordonné et PostgREST répète et saute des
+  lignes, piège déjà consigné au §9. Vérifié sur trois pages consécutives :
+  180 éditions distinctes, zéro répétition.
+
+`src/app/lib/pagination.ts` porte le calcul des adresses et la fenêtre de
+numéros, **sans aucune dépendance**, pour que le middleware l'importe au lieu
+d'en recopier une version qui dériverait sans que ça se voie.
+
+Limite restante : le sitemap enferme les effectifs au moment du build, donc une
+page suivante peut disparaître entre deux déploiements et rendre 404 le temps
+qu'il soit régénéré.
 
 ### Pages éditions : écarté, et pourquoi
 
