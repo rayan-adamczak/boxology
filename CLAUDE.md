@@ -633,12 +633,13 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   Function les ajoute par fiche au lieu de les modifier, en se raccrochant à
   `og:site_name`, une balise qui existe à coup sûr.
 - **`sitemap.xml`** généré au build par `scripts/generer-sitemap.mjs` depuis la
-  base. 4 423 URL, dont 4 418 fiches films, contre 2 105 avant les campagnes
-  de rattachement du 30 juillet 2026. Seuls les films rattachés à une édition y
-  figurent, en **adresse canonique avec slug**. Le script casse le build s'il ne
-  trouve aucun film, et aussi si `films.slug` manque : voir plus bas pourquoi
-  c'est le bon sens de la panne. Les pages fixes y sont listées à la main,
-  `/bienvenue` comprise.
+  base. 4 661 URL, dont 4 581 fiches films et 75 pages de regroupement, contre
+  2 105 avant les campagnes de rattachement du 30 juillet 2026. Seuls les films
+  rattachés à une édition y figurent, en **adresse canonique avec slug**. Le
+  script casse le build s'il ne trouve aucun film, et aussi si `films.slug`
+  manque : voir plus bas pourquoi c'est le bon sens de la panne. Les pages fixes
+  y sont listées à la main, `/bienvenue` comprise ; les regroupements sont lus
+  dans la table générée.
 - **Search Console** — propriété Domaine validée, sitemap soumis et lu.
 - **Listes personnelles et écrans du prototype** en `noindex, follow`.
 
@@ -797,13 +798,63 @@ fermerait la balise par surprise.
 - **Pas de `WebSite` + `SearchAction`.** La recherche de l'accueil est un état
   React sans paramètre d'URL ; déclarer une `SearchAction` pointerait vers une
   adresse qui ne filtre rien. À rouvrir si la recherche gagne un `?q=`.
-- **Aucune page de regroupement.** Rien sur `/steelbook`, `/editeurs/<nom>` ou
-  `/genres/<nom>`, qui capteraient la requête de navigation et donneraient au
-  crawler un chemin vers les fiches profondes. Aujourd'hui la profondeur de
-  clic est : accueil, 50 films, mur. Les données sont déjà là : `editions.editeur`
-  2 512, `resolution` 2 530, `packaging`, `films.genres`, `date_parution`.
-  Cent à trois cents pages, chacune une vraie liste. **C'est le prochain
-  chantier utile.**
+- **Pas de pagination sur les pages de regroupement.** Elles montrent 60 lignes
+  et le disent, mais `/formats/blu-ray` en couvre 5 572. Le reste n'est pas
+  atteignable de là.
+
+### Pages de regroupement, en place le 31 juillet 2026
+
+75 pages : `/formats`, `/editeurs`, `/genres` et leurs 72 entrées.
+
+**Elles existent d'abord pour le crawl, pas pour la requête.** La profondeur de
+clic du site était : accueil, 50 films, mur. Le reste du catalogue n'existait
+que par le sitemap, donc ne recevait aucun jus de lien. Accessoirement elles
+répondent à « steelbooks 4K » ou « éditions Carlotta », qu'aucune fiche film ne
+peut capter. Les trois sommaires sont liés du **pied de page**, qui est sur
+toutes les pages : c'est le seul endroit qui garantisse au crawler d'y arriver
+depuis n'importe quelle fiche, et chaque page liste les autres entrées de son
+axe pour qu'aucune ne soit une impasse.
+
+**Trois axes, après mesure.** Seuil à dix entrées, en dessous la page serait du
+contenu mince, c'est-à-dire l'erreur qu'on vient d'écarter sur les éditions :
+
+| axe | pages | tête |
+|---|---|---|
+| format | 9 | Blu-ray 5 572, Blu-ray 4K 2 611, Steelbook 1 766 |
+| éditeur | 40 | Warner 310, Studio Canal 155, Carlotta 52 |
+| genre | 23 | Drame 1 863 |
+
+Le seuil écarte aussi le bruit de saisie sans qu'on ait à le lister : `4K Ultra
+HD` à six lignes est un doublon de `Blu-ray 4K`, il tombe tout seul.
+
+`packaging` et `resolution` sont **écartés**. Le premier compte 114 valeurs en
+texte libre anglais, `Figure/replica/props/memorabilia included`, et recoupe les
+formats ; le second n'a aucune intention de recherche derrière lui.
+
+**La table slug vers libellé est générée puis commitée**, pas calculée au rendu :
+`scripts/generer-regroupements.mjs` écrit `src/app/lib/regroupements.ts`. Trois
+raisons : un slug d'URL doit être stable, la page d'index n'a alors aucune
+requête à faire avant de s'afficher, et PostgREST ne sait pas rendre un
+`distinct` sans vue dédiée. Elle se périme, c'est assumé et visible : un éditeur
+qui arrive au catalogue n'a pas de page tant que le script n'a pas tourné.
+
+**Le middleware importe cette table**, il n'en recopie pas une seconde. Les
+Pages Functions passent par esbuild et `regroupements.ts` ne dépend de rien, ni
+React ni navigateur, donc l'import fonctionne. Une copie dériverait au premier
+ajout d'éditeur et la dérive serait invisible. Le sitemap, lui, lit le fichier
+en texte pour la même raison : la liste des slugs a une seule source.
+
+Ces pages reçoivent le même traitement que les fiches, head, corps et JSON-LD
+`CollectionPage` avec son `ItemList`, plus un vrai 404 sur un slug hors table et
+sur une profondeur excessive comme `/formats/a/b`. **Sans ça elles seraient
+invisibles des moteurs, donc inutiles** : c'est toute leur raison d'être.
+
+**Les éditions illustrées remontent en tête sur les pages de format**,
+`order=image_url.asc.nullslast`. Ce n'est pas de la coquetterie : les visuels
+sont chez editioncollector et les specs chez blu-ray.com sans recouvrement (§3),
+donc sans ce tri `/formats/steelbook` s'ouvrait sur soixante lignes de texte nu.
+Les pages d'éditeur, elles, sont entièrement blu-ray.com, donc sans image : la
+vignette retombe sur l'affiche du film.
 
 ### Pages éditions : écarté, et pourquoi
 
