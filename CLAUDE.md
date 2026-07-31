@@ -794,33 +794,80 @@ Injecté par la même fonction. Le `<head>` servait du texte, ce bloc sert de la
 donnée : que `7.901` est une note sur 10 portée par 29 867 votes, que Chris
 Columbus est le réalisateur, et surtout que telle édition porte tel code-barres.
 
-Trois natures de nœud dans un `@graph` : l'œuvre en `Movie` ou **`TVSeries`
-selon `films.type`** (706 séries), un nœud par édition à code-barres, un
-`BreadcrumbList`. `og:type` suit le même partage, `video.tv_show` ou
-`video.movie`.
+Deux natures de nœud dans un `@graph` : l'œuvre en `Movie` ou **`TVSeries`
+selon `films.type`** (706 séries), et un `BreadcrumbList`. `og:type` suit le
+même partage, `video.tv_show` ou `video.movie`. Un troisième, le `Product` par
+édition, a été posé puis retiré le jour même : voir plus bas.
 
-**`gtin13` est le champ qui nous distingue.** 3 379 films sur les 4 418
-rattachés portent au moins une édition dont l'EAN est connu, sur 5 305 EAN au
-catalogue. C'est ce qui permet à un moteur de rapprocher notre fiche du même
-disque ailleurs sur le web. Ni TMDB ni SensCritique ne publient cette donnée.
+### Les nœuds `Product` ont été retirés, et il faut savoir pourquoi
 
-Les éditions **sans EAN sont écartées** : sans lui, le nœud n'apprend rien
-qu'un moteur ne lise déjà dans la page. Plafond à 20 éditions, pour les
-coffrets qui en portent parfois 44, comme *Game of Thrones*.
+Un nœud par édition à code-barres a été posé le 31 juillet 2026, puis **retiré
+le jour même**. Le test en direct de la Search Console les a tous déclarés non
+valides :
 
-Une édition porte **deux types**, `Product` et `CreativeWork`. Le premier est
-ce qui autorise `gtin13`, le second ce qui autorise `exampleOfWork` pour la
-rattacher à l'œuvre. `isRelatedTo`, essayé d'abord, attend un `Product` ou un
-`Service` et ne peut donc pas désigner un film.
+    Extraits de produits   3 éléments non valides
+    « Il faut indiquer "offers", "review", ou "aggregateRating" »
 
-**Pas d'`Offer`, et c'est délibéré.** `prix_editeur` est un prix conseillé, pas
-une offre de vente : le site ne vend rien et aucun programme Awin n'est
-accepté. Déclarer une offre serait faux, et Google sanctionne le balisage qui
-ne correspond pas à ce que la page propose. Le `Product` est en place, il n'y
-aura qu'à lui accrocher ses offres le jour venu.
+Le reste du nœud était pourtant bien lu, `gtin13`, `image`, `brand`. C'est la
+seule absence d'offre qui invalide.
+
+**Aucune des trois issues n'est honnête ici.** On n'a pas d'avis. La note TMDB
+porte sur l'œuvre, l'accrocher à un disque serait faux. Et `prix_editeur` est un
+prix conseillé, pas une offre : le site ne vend rien, aucun programme Awin n'est
+accepté, et déclarer une disponibilité qu'on ignore est exactement ce que Google
+sanctionne.
+
+Un balisage qui ne peut produire aucun résultat enrichi et qui laisse une erreur
+permanente dans la Search Console est un passif : elle masquerait les vraies
+erreurs plus tard. **L'EAN reste dans le texte du corps injecté**, donc lisible
+par un moteur, ce qui préserve l'essentiel.
+
+**Ne pas remettre de `Product` avant qu'un flux Awin soit accepté.** Ce jour-là
+les offres seront réelles, le nœud redeviendra valide, et `gtin13` vaudra la
+peine : 3 379 films sur 4 418 portent au moins un EAN, sur 5 305 au catalogue,
+et ni TMDB ni SensCritique ne publient cette donnée. Détail à ne pas
+reperdre : une édition doit porter **deux types**, `Product` et `CreativeWork`,
+le second étant ce qui autorise `exampleOfWork` pour la rattacher à l'œuvre.
+`isRelatedTo` attend un `Product` ou un `Service` et ne peut pas désigner un
+film.
+
+**Ce que le test valide aujourd'hui**, sur une fiche film :
+
+    Google a accès à cette URL
+    La page peut être indexée
+    Fils d'Ariane      1 élément valide
+    Extraits d'avis    1 élément valide
 
 Le chevron ouvrant est échappé en `<` : un `</script>` dans un synopsis
 fermerait la balise par surprise.
+
+### Polices et visuel de partage, en place le 31 juillet 2026
+
+Les polices sont **auto-hébergées** depuis `public/fonts`, quatre `woff2`,
+sous-ensembles latin et latin-ext, sous SIL OFL 1.1. Elles venaient de Google
+Fonts, et Inter par un `@import` CSS, le pire cas : la requête ne part qu'une
+fois la feuille parsée, donc les allers-retours s'enchaînent au lieu de se
+recouvrir.
+
+Ce sont des **polices variables**, un fichier par sous-ensemble pour toute la
+plage de graisses, d'où `font-weight: 200 800`. `unicode-range` est conservé tel
+quel : c'est lui qui fait qu'un visiteur français télécharge 125 Ko et non 241.
+Le `preload` ne porte que sur `latin`, avec `crossorigin`, **sans lequel le
+préchargement ne correspond à rien et le fichier part deux fois**.
+
+`public/og-jaquette.jpg`, 1200×630, 91 Ko. `twitter:card` promettait une grande
+image depuis le début sans qu'aucune ne soit déclarée. Fabriquée par
+`scripts/og/og-jaquette.html` et rendue par Chrome sans interface ; le source
+est gardé, une capture d'écran aurait vieilli à la première retouche.
+
+**Les fiches films remplacent ce visuel par leur affiche, elles ne l'ajoutent
+pas.** Deux `og:image` sur la même page laisseraient chaque scraper choisir, et
+ils ne choisissent pas tous pareil. Les dimensions suivent, l'affiche TMDB étant
+servie en `w500`.
+
+`/fonts/*` est couvert par le garde-fou du middleware au même titre que
+`/assets/*` : mêmes chemins sans hachage, même réécriture SPA, donc même risque
+d'empoisonnement pendant une propagation.
 
 **Limites restantes** :
 
@@ -828,9 +875,6 @@ fermerait la balise par surprise.
   mettre la date du build annoncerait à Google que 4 418 pages changent à
   chaque déploiement, ce qui est faux et se retourne contre nous. Demande une
   colonne `maj_le`.
-- **`index.html` n'a toujours pas d'`og:image`** alors que son `twitter:card`
-  vaut `summary_large_image` : tout partage de l'accueil ou de `/bienvenue`
-  sort sans visuel.
 - **Pas de `WebSite` + `SearchAction`.** La recherche de l'accueil est un état
   React sans paramètre d'URL ; déclarer une `SearchAction` pointerait vers une
   adresse qui ne filtre rien. À rouvrir si la recherche gagne un `?q=`.
