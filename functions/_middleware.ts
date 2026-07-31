@@ -49,14 +49,39 @@ const SITE_NOM = "jaquette.app";
 /** Durée de cache de la lecture Supabase, à la périphérie. */
 const CACHE_SECONDES = 3600;
 
+/** Nombre d'éditions décrites en JSON-LD. Voir `donneesStructurees`. */
+const MAX_PRODUITS = 20;
+
+interface EditionSeo {
+  id: number;
+  titre: string | null;
+  ean: string | null;
+  image_url: string | null;
+  editeur: string | null;
+  date_parution: string | null;
+  formats_extraits: string[] | null;
+}
+
 interface FilmSeo {
   id: number;
   titre: string;
+  titre_original: string | null;
+  /** `film`, `serie` ou `coffret`. Décide entre Movie et TVSeries. */
+  type: string | null;
   annee: string | number | null;
+  duree: number | null;
+  note: string | number | null;
+  nb_votes: number | null;
+  realisateur: string | null;
+  scenariste: string | null;
+  genres: string[] | null;
+  pays: string[] | null;
+  date_sortie: string | null;
+  imdb_id: string | null;
   synopsis: string | null;
   affiche_url: string | null;
   slug: string | null;
-  edition_films: { count: number }[];
+  edition_films: { edition: EditionSeo | null }[];
 }
 
 /**
@@ -75,15 +100,21 @@ function extrait(texte: string | null | undefined, max = 160): string {
   return `${(espace > max / 2 ? coupe.slice(0, espace) : coupe).replace(/[.,;:—-]$/, "")}…`;
 }
 
-/** Lit le film et le nombre d'éditions qui lui sont rattachées, ou null. */
+/** Lit le film et les éditions qui lui sont rattachées, ou null. */
 async function lireFilm(id: number): Promise<FilmSeo | null> {
-  /* Le décompte passe par `edition_films` et non par `editions.film_id` : la
+  /* Les éditions passent par `edition_films` et non par `editions.film_id` : la
      colonne est un vestige, le rattachement vit dans la table de liens
-     (cf. `getEditionsForFilm`). L'embarquer ici évite un second aller-retour. */
+     (cf. `getEditionsForFilm`). Les embarquer ici évite un second aller-retour,
+     et le même appel sert au décompte de la description et au JSON-LD. */
+  const champsFilm =
+    "id,titre,titre_original,type,annee,duree,note,nb_votes,realisateur," +
+    "scenariste,genres,pays,date_sortie,imdb_id,synopsis,affiche_url,slug";
+  const champsEdition = "id,titre,ean,image_url,editeur,date_parution,formats_extraits";
+
   const url =
     `https://${PROJET}.supabase.co/rest/v1/films` +
     `?id=eq.${id}&limit=1` +
-    `&select=id,titre,annee,synopsis,affiche_url,slug,edition_films(count)`;
+    `&select=${champsFilm},edition_films(edition:editions(${champsEdition}))`;
 
   const reponse = await fetch(url, {
     headers: { apikey: CLE_ANON, Authorization: `Bearer ${CLE_ANON}` },
@@ -97,10 +128,15 @@ async function lireFilm(id: number): Promise<FilmSeo | null> {
   return lignes.length > 0 ? lignes[0] : null;
 }
 
+/** Les éditions réellement rattachées, jointures vides écartées. */
+function editionsDe(film: FilmSeo): EditionSeo[] {
+  return (film.edition_films ?? []).map((l) => l?.edition).filter(Boolean) as EditionSeo[];
+}
+
 /** Métadonnées d'une fiche film, alignées sur celles de `FilmDetailPage`. */
 function metadonnees(film: FilmSeo) {
   const annee = film.annee ? ` (${film.annee})` : "";
-  const nb = film.edition_films?.[0]?.count ?? 0;
+  const nb = editionsDe(film).length;
 
   const description = film.synopsis
     ? extrait(film.synopsis)
@@ -120,6 +156,120 @@ function cheminCanonique(film: FilmSeo): string {
   return film.slug ? `/films/${film.slug}/${film.id}` : `/films/${film.id}`;
 }
 
+/** Retire les clés nulles, vides ou à tableau vide d'un objet JSON-LD. */
+function compacter<T extends Record<string, unknown>>(objet: T): T {
+  const sortie: Record<string, unknown> = {};
+  for (const [cle, valeur] of Object.entries(objet)) {
+    if (valeur === null || valeur === undefined || valeur === "") continue;
+    if (Array.isArray(valeur) && valeur.length === 0) continue;
+    sortie[cle] = valeur;
+  }
+  return sortie as T;
+}
+
+/**
+ * Description structurée de la page, au format JSON-LD.
+ *
+ * Ce que le texte de la page dit à un lecteur, ce bloc le dit à une machine :
+ * que `7.901` est une note sur 10 portée par 29 867 votes, que `Chris Columbus`
+ * est le réalisateur, et surtout que telle édition porte tel code-barres.
+ *
+ * **`gtin13` est le champ qui nous distingue.** 3 379 films portent au moins une
+ * édition dont l'EAN est connu ; c'est ce qui permet à un moteur de rapprocher
+ * notre fiche du même disque ailleurs sur le web. Ni TMDB ni SensCritique ne
+ * publient cette donnée.
+ *
+ * Pas d'`Offer`, et c'est délibéré : `prix_editeur` est un prix conseillé, pas
+ * une offre de vente. Le site ne vend rien et n'a pour l'instant aucun lien
+ * d'affiliation actif. Déclarer une offre serait faux, et Google sanctionne le
+ * balisage qui ne correspond pas à ce que la page propose. À rouvrir le jour
+ * où un programme Awin est accepté : le `Product` est déjà là, il n'y aura
+ * qu'à lui accrocher ses offres.
+ */
+function donneesStructurees(film: FilmSeo, canonical: string): string {
+  const editions = editionsDe(film);
+  const note = Number(film.note);
+  const votes = Number(film.nb_votes);
+
+  const oeuvre = compacter({
+    "@type": film.type === "serie" ? "TVSeries" : "Movie",
+    "@id": `${canonical}#oeuvre`,
+    name: film.titre,
+    alternateName: film.titre_original !== film.titre ? film.titre_original : null,
+    url: canonical,
+    image: film.affiche_url,
+    description: film.synopsis,
+    genre: film.genres ?? [],
+    /* `duree` est un entier de minutes en base, quand ISO 8601 attend une
+       durée. `PT153M` et non `PT2H33M` : les deux sont valides, la première
+       n'oblige pas à convertir. */
+    duration: film.duree ? `PT${film.duree}M` : null,
+    datePublished: film.date_sortie,
+    director: film.realisateur ? { "@type": "Person", name: film.realisateur } : null,
+    author: film.scenariste ? { "@type": "Person", name: film.scenariste } : null,
+    countryOfOrigin: (film.pays ?? []).map((nom) => ({ "@type": "Country", name: nom })),
+    /* Le lien IMDb vaut réconciliation d'entité : il dit « cette page parle de
+       l'œuvre que vous connaissez sous cet identifiant ». */
+    sameAs: film.imdb_id ? `https://www.imdb.com/title/${film.imdb_id}/` : null,
+    aggregateRating:
+      Number.isFinite(note) && note > 0 && Number.isFinite(votes) && votes > 0
+        ? {
+            "@type": "AggregateRating",
+            /* La note TMDB est sur 10 et arrive avec trois décimales. Deux
+               suffisent : la troisième annonce une précision qu'elle n'a pas. */
+            ratingValue: Math.round(note * 100) / 100,
+            bestRating: 10,
+            worstRating: 0,
+            ratingCount: votes,
+          }
+        : null,
+  });
+
+  /* Seules les éditions à code-barres sont décrites : sans `gtin13`, un
+     `Product` n'apprend rien à un moteur qu'il ne lise déjà dans la page.
+     Le plafond protège les coffrets, qui portent parfois des dizaines de
+     lignes ; au-delà, le bloc pèserait plus que le reste du document. */
+  const produits = editions
+    .filter((e) => e.ean)
+    .slice(0, MAX_PRODUITS)
+    .map((e) =>
+      compacter({
+        /* Deux types et non un : le disque est un objet qu'on achète, donc un
+           `Product` qui porte le `gtin13`, et une édition de l'œuvre, donc un
+           `CreativeWork`. Le second type est ce qui autorise `exampleOfWork`,
+           dont le domaine et la portée sont tous deux `CreativeWork` ;
+           `isRelatedTo`, essayé d'abord, attend un Product ou un Service et ne
+           peut donc pas désigner un film. */
+        "@type": ["Product", "CreativeWork"],
+        "@id": `${canonical}#edition-${e.id}`,
+        name: e.titre ?? film.titre,
+        gtin13: e.ean,
+        image: e.image_url,
+        brand: e.editeur ? { "@type": "Brand", name: e.editeur } : null,
+        category: (e.formats_extraits ?? []).join(", "),
+        releaseDate: e.date_parution,
+        /* « Ce disque est une édition de cette œuvre. » Sans ce lien, le moteur
+           voit un code-barres et un film posés côte à côte sans rapport
+           déclaré. */
+        exampleOfWork: { "@id": `${canonical}#oeuvre` },
+      }),
+    );
+
+  const filAriane = {
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Catalogue", item: new URL(canonical).origin + "/" },
+      { "@type": "ListItem", position: 2, name: film.titre, item: canonical },
+    ],
+  };
+
+  const graphe = { "@context": "https://schema.org", "@graph": [oeuvre, ...produits, filAriane] };
+
+  /* `</script>` dans un synopsis fermerait la balise par surprise. Échapper le
+     chevron ouvrant suffit à l'empêcher, et reste du JSON valide. */
+  return JSON.stringify(graphe).replace(/</g, "\\u003c");
+}
+
 /**
  * Réécrit le `<head>` du document servi.
  *
@@ -127,12 +277,10 @@ function cheminCanonique(film: FilmSeo): string {
  * échappe lui-même ce qu'on lui donne : ni `setInnerContent` ni `setAttribute`
  * n'ouvrent d'injection.
  */
-function injecter(
-  reponse: Response,
-  meta: { titre: string; description: string; image: string | null },
-  canonical: string,
-) {
+function injecter(reponse: Response, film: FilmSeo, canonical: string) {
+  const meta = metadonnees(film);
   const poserContenu = { element: (el: any) => el.setAttribute("content", meta.description) };
+  const ogType = film.type === "serie" ? "video.tv_show" : "video.movie";
 
   return new HTMLRewriter()
     .on("title", { element: (el: any) => el.setInnerContent(meta.titre) })
@@ -142,10 +290,10 @@ function injecter(
       element: (el: any) => el.setAttribute("content", meta.titre),
     })
     .on('meta[property="og:type"]', {
-      element: (el: any) => el.setAttribute("content", "video.movie"),
+      element: (el: any) => el.setAttribute("content", ogType),
     })
     /* `index.html` ne porte ni canonical ni og:url ni og:image : une valeur en
-       dur y ferait passer les 3 349 fiches pour des doublons de la racine. On
+       dur y ferait passer les 4 400 fiches pour des doublons de la racine. On
        les ajoute donc au lieu de les modifier, en se raccrochant à une balise
        qui existe à coup sûr. */
     .on('meta[property="og:site_name"]', {
@@ -155,6 +303,10 @@ function injecter(
         if (meta.image) {
           el.after(`<meta property="og:image" content="${meta.image}" />`, { html: true });
         }
+        el.after(
+          `<script type="application/ld+json">${donneesStructurees(film, canonical)}</script>`,
+          { html: true },
+        );
       },
     })
     .transform(reponse);
@@ -212,7 +364,7 @@ export async function onRequest(context: Contexte): Promise<Response> {
        une règle change, et `HTMLRewriter` sur du binaire le corromprait. */
     if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
 
-    return injecter(reponse, metadonnees(film), `${url.origin}${canonique}`);
+    return injecter(reponse, film, `${url.origin}${canonique}`);
   } catch {
     /* Supabase injoignable, réponse inattendue, n'importe quoi : on sert la
        page telle qu'elle l'était avant ce fichier. Le référencement se dégrade,
