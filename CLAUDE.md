@@ -1299,10 +1299,57 @@ ne lui impose pas une largeur, et la vignette restait à 180 px malgré la place
 Trois détails qui ne se devinent pas à la relecture :
 
 - le défilement de la page est bloqué à l'ouverture, **avec compensation de la
-  barre** — sans elle, la masquer élargit la page et tout le contenu saute ;
+  barre** (sans elle, la masquer élargit la page et tout le contenu saute) ;
 - le fond ferme, l'image non : on clique dessus pour regarder de plus près ;
 - le sous-titre donne le nom de l'édition, qu'une jaquette agrandie et sortie de
   sa liste ne dit plus.
+
+#### Flèches sous l'image en mobile
+
+Sur un écran de 375 px la jaquette occupe presque toute la largeur, et il
+n'existe aucune marge où poser les flèches à côté : elles se superposaient au
+visuel, c'est-à-dire à ce qu'on est venu regarder. Elles passent sous l'image,
+de part et d'autre du nom de l'édition, et reprennent leur place sur les côtés
+à partir de `sm`.
+
+Le passage se fait par `position` et **non par deux jeux de boutons** : deux
+fois les mêmes commandes, ce sont deux fois les mêmes libellés pour un lecteur
+d'écran.
+
+Ce déplacement a cassé deux choses, toutes deux invisibles à la relecture du
+diff.
+
+**La figure est en `z-10` et non en `relative`.** Retirer `relative` était la
+condition pour que les flèches en `sm:absolute` se calent sur le dialogue, mais
+la figure redevenait statique, donc **peinte avant les éléments positionnés du
+même contexte** : le voile `absolute inset-0` à 94 % d'opacité recouvrait
+l'image et la visionneuse ouvrait sur un écran noir. `z-index` s'applique à un
+élément flex même non positionné, ce qui règle l'empilement sans toucher au
+référentiel des flèches.
+
+À reconnaître : la visionneuse s'ouvre, le compteur et le titre sont là, tout
+est noir. Une capture le montre tout de suite, encore faut-il ne pas mettre
+l'écran sombre sur le compte du panneau de prévisualisation. C'est l'erreur
+commise ce jour-là, et la capture disait la vérité.
+
+**La remise à zéro de la taille native est sautée au montage.** Un
+`useEffect(() => setNatif(null), [index])` tourne aussi la première fois, et une
+image déjà en cache peut déclencher son `load` **avant** que React ne vide ses
+effets : la taille relevée par `onLoad` était effacée juste après. L'image ne se
+rechargeant plus, `onLoad` ne repassait jamais et le plafond n'était plus jamais
+calculé, donc une vignette de 172 px restait à 172 px au lieu des 378 permis.
+Un `useRef` sur l'index garde la remise à zéro pour les seuls changements.
+
+Le défaut est intermittent par nature : il ne se produit que si l'image est en
+cache et que la course tombe du mauvais côté. Il ne se voit pas à l'œil, une
+image trop petite ressemblant à une image qui n'a pas fini de charger. **Mesurer
+`img.style.width`** : à `auto`, la taille native n'a pas été relevée.
+
+Vérifié en ligne en 375 px sur trois images d'une même édition, 180 × 244,
+960 × 648 et 960 × 648 : rapport natif conservé au millième, image bien
+l'élément rendu au point central, flèches sous le visuel et dans l'écran à
+chaque étape. En 1 280 px elles reviennent à 24 et 1 212, hors des bornes de
+l'image.
 
 `pleineResolution()` remplace `w500` par `original` dans une URL TMDB, la taille
 faisant partie du chemin. Une URL d'une autre origine, comme le miroir
