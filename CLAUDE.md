@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films` — 4 521 lignes
+### `films` — 4 684 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -204,15 +204,15 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films` — 10 255 liens
+### `edition_films` — 10 814 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
-Répartition : `bluray_page` 2 537, `film_id` 2 622, `bluray_tmdb` 2 510,
-`bluray_page_partiel` 1 421, `corrige_manuel` 662, `probable` 236,
+Répartition : `bluray_page` 2 839, `film_id` 2 622, `bluray_tmdb` 2 510,
+`bluray_page_partiel` 1 678, `corrige_manuel` 662, `probable` 236,
 `collection_tmdb` 199, `corrige_annee` 68.
 
-10 255 liens pour **7 720 éditions rattachées** : l'écart, ce sont les coffrets,
+10 814 liens pour **7 941 éditions rattachées** : l'écart, ce sont les coffrets,
 qui portent un lien par film.
 
 **`probable` marque les rattachements écrits sans relecture**, le 30 juillet
@@ -302,11 +302,12 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 4 521 (3 813 films, 706 séries, 2 coffrets) |
+| Films | 4 684 (3 969 films, 713 séries, 2 coffrets) |
 | Éditions | 8 471 |
 | Codes-barres | 4 930 |
-| Éditions rattachées | 7 720 (91,1 %) |
-| Éditions sans film | 751 |
+| Éditions rattachées | 7 941 (93,7 %) |
+| Éditions sans film | 530 |
+| Éditions avec visuel | 8 443 (99,7 %) |
 | URL au sitemap | 3 349 |
 
 `editions.film_id` est `null` sur 858 lignes, ce qui ne veut plus rien dire :
@@ -335,9 +336,8 @@ le nombre de films tranche entre édition simple et coffret sans avoir à
 interpréter le titre, là où « Intégrale » ou « Collection » mentent une fois
 sur deux.
 
-Reste 377 orphelines : 166 editioncollector, 149 coffrets blu-ray.com sans
-liste de contenu, 37 films et 25 séries — ces derniers surtout des opéras et
-des concerts que TMDB ne référence pas.
+Reste 530 orphelines après le 31 juillet : 365 blu-ray.com — surtout des
+coffrets dont la page n'annonce pas le contenu — et 165 editioncollector.
 
 ---
 
@@ -352,6 +352,18 @@ distinctes ont été recopiées sur un bucket Cloudflare R2 et sont servies par
 bucket. Les huit manquantes étaient déjà mortes chez eux — trois 404, cinq 403 —
 donc cassées sur le site avant même la bascule ; leur `image_url` est passée à
 `null`, une carte sans visuel se dégradant mieux qu'un visuel brisé.
+
+**Une image qui répond 200 n'est pas forcément une image.** 328 éditions
+pointaient vers `actularge.jpg`, un fichier de 3 155 octets — le même à l'octet
+près sur les 328, empreinte SHA identique : c'est le visuel d'attente
+d'editioncollector, recopié fidèlement par le miroir. À l'écran il donne un
+appareil photo gris, indistinguable d'un bug. Le contrôle par code HTTP ne
+suffit donc pas ; c'est le **poids répété à l'identique** qui trahit un fichier
+d'attente.
+
+326 de ces éditions portaient un vrai visuel dans `images_secondaires` :
+`promouvoir_visuels.py` l'a promu en principal et retiré des secondaires. Les
+deux sans rien sont passées à `null`.
 
 `editions.image_url_source` et `images_secondaires_source` gardent l'URL
 d'origine, ligne à ligne : la bascule est réversible et l'appariement
@@ -381,7 +393,16 @@ Méthode : cookie pays via `setcountry.php?country=fr`, puis pagination de
 `movies.php`. Le sitemap seul ne donne pas le pays.
 
 Apporte : EAN (72 %), date de sortie, zone, formats, **piste audio française
-(77 %)**, packaging. **Pas de visuels** — copyright.
+(77 %)**, packaging.
+
+**Les visuels ont été récupérés le 31 juillet 2026**, alors que la note
+précédente disait « pas de visuels, copyright ». 5 257 jaquettes sont dans le
+bucket sous `bluray/covers/<bluray_id>_large.jpg`, appariées par
+`editions.source_id` — le nom de l'objet porte l'identifiant, donc aucune table
+de correspondance à tenir. Écrites par `basculer_visuels_bluray.py`, l'URL
+d'origine conservée dans `image_url_source`.
+
+C'est un changement de position assumé, pas un oubli : le §10 l'accompagne.
 
 Ne pas contourner un blocage (proxy, VPN, changement d'UA, session du compte).
 Le compte créé sur le site implique l'acceptation de leurs conditions.
@@ -1301,10 +1322,37 @@ Documentés parce qu'ils se reproduiront.
 - **Une parenthèse jamais refermée signale une ligne coupée à l'extraction.**
   `Le Hobbit : Un voyage inattendu (1 Blu-ray du film en version longue + 3`
   laissait « (1 » collé au titre.
+- **Un ordre par défaut ne vaut que si toutes les tables ont la même clé.**
+  Après avoir imposé `order=id` aux paginations, trois scripts sont tombés en
+  400 : `bluray_import` s'ordonne sur `bluray_id`, `edition_films` n'a pas de
+  colonne `id` du tout. Et comme la fonction de lecture avalait l'erreur en
+  rendant une liste vide, le premier symptôme a été un « editions a creer : 0 »
+  sans un mot. Le correctif d'un piège en a donc créé un autre, plus
+  silencieux — **une lecture qui échoue doit s'interrompre, pas rendre vide**.
 - **Sans `order`, la pagination PostgREST répète et saute des lignes.** `offset`
   s'applique alors à un ensemble non ordonné. Symptôme silencieux : un comptage
   d'orphelines est ressorti à 811 au lieu de 406, une page d'`edition_films`
   ayant disparu de la lecture. Toujours passer `order=id`.
+- **Un nettoyage de titre doit s'interdire de tout retirer.**
+  `import_4_titres.py` ôte le nom du film quand l'édition est rattachée — la
+  fiche film le porte déjà. Bonne intention, mais sans garde-fou : 375 éditions
+  se sont retrouvées intitulées « Blu-ray » ou « 4K Ultra HD + Blu-ray », donc
+  indistinguables les unes des autres sur une fiche film, ce qui se lit comme un
+  doublon. Le titre d'origine étant intact dans `bluray_import`,
+  `reparer_titres_plats.py` les a reconstruits. **Si la coupe ne laisse rien de
+  substantiel, garder le titre complet** : un nom redondant vaut mieux que pas
+  de nom.
+- **Deux fiches blu-ray.com peuvent décrire le même disque.** 1917 en 4K existe
+  sous les identifiants `261058` et `356715`, même slug. 567 slugs sont dans ce
+  cas, soit 1 344 éditions — mais un slug partagé ne prouve rien, trois pressages
+  d'un même film le partagent aussi. Le seul indice fiable est l'EAN, et il ne
+  signale que **4 doublons réels**. À trancher au cas par cas, pas en masse.
+- **Le suffixe de format se porte aussi sans le mot « Blu-ray ».** Les listes
+  de contenu des coffrets écrivent `Bad Boys 4K`, `Men in Black II 4K` : une
+  coupe qui exige « Blu-ray » laisse le `4K` collé au titre, qui ne correspond
+  alors à rien sur TMDB. 79 coffrets à liste complète restaient orphelins pour
+  cette seule raison. Et en corrigeant, attention aux frontières de mot :
+  `\d?D` insensible à la casse mange le « d » de `Extended`.
 - **editioncollector met le vocabulaire d'édition devant, blu-ray.com derrière.**
   Des coupes en fin de chaîne ne mordent sur rien côté editioncollector, et
   celle qui part d'« Intégrale » emporte tout le titre :
@@ -1482,7 +1530,12 @@ Ce qui a évité le plus d'erreurs :
 - Éditeur non professionnel (LCEN art. 6) — **à compléter dès que le site
   devient commercial**
 - Attribution TMDB en pied de page (exigée par leur licence)
-- Aucune image reprise de blu-ray.com
+- **Les visuels de blu-ray.com sont repris depuis le 31 juillet 2026**, ce que
+  la version précédente de ce document interdisait. Décision prise en connaissance
+  de cause : ce sont pour l'essentiel des visuels d'éditeur, mais le site vise
+  l'affiliation, donc l'usage est commercial. À réexaminer si un flux Awin est
+  accepté — leurs images sont licenciées pour les affiliés et régleraient la
+  question.
 - **Clause « Base de données »** dans les mentions légales : articles L. 341-1
   et suivants du code de la propriété intellectuelle, interdiction d'extraction
   substantielle et d'extraction répétée de parties non substantielles, réserve
