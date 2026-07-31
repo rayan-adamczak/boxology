@@ -22,7 +22,7 @@ export function AProposPage() {
         <p>
           Un même film existe en dizaines d’éditions : steelbook, coffret collector, 4K, édition
           limitée d’un revendeur, réédition anniversaire. Ces différences comptent pour qui
-          collectionne — et aucune base ne les recense correctement en français.
+          collectionne, et aucune base ne les recense correctement en français.
         </p>
         <p>
           Jaquette sert à ça : retrouver quelle édition existe, ce qu’elle contient, et garder trace
@@ -38,16 +38,16 @@ export function AProposPage() {
           <li>constituer une liste d’<em>envies</em>.</li>
         </ul>
         <Encadre>
-          Il n’y a pas encore de compte utilisateur. Vos listes sont enregistrées dans votre
-          navigateur : elles restent privées, mais ne sont pas synchronisées entre appareils et
-          disparaissent si vous videz vos données de navigation. L’authentification fait partie des
-          évolutions prévues.
+          Parcourir le catalogue ne demande rien. Marquer une édition comme possédée ou la mettre
+          en envies suppose en revanche un compte, créé avec Google : les listes sont enregistrées
+          côté serveur, donc retrouvées sur tous vos appareils. Elles ne sont visibles que de vous,
+          et supprimer votre compte les efface avec lui.
         </Encadre>
       </Section>
 
       <Section titre="D’où viennent les données">
         <p>
-          Les informations sur les films — titres, années, synopsis, distribution, affiches —
+          Les informations sur les films (titres, années, synopsis, distribution, affiches)
           proviennent de <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer noopener"
           style={{ color: "var(--reel-accent)" }}>The Movie Database</a>, base communautaire ouverte.
         </p>
