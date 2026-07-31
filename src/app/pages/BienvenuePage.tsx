@@ -15,14 +15,18 @@ import {
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { connexionGoogle, useSession } from "../lib/auth";
 import {
-  getDernieresEditions,
   getEditionsByIds,
   splitList,
   type EditionWithFilm,
   type Film,
 } from "../lib/reelio-db";
 import { getStatsCatalogue, type StatsCatalogue } from "../lib/stats";
-import { getFilmsByIds, getVitrineHebdo, type LigneVitrine } from "../lib/vitrine";
+import {
+  getAffichesHero,
+  getFilmsByIds,
+  getVitrineHebdo,
+  type LigneVitrine,
+} from "../lib/vitrine";
 import { useSeo } from "../lib/seo";
 
 /**
@@ -94,12 +98,7 @@ function nomEdition(titreEdition: string | null, titreFilm: string | undefined):
  * texte reste lisible — sans le dégradé horizontal, le titre passait sur des
  * affiches claires.
  */
-function MosaiqueHero({ editions }: { editions: EditionWithFilm[] }) {
-  const affiches = editions
-    .map((e) => e.film?.affiche_url)
-    .filter((url): url is string => Boolean(url))
-    .slice(0, 14);
-
+function MosaiqueHero({ affiches }: { affiches: string[] }) {
   if (affiches.length === 0) return null;
 
   return (
@@ -538,7 +537,7 @@ function TitrePartie({ titre, chapeau }: { titre: string; chapeau?: string }) {
 export function BienvenuePage() {
   const session = useSession();
   const location = useLocation();
-  const [affiches, setAffiches] = useState<EditionWithFilm[]>([]);
+  const [affiches, setAffiches] = useState<string[]>([]);
   const [exemples, setExemples] = useState<Map<number, EditionWithFilm>>(new Map());
   const [films, setFilms] = useState<Map<number, Film>>(new Map());
   const [vitrine, setVitrine] = useState<LigneVitrine[]>([]);
@@ -554,7 +553,7 @@ export function BienvenuePage() {
     // Les vignettes se contentent de ce qui existe : si un appel échoue, elles
     // restent des cadres vides et la page se lit quand même. Rien ici ne doit
     // retenir le texte.
-    getDernieresEditions(18).then(setAffiches).catch(() => {});
+    getAffichesHero(14).then(setAffiches).catch(() => {});
     getStatsCatalogue().then(setStats).catch(() => {});
     getEditionsByIds(TOUTES_EDITIONS)
       .then((liste) => setExemples(new Map(liste.map((e) => [e.id, e]))))
@@ -609,7 +608,7 @@ export function BienvenuePage() {
     <div className="pb-8">
       {/* Héros */}
       <header className="relative overflow-hidden">
-        <MosaiqueHero editions={affiches} />
+        <MosaiqueHero affiches={affiches} />
 
         <div className="relative mx-auto max-w-[1100px] px-6 pb-20 pt-20 sm:pb-32 sm:pt-32">
           <h1

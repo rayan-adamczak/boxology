@@ -60,6 +60,27 @@ export async function getFilmsByIds(ids: number[]): Promise<Film[]> {
   return ids.map((id) => parId.get(id)).filter((f): f is Film => Boolean(f));
 }
 
+/**
+ * Affiches du fond de héros, prises parmi les films les plus consultés.
+ *
+ * Des affiches TMDB et non des visuels de boîtier : `editions.image_url` est
+ * vide sur toute la moitié blu-ray.com du catalogue, alors qu'un film a
+ * toujours son affiche. Le fond est flouté et voilé, la provenance ne se voit
+ * pas ; ce qui se verrait, ce sont les trous.
+ */
+export async function getAffichesHero(limite = 14): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("films")
+    .select("affiche_url")
+    .not("affiche_url", "is", null)
+    .order("popularite", { ascending: false, nullsFirst: false })
+    .limit(limite);
+  if (error) throw new Error(`Erreur lors du chargement des affiches: ${error.message}`);
+  return ((data ?? []) as { affiche_url: string | null }[])
+    .map((f) => f.affiche_url)
+    .filter((url): url is string => Boolean(url));
+}
+
 const SEMAINE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Taille du vivier où la fenêtre hebdomadaire se déplace. */
