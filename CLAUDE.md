@@ -137,6 +137,20 @@ Alimentées par `enrichir_tmdb.py` et `champs_tmdb.py`.
 `w185`, comme `affiche_url` stocke une URL en `w500`. La taille fait partie de
 l'URL chez TMDB ; la fixer à l'import évite que chaque page la recompose.
 
+**`popularite` (real), ajoutée le 31 juillet 2026.** Le champ `popularity` de
+TMDB, recalculé chez eux tous les jours à partir des consultations, recherches
+et votes récents. Migration `20260731_dates_et_popularite.sql`, index
+décroissant.
+
+C'est une mesure de ce qu'on regarde **en ce moment**, pas une notoriété
+historique : trier par `nb_votes` mettrait les mêmes classiques en tête pour
+toujours. Au 31 juillet 2026 la tête de liste est *L'Odyssée* (1 167),
+*Spider-Man : Brand New Day* (912), *Supergirl* (630).
+
+**Elle se périme, et c'est sa nature.** Sans repasse, la page d'accueil affiche
+indéfiniment les succès du jour de l'import — d'où la tâche hebdomadaire
+décrite au §6.
+
 ### `editions` — 5 739 lignes
 `id` (identity **ajoutée en juillet 2026** — elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
@@ -146,6 +160,21 @@ applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `film_id` (film principal), **`source`**, **`source_id`**.
 
 `source` vaut `editioncollector.fr` (3 193) ou `bluray.com` (2 546).
+
+**`date_parution` (date), ajoutée le 31 juillet 2026.** Migration
+`20260731_dates_et_popularite.sql`, index décroissant, remplie par
+`dates_editions.py` — **2 543 dates converties, zéro échec**.
+
+`date_sortie` reste du **texte** dans la langue de la source : `Sep 30, 2025`,
+`September 8, 2024`. Un `order by` dessus est alphabétique, donc faux — « Apr »
+passe avant « Sep » quelle que soit l'année. La chaîne brute est conservée : elle
+sert de preuve si la date analysée paraît fausse, sans retourner sur le site.
+
+**Les dates et les visuels ne se recouvrent pas du tout.** Les 2 543 lignes
+datées viennent toutes de blu-ray.com, qui ne publie aucune image ; les 3 193
+`image_url` sont chez editioncollector, qui ne publie aucune date. Une requête
+qui exige les deux rend **zéro ligne** — piège rencontré en construisant la page
+d'accueil.
 
 **Specs techniques, ajoutées le 30 juillet 2026** : `codec`, `resolution`,
 `hdr` (text[]), `ratio`, `ratio_origine`, `pistes_audio` (jsonb
@@ -512,6 +541,41 @@ d'un bloc quand on ne veut qu'une colonne est irréversible.
 **`AVANCEMENT` est paramétrable par l'environnement.** Deux passes du même
 script peuvent tourner de front sur des colonnes différentes ; avec un fichier
 d'avancement partagé, la seconde saute tout ce que la première a déjà noté.
+`champs_tmdb.py` accepte aussi `SORTIE`, pour la même raison.
+
+### Classement (2026-07-31)
+
+| Fichier | Rôle |
+|---|---|
+| `dates_editions.py` | `date_sortie` (texte anglais) → `date_parution` (`--apply`) |
+| `maj_popularite.sh` | Rafraîchit `films.popularite`, lancé par launchd |
+
+**Piège de locale dans `dates_editions.py`** : `%b` et `%B` de `strptime`
+dépendent de la locale du système. Sous une locale française, « Sep » n'est pas
+reconnu et la passe rendrait **zéro date sans rien signaler**. Les mois passent
+donc par une table explicite.
+
+**La popularité se rafraîchit toute seule, une fois par semaine.**
+`~/Library/LaunchAgents/app.jaquette.popularite.plist`, lundi 4 h.
+
+    launchctl load   ~/Library/LaunchAgents/app.jaquette.popularite.plist
+    launchctl unload ~/Library/LaunchAgents/app.jaquette.popularite.plist
+    launchctl start  app.jaquette.popularite        # forcer une passe
+    tail ~/Documents/jaquette-scraping/maj_popularite.log
+
+`StartCalendarInterval` et non `StartInterval` : launchd rattrape un rendez-vous
+manqué au réveil suivant, ce qu'un intervalle en secondes ne fait pas. Un Mac
+éteint le lundi décale la passe, il ne la saute pas.
+
+**Sur la machine et non dans un cron GitHub**, alors que le dépôt s'y prêterait.
+La clé `service_role` donne un accès total à la base ; la poser dans les secrets
+d'un dépôt **public** l'exposerait à quiconque obtiendrait un jour un droit
+d'écriture dessus. Elle ne quitte pas `~/.config/boxology.env`. La contrepartie
+est assumée : la passe ne tourne que si le Mac est allumé.
+
+La passe repart de zéro à chaque fois — l'avancement sert à reprendre après une
+coupure, pas à sauter les films vus la semaine d'avant. C'est bien tout le
+catalogue qu'on veut réactualiser.
 
 ---
 
@@ -673,6 +737,48 @@ La distribution est en grille de portraits et non en liste : empilée, elle
 tenait dans une demi-colonne mais lisait comme un annuaire, et les visages se
 réduisaient à des pastilles d'initiales de 36 px. Le rapport 2/3 est imposé même
 sans photo, sinon les cartes sans image remontent et désalignent les noms.
+
+**Page d'accueil déconnectée, refaite le 31 juillet 2026.** Elle ouvrait sur
+« Parcourir les films » et une grille alphabétique : le premier écran d'un
+catalogue de 5 700 éditions montrait *…Et pour quelques dollars de plus* et
+*[REC]*. Structure reprise de **SensCritique** et de **Letterboxd** — accroche
+illustrée, contenu, encart d'inscription, arguments — adaptée au sujet : ici
+l'objet montré est la jaquette, pas la critique.
+
+Cinq sections : accroche avec mosaïque d'affiches et recherche, dernières
+parutions en rail, invitation à créer un compte, trois arguments, catalogue.
+
+**L'encart d'inscription vient après les parutions**, jamais avant : on demande
+un compte à quelqu'un qui a déjà vu ce que le site contient. Il n'apparaît
+qu'une fois la session résolue (`session === null`), sinon il s'affiche puis
+disparaît sous les yeux d'un visiteur déjà connecté.
+
+**Dès qu'on tape dans la recherche, tout le reste s'efface.** Quelqu'un qui
+cherche un titre veut son résultat, pas une page d'accueil autour. Et la
+recherche explicite reste **alphabétique** — on cherche un titre connu, l'ordre
+attendu est celui du dictionnaire — là où le catalogue par défaut est classé par
+`popularite`.
+
+`nulls: "last"` est indispensable sur ce tri : PostgreSQL classe les nuls en
+premier sur un `desc`, et la page se serait ouverte sur les fiches les moins
+renseignées.
+
+**Aucun filtre CSS dans le héros, et c'est délibéré.** Un `backdrop-filter` sur
+le voile d'abord, puis un `filter: blur()` sur les affiches, ont tous deux laissé
+la page **dédoublée et décalée d'une centaine de pixels** : les deux forcent une
+couche de composition sur toute la largeur, où le navigateur laisse des tuiles
+périmées quand la mise en page se décale — apparition d'une barre de défilement,
+changement de largeur. L'atmosphère passe par l'opacité et deux dégradés, comme
+sur la fiche film. Le titre reprend l'échelle de `/bienvenue`,
+`clamp(38px, 6vw, 68px)` : deux pages qui ouvrent le site ne peuvent pas
+annoncer deux tailles.
+
+**`RailHorizontal`** (`src/app/components/`) est partagé entre la distribution
+de la fiche film et les parutions de l'accueil. Ses flèches se centrent sur
+**l'image mesurée** de la première carte, et non sur un pourcentage de hauteur :
+le `34 %` d'origine visait le portrait d'un acteur et tombait au-dessus des
+jaquettes, plus hautes. Mesurer libère le composant de la forme de ce qu'il
+transporte.
 
 **Note à deux décimales** partout. TMDB rend `7.901` ; trois décimales suggèrent
 une précision que la note n'a pas.
