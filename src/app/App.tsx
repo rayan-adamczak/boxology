@@ -46,8 +46,8 @@ const positions = new Map<string, number>();
  * Au retour, la restauration native échoue pour une autre raison : le catalogue
  * recharge ses données, la page ne fait encore que la hauteur d'un écran au
  * moment où le navigateur essaie de rendre sa place, et le défilement est
- * plafonné à zéro. D'où `scrollRestoration = "manual"` — on lui retire un
- * travail qu'il fait mal — et une restauration qui attend que la page soit
+ * plafonné à zéro. D'où `scrollRestoration = "manual"`, on lui retire un
+ * travail qu'il fait mal, et une restauration qui attend que la page soit
  * assez haute, image par image, avec deux secondes de patience maximum. Passé
  * ce délai on descend aussi bas que possible : mieux vaut approcher la position
  * que rester en haut.

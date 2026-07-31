@@ -23,8 +23,8 @@ import { useSeo, extrait, type Seo } from "../lib/seo";
 /* ---- helpers ---- */
 
 /**
- * Langues des titres étrangers. Ce sont les six que `enrichir_tmdb.py` retient
- * — TMDB en propose une centaine, dont beaucoup ne sont qu'une translittération
+ * Langues des titres étrangers. Ce sont les six que `enrichir_tmdb.py` retient,
+ * TMDB en propose une centaine, dont beaucoup ne sont qu'une translittération
  * du titre original et n'apprennent rien à un lecteur francophone.
  */
 const LANGUES_TITRES: Record<string, string> = {
@@ -48,7 +48,7 @@ function formatDateSortie(raw: string | null): string {
 }
 
 /**
- * Budget TMDB, en dollars — leur champ n'est pas converti et ne porte pas de
+ * Budget TMDB, en dollars, leur champ n'est pas converti et ne porte pas de
  * devise, mais c'est du dollar. Arrondi au million au-dessus de dix millions :
  * « 15 000 000 $ » donne une précision que la donnée n'a pas.
  */
@@ -148,7 +148,7 @@ type LigneFiche = { label: string; value: React.ReactNode } | false | null | und
 /**
  * Carte libellé/valeur, reprise de la maquette : un filet sous chaque ligne, le
  * libellé en gris à gauche sur une colonne fixe, la valeur plus grande à
- * droite. Les filets font le travail que les capsules faisaient mal — ils
+ * droite. Les filets font le travail que les capsules faisaient mal, ils
  * séparent sans ajouter d'objet visuel.
  *
  * La carte disparaît entièrement quand aucune ligne n'est renseignée. Un bloc
@@ -206,7 +206,7 @@ function BlocFiche({
 }
 
 /**
- * Une carte d'acteur : portrait, nom, rôle. En grille et non en liste — la
+ * Une carte d'acteur : portrait, nom, rôle. En grille et non en liste, la
  * liste empilée tenait dans une colonne étroite, mais elle lisait comme un
  * annuaire, et les portraits se réduisaient à des pastilles d'initiales de
  * 36 px où l'on ne reconnaissait personne.
@@ -275,7 +275,7 @@ export function FilmDetailPage() {
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
   const [formatFilter, setFormatFilter] = useState<string | null>(null);
   const [synopsisOuvert, setSynopsisOuvert] = useState(false);
-  /** Vrai quand le synopsis déborde de ses quatre lignes — mesuré, pas deviné
+  /** Vrai quand le synopsis déborde de ses quatre lignes, mesuré, pas deviné
    *  sur une longueur de chaîne : quatre lignes de 375 px et quatre lignes de
    *  640 px n'accueillent pas le même nombre de signes. */
   const [synopsisDeborde, setSynopsisDeborde] = useState(false);
@@ -350,7 +350,7 @@ export function FilmDetailPage() {
       : `Les éditions Blu-ray, 4K et coffrets de ${film.titre}${annee}.`;
 
     return {
-      titre: `${film.titre}${annee} — éditions Blu-ray, 4K et coffrets`,
+      titre: `${film.titre}${annee}, éditions Blu-ray, 4K et coffrets`,
       description,
       image: film.affiche_url,
       type: "video.movie",
@@ -482,8 +482,8 @@ export function FilmDetailPage() {
       <div className="relative w-full">
         {/*
           Le site s'appelle Jaquette : l'image de l'œuvre porte l'identité, pas
-          le chrome. On prend le backdrop TMDB quand il existe — une vraie image
-          large, nette — et on retombe sur l'affiche floutée sinon, faute de
+          le chrome. On prend le backdrop TMDB quand il existe, une vraie image
+          large, nette, et on retombe sur l'affiche floutée sinon, faute de
           mieux. Chaque fiche a donc sa propre couleur dominante.
         */}
         {(film.backdrop_url || film.affiche_url) && (
@@ -553,13 +553,13 @@ export function FilmDetailPage() {
           les mêmes blocs dans deux ordres différents sans dupliquer le balisage.
 
           Sur mobile, l'affiche et le titre partagent la première ligne, puis
-          les boutons, puis le synopsis. Empilé — affiche centrée, titre,
-          réalisation, note, synopsis, boutons — le premier écran s'arrêtait
+          les boutons, puis le synopsis. Empilé, affiche centrée, titre,
+          réalisation, note, synopsis, boutons, le premier écran s'arrêtait
           au milieu du synopsis : on arrivait sur la fiche sans voir une seule
           action. Le synopsis passe donc sous les boutons ; il se lit toujours,
           mais après avoir eu le choix d'agir.
 
-          Sur écran large l'ordre d'origine tient — synopsis puis boutons — et
+          Sur écran large l'ordre d'origine tient, synopsis puis boutons, et
           l'affiche court sur les trois rangées.
         */}
         <div className="relative mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 pb-8 sm:pb-12 pt-4 sm:pt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-4 sm:gap-x-6 sm:grid-rows-[auto_auto_auto_1fr] items-start">
@@ -581,7 +581,7 @@ export function FilmDetailPage() {
             />
           </div>
 
-          {/* Titre, réalisation, note — la colonne à droite de l'affiche */}
+          {/* Titre, réalisation, note, la colonne à droite de l'affiche */}
           <div className="col-start-2 row-start-1 min-w-0 flex flex-col gap-2 sm:gap-1.5">
             <div>
               <h1
@@ -616,7 +616,7 @@ export function FilmDetailPage() {
             {/*
               Le héros s'en tient à ce qui situe le film : titre, auteur, note,
               récit, action. Accroche, durée, genres et distribution vivent dans
-              l'onglet Détails — les empiler ici repoussait les boutons hors de
+              l'onglet Détails, les empiler ici repoussait les boutons hors de
               vue sans rien apprendre d'essentiel.
             */}
             <p style={{ fontSize: "15px", color: "var(--reel-muted)", lineHeight: "22.5px" }}>
@@ -870,7 +870,7 @@ export function FilmDetailPage() {
                 de filtres est un rail : elle doit tenir sur sa ligne, quitte à
                 ce qu'on la fasse glisser. Les capsules gardent `shrink-0`,
                 sinon flex les comprime au lieu de déborder, et les marges
-                négatives font mordre le rail sur le rembourrage de la page —
+                négatives font mordre le rail sur le rembourrage de la page,
                 sans elles, le défilement s'arrêterait avant le bord et laisserait
                 croire qu'il n'y a plus rien.
               */
@@ -945,8 +945,8 @@ export function FilmDetailPage() {
                           {(fmtTags.length > 0 || ed.region || ed.pays || ed.date_sortie) && (
                             <div className="flex flex-wrap gap-[6px]">
                               {/*
-                                Quatre capsules par ligne — format, zone, pays,
-                                parfois l'année — faisaient quarante objets sur
+                                Quatre capsules par ligne, format, zone, pays,
+                                parfois l'année, faisaient quarante objets sur
                                 une fiche à dix éditions, pour ce qui tient en
                                 une phrase. En texte, ça se lit d'un coup d'œil
                                 et la capsule redevient le signal d'un contrôle.
@@ -988,7 +988,7 @@ export function FilmDetailPage() {
             Distribution en tête, pleine largeur, puis les deux fiches côte à
             côte. Les visages passent avant les tableaux : c'est ce qu'on
             reconnaît d'un coup d'œil, et une grille de portraits a besoin de
-            toute la largeur — dans une demi-colonne elle retombait à trois
+            toute la largeur, dans une demi-colonne elle retombait à trois
             cartes par ligne.
 
             Pas de synopsis ici : il est déjà en entier dans le héros, au-dessus
@@ -1003,7 +1003,7 @@ export function FilmDetailPage() {
                   Un rail qui défile, et non une grille qui se replie. À douze
                   acteurs la grille faisait deux rangées sur écran large et
                   quatre sur mobile, repoussant les deux fiches techniques hors
-                  de vue — alors que la distribution est un accessoire de la
+                  de vue, alors que la distribution est un accessoire de la
                   page, pas son sujet. Sur une ligne, elle occupe la même
                   hauteur quel que soit le nombre d'acteurs.
 
@@ -1027,10 +1027,10 @@ export function FilmDetailPage() {
             <div className="flex flex-col gap-8">
               {/*
                 Deux blocs et non un. L'ancienne fiche unique mélangeait ce qui
-                relève de l'œuvre — réalisation, année, genres, titres étrangers,
-                identiques quel que soit le disque — et ce qui relève du support
-                — définition, HDR, pistes audio, qui changent d'une édition à
-                l'autre. Les séparer dit d'où vient chaque ligne.
+                relève de l'œuvre (réalisation, année, genres, titres étrangers,
+                identiques quel que soit le disque) et ce qui relève du support
+                (définition, HDR, pistes audio, qui changent d'une édition à
+                l'autre). Les séparer dit d'où vient chaque ligne.
 
                 Ordre et vocabulaire calqués sur la fiche technique de
                 SensCritique, prise comme référence pour cette v1 : titre
@@ -1041,7 +1041,7 @@ export function FilmDetailPage() {
                 Le distributeur n'y figure pas : TMDB ne publie que les sociétés
                 de production, qui ne sont le distributeur que par accident.
                 L'éditeur vidéo relevé sur blu-ray.com le remplace, et il est
-                dans l'autre bloc — il qualifie le disque, pas l'œuvre.
+                dans l'autre bloc, il qualifie le disque, pas l'œuvre.
 
                 La note n'est pas de leur liste non plus. Gardée quand même,
                 pour le nombre de votes, que le héros n'affiche pas.
@@ -1069,7 +1069,7 @@ export function FilmDetailPage() {
                   },
                   // L'accroche d'affiche TMDB. Elle a d'abord ouvert la colonne
                   // de droite, hors carte : elle y flottait sans rien qualifier.
-                  // Ici elle suit les titres, ce qu'elle prolonge — mais elle
+                  // Ici elle suit les titres, ce qu'elle prolonge, mais elle
                   // reste en italique, parce que c'est une phrase d'affiche et
                   // non une donnée relevée comme les lignes qui suivent. En
                   // blanc comme les autres valeurs : le gris la faisait passer
@@ -1102,7 +1102,7 @@ export function FilmDetailPage() {
               {/*
                 Ce bloc réunit les specs de toutes les éditions du film, pas
                 celles d'un disque. Il se lit « disponible en Dolby Vision », et
-                non « ce film est en Dolby Vision » — d'où la mention du nombre
+                non « ce film est en Dolby Vision », d'où la mention du nombre
                 d'éditions dépouillées, qui dit sur quoi la liste s'appuie.
 
                 Aucune donnée n'en vient d'IMDb : leurs conditions interdisent

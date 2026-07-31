@@ -35,8 +35,8 @@ let cacheClient: PostgrestClient | null = null;
  * (`collections`). Le client anon ci-dessus ne peut pas les lire : c'est voulu.
  *
  * `PostgrestClient` fixe ses en-têtes à la construction et n'expose pas de
- * `setAuth`. On le reconstruit donc à chaque nouveau jeton — l'objet ne fait
- * qu'assembler une URL et des en-têtes, c'est gratuit — et on le garde en cache
+ * `setAuth`. On le reconstruit donc à chaque nouveau jeton, l'objet ne fait
+ * qu'assembler une URL et des en-têtes, c'est gratuit, et on le garde en cache
  * entre deux rafraîchissements pour ne pas le refaire à chaque requête.
  */
 export function clientAuthentifie(accessToken: string): PostgrestClient {

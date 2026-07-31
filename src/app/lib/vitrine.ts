@@ -9,7 +9,7 @@ import type { Film } from "./reelio-db";
  * hasard, parce que l'exemple doit ressembler à la liste qu'il se ferait.
  *
  * **Le tri part de `films.popularite` et non des éditions.** La colonne
- * `editions.date_parution` semblait le bon axe — « les dernières sorties » —
+ * `editions.date_parution` semblait le bon axe, « les dernières sorties »,
  * mais elle n'existe que sur les lignes blu-ray.com, qui ne portent aucun
  * visuel, tandis que les 3 193 visuels du catalogue sont chez editioncollector,
  * qui ne date rien. Le recouvrement est nul : une requête « récent *et*
@@ -44,8 +44,8 @@ export interface LigneVitrine {
 /**
  * Films par identifiant, rendus dans l'ordre demandé.
  *
- * L'ordre compte : l'appelant désigne une liste choisie — le contenu d'un
- * coffret, une sélection d'exemples — et l'affiche telle quelle, là où
+ * L'ordre compte : l'appelant désigne une liste choisie, le contenu d'un
+ * coffret, une sélection d'exemples, et l'affiche telle quelle, là où
  * PostgREST rend ce que l'index lui donne.
  *
  * Ici plutôt que dans `reelio-db` : seule la page de bienvenue s'en sert, et le

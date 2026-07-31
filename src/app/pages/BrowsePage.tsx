@@ -47,7 +47,7 @@ const ARGUMENTS_COMPTE = [
 
 export function BrowsePage() {
   useSeo({
-    titre: "Jaquette — Le catalogue des éditions Blu-ray et 4K françaises",
+    titre: "jaquette.app, le catalogue des éditions Blu-ray et 4K françaises",
     description:
       "Retrouvez toutes les éditions physiques d’un film : steelbook, coffret collector, 4K, digibook. Comparez formats et contenus, et gardez la trace de votre collection.",
     racine: true,
@@ -86,7 +86,7 @@ export function BrowsePage() {
 
   /*
     Les dernières éditions ne dépendent pas de la recherche : chargées une fois,
-    elles restent en place pendant qu'on tape. L'échec est silencieux — c'est un
+    elles restent en place pendant qu'on tape. L'échec est silencieux, c'est un
     bandeau d'illustration, pas une raison de barrer la page d'un message rouge.
   */
   useEffect(() => {
@@ -139,8 +139,8 @@ export function BrowsePage() {
             className="mt-6 max-w-[660px]"
             style={{ fontSize: "19px", color: "var(--reel-text)", lineHeight: "31px" }}
           >
-            Plus de {CATALOGUE.films} films et {CATALOGUE.editions} éditions françaises —
-            steelbooks, coffrets, 4K, digibooks — avec leurs formats, leurs zones et{" "}
+            Plus de {CATALOGUE.films} films et {CATALOGUE.editions} éditions françaises
+            (steelbooks, coffrets, 4K, digibooks), avec leurs formats, leurs zones et{" "}
             {CATALOGUE.codesBarres} codes-barres.
           </p>
 
@@ -286,8 +286,8 @@ export function BrowsePage() {
 /**
  * Fond d'accroche : une bande d'affiches, fondue au noir.
  *
- * Même traitement que le héros de la fiche film — opacité basse, flou léger,
- * dégradés — pour la même raison : l'image donne l'atmosphère, le texte reste
+ * Même traitement que le héros de la fiche film, opacité basse, flou léger,
+ * dégradés, pour la même raison : l'image donne l'atmosphère, le texte reste
  * lisible. Sans les dégradés, le titre passait sur des affiches claires.
  *
  * `aria-hidden` : ces affiches sont déjà listées plus bas, les répéter au
@@ -313,7 +313,7 @@ function MosaiqueAffiches({ editions }: { editions: EditionWithFilm[] }) {
                 puis un `filter: blur()` sur ces images. Les deux forcent une
                 couche de composition sur toute la largeur du héros, et le
                 navigateur y laisse des tuiles périmées quand la mise en page
-                se décale — apparition d'une barre de défilement, changement de
+                se décale, apparition d'une barre de défilement, changement de
                 largeur de fenêtre.
 
                 L'atmosphère est donc obtenue sans filtre : opacité basse et

@@ -15,11 +15,11 @@
   --reel-bg: #101720;          /* fond de page, bleu nuit */
   --reel-surface: #18202c;     /* cartes et panneaux */
   --reel-surface-2: #1f2836;   /* survol, surfaces surélevées */
-  --reel-text: #e8e8e8;        /* texte principal — 14,71:1 sur le fond */
-  --reel-muted: #8a8f98;       /* texte discret — 5,55:1 sur le fond */
+  --reel-text: #e8e8e8;        /* texte principal, 14,71:1 sur le fond */
+  --reel-muted: #8a8f98;       /* texte discret, 5,55:1 sur le fond */
   --reel-border: #263042;      /* filets */
-  --reel-accent: #1f5fd0;      /* remplissage — blanc dessus 5,82:1 */
-  --reel-accent-clair: #6ea8ff; /* texte, bordures, états actifs — 7,40:1 sur le fond */
+  --reel-accent: #1f5fd0;      /* remplissage, blanc dessus 5,82:1 */
+  --reel-accent-clair: #6ea8ff; /* texte, bordures, états actifs, 7,40:1 sur le fond */
   --reel-accent-soft: rgba(31, 95, 208, 0.18); /* fonds de pastille */
   --reel-font: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   /* Titres et mot-symbole. Inter reste le corps de texte : une grotesque à fort
@@ -209,9 +209,9 @@
 
     Tailwind 4 a changé son preflight : les boutons y reçoivent
     `cursor: default` au lieu du `cursor: pointer` que Tailwind 3 posait, pour
-    coller au défaut du navigateur. Résultat, la moitié de l'interface — les
+    coller au défaut du navigateur. Résultat, la moitié de l'interface, les
     onglets, les capsules de format, les cartes d'acteurs, les boutons de
-    collection — ne signalait plus qu'elle était cliquable. Seuls les liens,
+    collection, ne signalait plus qu'elle était cliquable. Seuls les liens,
     qui sont des `<a>`, gardaient le bon curseur.
 
     Réglé ici et non capsule par capsule : c'est une règle d'interface, pas une

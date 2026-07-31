@@ -32,7 +32,7 @@ export function MentionsLegalesPage() {
       <Section titre="Hébergement">
         <p>
           Le site est hébergé par <strong style={{ color: "var(--reel-text)" }}>Cloudflare,
-          Inc.</strong>, 101 Townsend St, San Francisco, CA 94107, États-Unis — <a
+          Inc.</strong>, 101 Townsend St, San Francisco, CA 94107, États-Unis. <a
             href="https://www.cloudflare.com" target="_blank" rel="noreferrer noopener"
             style={{ color: "var(--reel-accent)" }}>cloudflare.com</a>.
         </p>
@@ -62,7 +62,7 @@ export function MentionsLegalesPage() {
 
       <Section titre="Base de données">
         <p>
-          Prise isolément, une donnée factuelle — un code-barres, une date de sortie, un format —
+          Prise isolément, une donnée factuelle, un code-barres, une date de sortie, un format,
           n’est protégée par aucun droit. Le catalogue dans son ensemble, lui, constitue une base de
           données dont la constitution a demandé un investissement substantiel : collecte et
           recoupement de plusieurs milliers de fiches, rattachement de chaque édition au film
@@ -75,11 +75,11 @@ export function MentionsLegalesPage() {
           interdites, sans autorisation préalable :
         </p>
         <p>
-          — l’extraction de la totalité ou d’une partie qualitativement ou quantitativement
+          • l’extraction de la totalité ou d’une partie qualitativement ou quantitativement
           substantielle du contenu, par transfert sur un autre support, quel qu’en soit le moyen ;<br />
-          — la réutilisation, par mise à disposition du public, de tout ou partie substantielle du
+          • la réutilisation, par mise à disposition du public, de tout ou partie substantielle du
           contenu ;<br />
-          — l’extraction ou la réutilisation répétée et systématique de parties non substantielles,
+          • l’extraction ou la réutilisation répétée et systématique de parties non substantielles,
           lorsqu’elle excède manifestement les conditions d’utilisation normale du site.
         </p>
         <p>

@@ -11,14 +11,14 @@ export function ConfidentialitePage() {
       <Section titre="En résumé">
         <Encadre>
           Le catalogue se consulte librement, sans compte et sans que rien ne soit enregistré. Un
-          compte — uniquement via Google — n’est demandé que pour garder des listes : votre
+          compte, uniquement via Google, n’est demandé que pour garder des listes : votre
           collection et vos envies. Aucun outil de mesure d’audience, aucun traceur publicitaire.
         </Encadre>
       </Section>
 
       <Section titre="Sans compte">
         <p>
-          Consulter le catalogue — parcourir, rechercher, ouvrir une fiche film — ne demande rien et
+          Consulter le catalogue, parcourir, rechercher, ouvrir une fiche film, ne demande rien et
           n’enregistre rien vous concernant. Aucune liste n’est conservée dans votre navigateur.
         </p>
         <p>
@@ -61,7 +61,7 @@ export function ConfidentialitePage() {
         </p>
         <p>
           <strong style={{ color: "var(--reel-text)" }}>Conservation</strong> : jusqu’à la
-          suppression du compte. Celle-ci est immédiate et définitive — compte, collection et envies
+          suppression du compte. Celle-ci est immédiate et définitive, compte, collection et envies
           sont effacés dans le même mouvement, sans copie conservée.
         </p>
         <p>
@@ -87,24 +87,24 @@ export function ConfidentialitePage() {
         </p>
         <ul className="flex list-disc flex-col gap-1 pl-5">
           <li>
-            <strong style={{ color: "var(--reel-text)" }}>TMDB</strong> — affiches et métadonnées des
+            <strong style={{ color: "var(--reel-text)" }}>TMDB</strong>, affiches et métadonnées des
             films.
           </li>
           <li>
-            <strong style={{ color: "var(--reel-text)" }}>Supabase</strong> — base de données du
+            <strong style={{ color: "var(--reel-text)" }}>Supabase</strong>, base de données du
             catalogue, et hébergement des comptes lorsqu’il en existe un. Serveurs situés en Suède
             (Union européenne).
           </li>
           <li>
-            <strong style={{ color: "var(--reel-text)" }}>Google</strong> — uniquement au moment de
+            <strong style={{ color: "var(--reel-text)" }}>Google</strong>, uniquement au moment de
             la connexion, et seulement si vous choisissez de créer un compte.
           </li>
           <li>
-            <strong style={{ color: "var(--reel-text)" }}>Cloudflare Pages</strong> — hébergement
+            <strong style={{ color: "var(--reel-text)" }}>Cloudflare Pages</strong>, hébergement
             des pages.
           </li>
           <li>
-            <strong style={{ color: "var(--reel-text)" }}>Google Fonts</strong> — polices de
+            <strong style={{ color: "var(--reel-text)" }}>Google Fonts</strong>, polices de
             caractères.
           </li>
         </ul>

@@ -9,7 +9,7 @@ import { connexionGoogle, deconnexion, nomAffiche, supprimerCompte, useSession }
  * Un écran dédié plutôt qu'une entrée de menu : l'effacement est immédiat et
  * définitif, il lui faut la place d'être expliqué et une confirmation qu'on ne
  * déclenche pas d'un clic de travers. La politique de confidentialité annonce
- * que la suppression est accessible ici — c'est cette page qui tient la
+ * que la suppression est accessible ici, c'est cette page qui tient la
  * promesse, et c'est une obligation du RGPD (article 17), pas un agrément.
  */
 export function ComptePage() {
@@ -79,7 +79,7 @@ export function ComptePage() {
  *
  * Attention à ce que ce choix déplace : le mot « SUPPRIMER » énonçait
  * l’intention, une réplique non. Ce sont donc le paragraphe de conséquence et
- * le libellé du bouton qui portent le sens — ne pas les édulcorer en pensant
+ * le libellé du bouton qui portent le sens, ne pas les édulcorer en pensant
  * que la phrase suffit.
  */
 const PHRASE = "Hasta la vista, baby";
@@ -92,7 +92,7 @@ const PHRASE = "Hasta la vista, baby";
  * bénéfice.
  *
  * La décomposition NFD précède le retrait des diacritiques, sinon les
- * majuscules accentuées passent au travers — le même piège que `translate()`
+ * majuscules accentuées passent au travers, le même piège que `translate()`
  * appliqué avant `lower()` en SQL.
  */
 function normaliser(valeur: string): string {

@@ -19,7 +19,7 @@ import { useSeo } from "../lib/seo";
  * Remplace « Ma collection » et « Mes envies », qui listaient les éditions à
  * plat : ici elles sont regroupées par film, avec un badge ×N quand plusieurs
  * éditions du même titre sont possédées. C'est la lecture qu'attend quelqu'un
- * qui regarde une collection — on possède *Dune*, pas trois lignes de catalogue.
+ * qui regarde une collection, on possède *Dune*, pas trois lignes de catalogue.
  *
  * Sans compte, il n'y a rien à montrer : les actions en demandent un et le site
  * n'écrit plus dans localStorage. La page invite alors à se connecter, en
@@ -29,7 +29,7 @@ import { useSeo } from "../lib/seo";
  * lisible que par son propriétaire, et la politique de confidentialité promet
  * qu'elles servent à se retrouver entre appareils, pas à être publiées. Un
  * profil public demandera une table `profils`, une policy de lecture
- * conditionnée à un choix explicite, et une mise à jour de cette politique —
+ * conditionnée à un choix explicite, et une mise à jour de cette politique,
  * d'où la séparation ci-dessous : `VueProfil` ne connaît que des données reçues
  * en props, et acceptera telles quelles celles d'un autre compte le jour où
  * elles existeront.
@@ -56,8 +56,8 @@ const ONGLETS: { statut: StatutValue; libelle: string }[] = [
 ];
 
 /**
- * Regroupe les éditions par film. Une édition sans film rattaché — il y en a
- * près de 1 900 au catalogue — reste une entrée à elle seule plutôt que de
+ * Regroupe les éditions par film. Une édition sans film rattaché, il y en a
+ * près de 1 900 au catalogue, reste une entrée à elle seule plutôt que de
  * disparaître dans un groupe fourre-tout.
  */
 function grouper(editions: EditionWithFilm[]): Entree[] {
@@ -441,7 +441,7 @@ function Affiche({ entree }: { entree: Entree }) {
 
   const libelle =
     entree.editions.length > 1
-      ? `${entree.titre} — ${entree.editions.length} éditions`
+      ? `${entree.titre} (${entree.editions.length} éditions)`
       : entree.titre;
 
   if (entree.filmId === null) return <div title={libelle}>{contenu}</div>;

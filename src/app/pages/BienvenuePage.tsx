@@ -30,16 +30,16 @@ import {
 import { useSeo } from "../lib/seo";
 
 /**
- * Page de bienvenue — ce que le site fait, avant d'avoir un compte.
+ * Page de bienvenue, ce que le site fait, avant d'avoir un compte.
  *
  * Le catalogue reste la page d'accueil : c'est lui qui s'indexe et c'est par une
  * fiche film qu'on entre réellement sur le site. Cette page est l'autre porte,
- * celle qu'on donne en lien quand on présente jaquette.app à quelqu'un — elle
+ * celle qu'on donne en lien quand on présente jaquette.app à quelqu'un, elle
  * explique le fonctionnement au lieu de le faire deviner.
  *
  * Structure calquée sur la page d'accueil de Letterboxd : un héros, une suite
  * d'étapes numérotées avec ancre propre, un tour des grandes sections, puis
- * l'invitation à créer un compte. L'ordre a une raison — on ne demande le
+ * l'invitation à créer un compte. L'ordre a une raison, on ne demande le
  * compte qu'après avoir montré ce qu'il sert à faire.
  *
  * **Les visuels d'étape sont de vraies vignettes, pas des captures.** Une
@@ -95,7 +95,7 @@ function nomEdition(titreEdition: string | null, titreFilm: string | undefined):
  *
  * Même traitement que le héros de la fiche film et que celui du catalogue :
  * opacité basse, flou léger, deux dégradés. L'image donne l'atmosphère, le
- * texte reste lisible — sans le dégradé horizontal, le titre passait sur des
+ * texte reste lisible, sans le dégradé horizontal, le titre passait sur des
  * affiches claires.
  */
 function MosaiqueHero({ affiches }: { affiches: string[] }) {
@@ -129,7 +129,7 @@ function MosaiqueHero({ affiches }: { affiches: string[] }) {
   );
 }
 
-/** Bouton plein — l'action principale de la page, répétée en bas. */
+/** Bouton plein, l'action principale de la page, répétée en bas. */
 function BoutonPrincipal({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
     <button
@@ -250,7 +250,7 @@ function Jaquette({ src, className }: { src?: string | null; className?: string 
   );
 }
 
-/** Étape 1 — les deux boutons d'une fiche, dans leur état posé. */
+/** Étape 1, les deux boutons d'une fiche, dans leur état posé. */
 function VisuelPosseder({ edition, film }: { edition?: EditionWithFilm; film?: Film }) {
   return (
     <Cadre>
@@ -289,7 +289,7 @@ function VisuelPosseder({ edition, film }: { edition?: EditionWithFilm; film?: F
 }
 
 /**
- * Étape 2 — une liste d'envies, telle qu'elle se lit en rayon.
+ * Étape 2, une liste d'envies, telle qu'elle se lit en rayon.
  *
  * Les titres sont ceux de la vitrine hebdomadaire : des films récents que le
  * visiteur reconnaît, et qui changent chaque semaine (cf. `lib/vitrine.ts`).
@@ -332,7 +332,7 @@ function VisuelEnvies({ lignes }: { lignes: LigneVitrine[] }) {
 }
 
 /**
- * Étape 3 — trois éditions du même film.
+ * Étape 3, trois éditions du même film.
  *
  * Ce sont bien trois lignes du catalogue rattachées à Blade Runner 2049, et non
  * trois jaquettes prises au hasard : le propos de l'étape est la comparaison à
@@ -366,7 +366,7 @@ function VisuelComparer({ editions, film }: { editions: EditionWithFilm[]; film?
   );
 }
 
-/** Étape 4 — la fiche technique du disque. */
+/** Étape 4, la fiche technique du disque. */
 function VisuelSpecs() {
   const lignes: [string, string][] = [
     ["Définition", "4K UHD · 1080p"],
@@ -405,7 +405,7 @@ function VisuelSpecs() {
   );
 }
 
-/** Étape 5 — un coffret et les films qu'il contient. */
+/** Étape 5, un coffret et les films qu'il contient. */
 function VisuelCoffret({ coffret, films }: { coffret?: EditionWithFilm; films: Film[] }) {
   return (
     <Cadre>
@@ -442,7 +442,7 @@ function VisuelCoffret({ coffret, films }: { coffret?: EditionWithFilm; films: F
   );
 }
 
-/** Étape 6 — le compte, et ce qu'il garde. */
+/** Étape 6, le compte, et ce qu'il garde. */
 function VisuelCompte() {
   const points: [ReactNode, string][] = [
     [<User key="c" size={14} />, "Connexion avec Google, rien d’autre à remplir"],
@@ -877,7 +877,7 @@ export function BienvenuePage() {
         </div>
       </div>
 
-      {/* Invitation finale — même bandeau que le catalogue, à la fin comme
+      {/* Invitation finale, même bandeau que le catalogue, à la fin comme
           là-bas : on ne demande un compte qu'après avoir montré à quoi il sert. */}
       <div className="mx-auto max-w-[1100px] px-6 pt-28 sm:pt-36">
         <section

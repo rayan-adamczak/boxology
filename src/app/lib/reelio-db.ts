@@ -31,14 +31,14 @@ export interface Film {
   /** Sortie salle française quand TMDB la connaît, sortie mondiale sinon. */
   date_sortie: string | null;
   producteurs: string[] | null;
-  /** Budget en dollars. NULL quand TMDB l'ignore — il rend 0 dans ce cas. */
+  /** Budget en dollars. NULL quand TMDB l'ignore, il rend 0 dans ce cas. */
   budget: number | null;
   /** Compositeur de la musique originale. */
   musique: string | null;
   /**
    * Champ `popularity` de TMDB, recalculé chez eux tous les jours à partir des
    * consultations et des recherches récentes. Mesure ce qu'on regarde *en ce
-   * moment* — et se périme donc sans repasse du script.
+   * moment*, et se périme donc sans repasse du script.
    */
   popularite: number | null;
 }
@@ -70,7 +70,7 @@ export interface Edition {
   /** Éditeur vidéo du disque. Remplace le distributeur, absent de TMDB. */
   editeur: string | null;
   /**
-   * Date de parution du disque, analysée depuis `date_sortie` — qui reste du
+   * Date de parution du disque, analysée depuis `date_sortie`, qui reste du
    * texte anglais, inutilisable pour trier. Nulle sur les éditions
    * editioncollector, qui ne publient pas de date.
    */
@@ -105,7 +105,7 @@ export function splitList(val: unknown): string[] {
  * Les specs sont portées par le disque, pas par l'œuvre : une 4K en Dolby
  * Vision et un Blu-ray 1080p du même film n'ont ni la même définition, ni le
  * même codec, ni les mêmes pistes. La fiche film réunit donc ce qui existe
- * *quelque part* au catalogue — « disponible en Dolby Vision », pas « ce film
+ * *quelque part* au catalogue, « disponible en Dolby Vision », pas « ce film
  * est en Dolby Vision ». Le décompte d'éditions renseignées est rendu avec,
  * pour que la page dise sur quoi elle s'appuie.
  *
@@ -133,8 +133,8 @@ function normaliserDefinition(v: string): string {
 }
 
 /**
- * Un champ de blu-ray.com peut porter plusieurs valeurs dans une seule chaîne
- * — « 2.41:1, 2.40:1, 1.85:1 » sur un coffret qui réunit trois montages,
+ * Un champ de blu-ray.com peut porter plusieurs valeurs dans une seule chaîne,
+ * « 2.41:1, 2.40:1, 1.85:1 » sur un coffret qui réunit trois montages,
  * « MPEG-4 AVC, VC-1 » sur un disque à deux encodages. Sans découpage, chaque
  * combinaison devient une valeur distincte et la ligne affiche
  * « 1.85:1 · 2.41:1, 2.40:1, 1.85:1 », où 1.85:1 apparaît deux fois.
@@ -152,7 +152,7 @@ function eclater(valeur: string): string[] {
 
 /**
  * `region` arrive tel quel de blu-ray.com : « 2K Blu-ray: Region B (A, C
- * untested) ». Seules les zones affirmées comptent — celles entre parenthèses
+ * untested) ». Seules les zones affirmées comptent, celles entre parenthèses
  * sont marquées `untested`, donc invérifiées, et les afficher les ferait
  * passer pour des garanties.
  */
@@ -188,7 +188,7 @@ export function agregerSpecs(editions: Edition[]): SpecsFilm {
     ajouter("definitions", [ed.resolution && normaliserDefinition(ed.resolution)]);
     ajouter("hdr", splitList(ed.hdr));
     // Le ratio du disque prime ; `ratio_origine` ne sert que s'il manque, pour
-    // ne pas afficher deux fois la même valeur — les deux sont identiques sur
+    // ne pas afficher deux fois la même valeur, les deux sont identiques sur
     // l'écrasante majorité des fiches.
     ajouter("ratios", eclater(ed.ratio || ed.ratio_origine || ""));
     ajouter("codecs", eclater(ed.codec || ""));
@@ -216,7 +216,7 @@ export function agregerSpecs(editions: Edition[]): SpecsFilm {
   };
 }
 
-/** An edition joined with its parent film — used by the list pages. */
+/** An edition joined with its parent film, used by the list pages. */
 export interface EditionWithFilm extends Edition {
   film: Pick<Film, "id" | "titre" | "affiche_url"> | null;
 }
@@ -235,7 +235,7 @@ export interface EditionWithFilm extends Edition {
  *
  * `nulls: "last"` est indispensable : les films non encore enrichis ont une
  * popularité nulle, et PostgreSQL classe les nuls en premier sur un tri
- * descendant — la page se serait ouverte sur les fiches les moins renseignées.
+ * descendant, la page se serait ouverte sur les fiches les moins renseignées.
  *
  * Une recherche explicite, elle, reste alphabétique : on cherche un titre
  * connu, l'ordre attendu est celui du dictionnaire.
@@ -254,7 +254,7 @@ export async function searchFilms(query: string): Promise<Film[]> {
 /**
  * Dernières parutions, avec l'affiche de leur film.
  *
- * Triées sur `date_parution`, la colonne date normalisée — et non sur
+ * Triées sur `date_parution`, la colonne date normalisée, et non sur
  * `date_sortie`, qui reste le texte anglais des sources (« Sep 30, 2025 ») et
  * dont le tri SQL serait alphabétique, donc faux : « Apr » passerait avant
  * « Sep » quelle que soit l'année.
@@ -263,12 +263,12 @@ export async function searchFilms(query: string): Promise<Film[]> {
  * de parution en 2026, dont certaines à venir. Une page qui titre « dernières
  * parutions » et montre un disque qui sort dans deux mois se trompe de mot.
  *
- * `!inner` sur `edition_films` écarte les 377 éditions sans film — sans affiche
+ * `!inner` sur `edition_films` écarte les 377 éditions sans film, sans affiche
  * ni titre d'œuvre, elles n'ont rien à montrer.
  *
  * **Ces éditions n'ont pas de visuel de boîtier, et c'est structurel.** Les
  * 2 543 lignes datées viennent toutes de blu-ray.com, qui ne publie aucune
- * image — les 3 193 visuels du catalogue sont chez editioncollector, qui ne
+ * image, les 3 193 visuels du catalogue sont chez editioncollector, qui ne
  * publie aucune date. Le recouvrement est exactement nul. La carte retombe donc
  * sur l'affiche TMDB du film, qui existe toujours ; filtrer sur `image_url`
  * comme le faisait la première version vidait la liste.
@@ -352,8 +352,8 @@ export async function getEditionsByIds(ids: number[]): Promise<EditionWithFilm[]
     const { data, error } = await supabase
       .from("editions")
       // `!film_id` désigne explicitement la colonne à suivre. Sans cet indice,
-      // PostgREST voit deux chemins entre `editions` et `films` — la colonne
-      // `film_id` et la table de liaison `edition_films` — et refuse la requête
+      // PostgREST voit deux chemins entre `editions` et `films`, la colonne
+      // `film_id` et la table de liaison `edition_films`, et refuse la requête
       // avec « more than one relationship was found ».
       .select("*, film:films!film_id(id, titre, affiche_url)")
       .in("id", ids.slice(debut, debut + TRANCHE));

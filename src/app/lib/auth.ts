@@ -7,14 +7,14 @@ import { projectId, publicAnonKey } from "/utils/supabase/info";
  * Authentification par compte Google, et rien d'autre.
  *
  * Google uniquement, par réduction de surface : aucun mot de passe stocké,
- * aucun flux de réinitialisation à écrire, aucun envoi de courriel — le SMTP par
+ * aucun flux de réinitialisation à écrire, aucun envoi de courriel, le SMTP par
  * défaut de Supabase plafonne de toute façon à quelques messages par heure. La
  * contrepartie est assumée : sans compte Google, pas de compte ici.
  *
  * @supabase/auth-js pèse 104 Ko bruts (25 Ko compressés). Le chemin d'entrée
  * réel du site est une fiche film consultée sans compte : lui faire payer ce
  * poids annulerait une bonne part du gain obtenu en abandonnant supabase-js.
- * D'où le chargement à la demande — seuls le visiteur déjà connecté, celui qui
+ * D'où le chargement à la demande, seuls le visiteur déjà connecté, celui qui
  * clique « Connexion » et le retour de Google le déclenchent.
  *
  * Les `import type` ci-dessus disparaissent à la compilation : ils ne créent
@@ -63,7 +63,7 @@ export async function connexionGoogle(retourVers: string = window.location.pathn
   const redirectTo = new URL(retourVers, window.location.origin).toString();
   // Aucun `scopes` : le provider Google de Supabase demande déjà `email` et
   // `profile`, et les redéclarer les faisait apparaître en double dans l'URL
-  // d'autorisation. Surtout, ne rien ajouter ici est une contrainte à tenir —
+  // d'autorisation. Surtout, ne rien ajouter ici est une contrainte à tenir,
   // tout autre scope serait jugé sensible par Google, ce qui impose une revue
   // manuelle et plafonne l'application à 100 comptes tant qu'elle n'est pas
   // passée.
@@ -105,7 +105,7 @@ export async function supprimerCompte(): Promise<void> {
  *
  * Sert aux appels de données (cf. lib/collections.ts), qui doivent savoir s'ils
  * écrivent en base ou dans localStorage. Le test de plausibilité passe d'abord :
- * pour un visiteur sans compte — le cas courant — la fonction répond
+ * pour un visiteur sans compte, le cas courant, la fonction répond
  * immédiatement sans télécharger auth-js.
  */
 export async function identiteCourante(): Promise<{ jeton: string; userId: string } | null> {
@@ -157,13 +157,13 @@ export function useSession(): Session | null | undefined {
       });
     }).catch(() => {
       /*
-        auth-js n'a pas pu être chargé — réseau coupé, morceau absent du CDN,
+        auth-js n'a pas pu être chargé, réseau coupé, morceau absent du CDN,
         cache empoisonné. On tranche à « pas de session » plutôt que de rester
         sur `undefined`.
 
         C'est la différence entre un site dégradé et un site mort : tout ce qui
-        attend la session — à commencer par la fiche film, qui ne lance ses
-        requêtes qu'une fois `session` résolue — restait bloqué sur
+        attend la session, à commencer par la fiche film, qui ne lance ses
+        requêtes qu'une fois `session` résolue, restait bloqué sur
         « Chargement… », et le catalogue public devenait inaccessible pour une
         bibliothèque dont il n'a pas besoin. La consultation sans compte est la
         raison d'être du site et la condition de son indexation ; elle ne doit

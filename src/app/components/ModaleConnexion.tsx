@@ -5,7 +5,7 @@ import { connexionGoogle } from "../lib/auth";
 /**
  * Demande de compte, ouverte quand un visiteur non connecté tente une action.
  *
- * Le catalogue reste consultable sans compte — c'est ce qui permet aux 2 227
+ * Le catalogue reste consultable sans compte, c'est ce qui permet aux 2 227
  * fiches films d'être indexées. Seules les actions en demandent un, parce
  * qu'elles écrivent dans une liste qui doit bien appartenir à quelqu'un.
  *

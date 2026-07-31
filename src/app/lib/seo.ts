@@ -24,7 +24,7 @@ export interface Seo {
   description: string;
   /** Image de partage (og:image). Absolue. */
   image?: string | null;
-  /** og:type — « website » par défaut, « video.movie » pour une fiche film. */
+  /** og:type, « website » par défaut, « video.movie » pour une fiche film. */
   type?: string;
   /** Retire la page des moteurs : listes personnelles, écrans de prototype. */
   noindex?: boolean;

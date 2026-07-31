@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 /**
  * Rail horizontal : voiles aux deux bouts, flèches pour avancer.
  *
- * Le rail mord sur la gouttière de la page — marges négatives compensées par un
+ * Le rail mord sur la gouttière de la page, marges négatives compensées par un
  * rembourrage égal, de sorte que les cartes s'alignent sur le reste au repos
  * mais courent jusqu'au bord de l'écran quand on fait défiler. **Les voiles
  * partent du même bord**, et c'est là tout l'intérêt : une carte coupée net par
@@ -33,7 +33,7 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
     if (!el) return;
     // Un pixel de marge : les largeurs sont fractionnaires, et `scrollLeft`
     // n'atteint jamais exactement son maximum sur un écran à densité non
-    // entière — la flèche de droite serait restée allumée en bout de course.
+    // entière, la flèche de droite serait restée allumée en bout de course.
     setAGauche(el.scrollLeft > 1);
     setADroite(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
 
@@ -42,7 +42,7 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
       sur un pourcentage de la hauteur du rail.
 
       Un pourcentage ne tient que pour une forme de carte : `34 %` visait le
-      milieu du portrait d'un acteur — image, nom, rôle. Sur le rail des
+      milieu du portrait d'un acteur, image, nom, rôle. Sur le rail des
       parutions, la carte porte une jaquette plus haute et deux lignes de texte,
       et la même fraction tombait au-dessus de l'image. Mesurer libère le
       composant de la forme de ce qu'il transporte.
@@ -67,7 +67,7 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
     // Le contenu du rail change de taille après le montage : les portraits
     // arrivent du réseau, et tant qu'ils ne sont pas là `scrollWidth` peut
     // valoir `clientWidth`. Sans cet observateur, la flèche de droite ne
-    // paraîtrait qu'au premier défilement — c'est-à-dire une fois qu'on a
+    // paraîtrait qu'au premier défilement, c'est-à-dire une fois qu'on a
     // trouvé tout seul qu'il y avait une suite.
     const observateur = new ResizeObserver(mesurer);
     observateur.observe(el);
@@ -130,7 +130,7 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
         <button
           type="button"
           onClick={() => pousser(-1)}
-          aria-label={`${ariaLabel} — précédent`}
+          aria-label={`${ariaLabel}, précédent`}
           className={`${fleche} left-6 sm:left-8 lg:left-12`}
           style={styleFleche}
         >
@@ -141,7 +141,7 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
         <button
           type="button"
           onClick={() => pousser(1)}
-          aria-label={`${ariaLabel} — suivant`}
+          aria-label={`${ariaLabel}, suivant`}
           className={`${fleche} right-6 sm:right-8 lg:right-12`}
           style={styleFleche}
         >

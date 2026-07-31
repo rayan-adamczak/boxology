@@ -8,7 +8,7 @@ import { useSeo } from "../lib/seo";
  * page, et rien entre les deux. Le visiteur ne pouvait pas distinguer une page
  * cassée d'une page vide.
  *
- * Le serveur répond quand même 200 — c'est la contrepartie de la réécriture SPA
+ * Le serveur répond quand même 200, c'est la contrepartie de la réécriture SPA
  * qui permet d'indexer les fiches films (cf. `public/_redirects`). D'où le
  * `noindex` : sans lui, un moteur enregistrerait ces pages comme du contenu
  * légitime au lieu de les écarter.

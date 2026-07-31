@@ -6,7 +6,7 @@ import { clientAuthentifie } from "./supabase";
 /**
  * Collection et envies, rattachées à un compte.
  *
- * Le catalogue se consulte sans compte — c'est ce qui permet aux fiches films
+ * Le catalogue se consulte sans compte, c'est ce qui permet aux fiches films
  * d'être indexées. Mais toute action en demande un : une liste doit appartenir
  * à quelqu'un pour survivre à un vidage de cache et suivre d'un appareil à
  * l'autre.

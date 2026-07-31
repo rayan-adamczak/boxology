@@ -8,7 +8,7 @@ import type { StatutValue } from "./reelio-db";
  * reprendre une fois ce qui existait, à la première connexion
  * (cf. `fusionner` dans lib/collections.ts), puis à l'effacer.
  *
- * À supprimer le jour où plus personne n'a de reliquat — c'est-à-dire jamais
+ * À supprimer le jour où plus personne n'a de reliquat, c'est-à-dire jamais
  * avec certitude, d'où le maintien.
  */
 

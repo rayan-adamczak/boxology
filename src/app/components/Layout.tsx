@@ -25,7 +25,7 @@ export function Layout() {
   /*
    * La barre du bas menait aux écrans du prototype : « Profil » ouvrait
    * /u/steelbook.marcus, un faux profil, et « Envies » /wishlist, des données
-   * factices. Sur mobile, c'était la seule navigation disponible — elle mène
+   * factices. Sur mobile, c'était la seule navigation disponible, elle mène
    * maintenant aux vraies pages.
    */
   const CHEMINS: Record<MobileTab, string> = {
