@@ -20,10 +20,21 @@ import { lienFilm } from "../lib/liens";
  *
  * Les compter à l'exécution coûterait trois requêtes `count` avant le premier
  * pixel, pour une phrase d'accroche. Arrondis par le bas parce qu'ils ne font
- * que croître : « plus de 3 500 films » restera vrai sans qu'on y touche, là où
+ * que croître : « plus de 4 500 films » restera vrai sans qu'on y touche, là où
  * un chiffre exact serait faux dès le prochain import.
+ *
+ * **Le revers, c'est qu'ils vieillissent en silence.** Relevés le 31 juillet
+ * 2026 sur 4 582 films, 8 471 éditions et 5 305 codes-barres, alors que la page
+ * en annonçait encore 3 500, 5 700 et 3 400 : le catalogue avait grossi d'un
+ * tiers sans que l'accroche bouge, et rien ne l'avait signalé. Les relire après
+ * chaque grosse campagne d'import.
+ *
+ * Une ligne pour les recompter :
+ *
+ *     curl -sI -H "apikey: $CLE" -H "Prefer: count=exact" -H "Range: 0-0" \
+ *       "https://<projet>.supabase.co/rest/v1/editions?select=id" | grep -i content-range
  */
-const CATALOGUE = { films: "3 500", editions: "5 700", codesBarres: "3 400" };
+const CATALOGUE = { films: "4 500", editions: "8 400", codesBarres: "5 300" };
 
 const ARGUMENTS_COMPTE = [
   {
@@ -115,7 +126,7 @@ export function BrowsePage() {
       {/*
         Accroche. Une mosaïque d'affiches derrière le texte plutôt qu'un aplat :
         le sujet du site, ce sont les jaquettes, et une page d'accueil qui n'en
-        montre aucune vend mal un catalogue de 5 700 objets.
+        montre aucune vend mal un catalogue de 8 400 objets.
       */}
       <section className="relative overflow-hidden">
         <MosaiqueAffiches editions={dernieres} />
