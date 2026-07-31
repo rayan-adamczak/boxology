@@ -556,7 +556,9 @@ reconnu et la passe rendrait **zéro date sans rien signaler**. Les mois passent
 donc par une table explicite.
 
 **La popularité se rafraîchit toute seule, une fois par semaine.**
-`~/Library/LaunchAgents/app.jaquette.popularite.plist`, lundi 4 h.
+`~/Library/LaunchAgents/app.jaquette.popularite.plist`, **lundi 10 h** — et
+non la nuit : à 4 h la machine dort, launchd remettrait la passe au réveil et
+l'heure inscrite ne serait pas l'heure réelle.
 
     launchctl load   ~/Library/LaunchAgents/app.jaquette.popularite.plist
     launchctl unload ~/Library/LaunchAgents/app.jaquette.popularite.plist
