@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 4 739 lignes
+### `films`, 4 939 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -172,7 +172,7 @@ toujours. Au 31 juillet 2026 la tête de liste est *L'Odyssée* (1 167),
 indéfiniment les succès du jour de l'import, d'où la tâche hebdomadaire
 décrite au §6.
 
-### `editions`, 8 689 lignes
+### `editions`, 8 925 lignes
 `id` (identity **ajoutée en juillet 2026**, elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `formats_extraits` (text[]), `url_source`, `contenu_brut`, `image_url`,
@@ -181,7 +181,7 @@ applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `film_id` (film principal), **`source`**, **`source_id`**.
 
 `source` vaut `editioncollector.fr` (3 193), `bluray.com` (5 278) ou
-`lechatquifume.com` (218).
+`lechatquifume.com` (212) ou `metalunastore.fr` (242).
 
 **`collection_editeur` et `numero_collection`, ajoutées le 1er août 2026.**
 Migration `20260801_collection_editeur.sql`, index sur le couple. La série
@@ -354,16 +354,25 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 4 739 (3 958 films, 716 séries, 2 coffrets) |
-| Éditions | 8 689 |
+| Films | 4 939 (4 217 films, 720 séries, 2 coffrets) |
+| Éditions | 8 925 |
 | Codes-barres | 5 383 |
-| Éditions rattachées | 8 093 (93,1 %) |
-| Éditions sans film | 596 |
-| Éditions avec visuel | 8 657 (99,6 %) |
-| URL au sitemap | 5 180 |
+| Éditions rattachées | 8 325 (93,3 %) |
+| Éditions sans film | 600 |
+| Éditions avec visuel | 8 893 (99,6 %) |
+| URL au sitemap | 5 446 |
 
-Au 1er août 2026, après l'import du Chat qui fume : +131 films, +218 éditions,
-puis +63 films et +66 liens à la relecture par contrôle de durée.
+**Trois sources sont entrées le 1er août 2026**, +454 éditions et +377 films :
+
+| source | éditions | rattachées | visuels sur R2 |
+|---|---|---|---|
+| Le Chat qui fume | 212 | 197 (93 %) | 473 |
+| Make My Day! (Metaluna) | 94 | 86 (91 %) | 97 |
+| Artus Films (Metaluna) | 148 | 114 (77 %) | 155 |
+
+Artus est nettement plus bas, et la raison est mesurée : **TMDB ne publie pas
+de `runtime` sur ce bis italien et espagnol**, donc le contrôle par durée,
+le plus rentable ailleurs, n'a rien à mordre. Le réalisateur a pris le relais.
 
 `editions.film_id` est `null` sur 858 lignes, ce qui ne veut plus rien dire :
 la colonne est un vestige, le rattachement vit dans `edition_films`. Compter
@@ -547,6 +556,62 @@ Cinq produits n'ont aucune image et aucune fiche : ce sont des titres à
 paraître. `enum_chat.py` **fusionne** au lieu d'écraser, une repasse les
 récupérera.
 
+### metalunastore.fr, 242 éditions, 1er août 2026
+
+Revendeur, pas éditeur, et c'est ce qui le rend utile : **il liste des
+catalogues d'éditeurs entiers** que ces éditeurs ne vendent pas eux-mêmes.
+Studiocanal n'a pas de boutique, Artus Films non plus.
+
+Shopify, donc le même endpoint que Le Chat qui fume, plus
+`/collections.json?limit=250` qui énumère les **154 collections**. Leur
+`robots.txt` ne vise nommément aucun agent.
+
+| collection | produits | état |
+|---|---|---|
+| Make My Day! | 94 | importée |
+| Artus Films | 148 | importée |
+| Criterion | 338 | marché US, région A |
+| Carlotta, ESC, Rimini, Elephant, Sidonis, Potemkine, Extralucid | 1 284 | déclarées, jamais collectées |
+
+**`store.potemkine.fr` a été écarté** pour le même besoin : leur `robots.txt`
+met `ClaudeBot` en `Disallow: /`, comme blu-ray.com et dvdfr.
+
+**Toutes les fiches suivent le même gabarit**, saisi par les mêmes gens, d'où
+des scripts paramétrés et non un jeu par éditeur :
+
+    Titre (année)
+    de Réalisateur
+    Éditeur - 16 juin 2026
+    Titre Original :
+    Durée : 243' ( 4h03 )
+    Format : Combo Blu-ray + DVD
+    Zone : B
+    Genre : Drame
+
+Couverture typique : réalisateur 99 %, durée 96 à 99 %, visuel 100 %. C'est la
+**meilleure source du catalogue pour le rattachement**, parce qu'elle donne
+d'emblée les deux mesures indépendantes qui valident un lien.
+
+**`editeur` est déclaré dans `collectes.py`, jamais parsé.** La collection le
+dit déjà, et le lire dans la fiche produisait `de Jess Franco Artus Films` :
+quand réalisateur et éditeur tiennent sur une même ligne, un motif qui remonte
+jusqu'au tiret avale les deux. Six lignes sur 148 étaient fausses.
+
+**La durée s'écrit de deux façons**, `94 min` et `104' ( 1h44 )`, et n'en
+connaître qu'une la fait passer pour absente : mesurée à 2 % avant correction,
+99 % après.
+
+**Le `sku` vaut `FILM` partout, il n'y a aucun EAN.** Le rapprochement avec
+l'existant se fait donc sur `(source, source_id)` seulement : idempotent, mais
+incapable de repérer un même disque déjà importé d'une autre source.
+
+**Une fiche peut décrire un autre film que celui qu'elle vend.** `Navajeros`
+d'Artus porte la description d'`El diputado`, deux films d'Eloy de la Iglesia.
+Le nom du produit prime donc sur celui de la description.
+
+Le **spine number** de Criterion, imprimé sur la tranche depuis 1984, n'est
+pas publié par Metaluna : relevé sur 60 fiches, aucune ne le porte.
+
 ### TMDB
 Métadonnées films et séries. Rattachement par titre **et année**.
 
@@ -583,6 +648,29 @@ retournée (cf. §10).
 ---
 
 ## 6. Scripts (`~/Documents/jaquette-scraping/`)
+
+### Metaluna (`metaluna/`, 2026-08-01)
+
+**Paramétrés par collection**, une seule chaîne pour 154 catalogues :
+
+    python3 enum_metaluna.py artus-films
+    python3 tri_metaluna.py artus-films
+    python3 resoudre_metaluna.py artus-films
+    python3 miroir_metaluna.py artus-films --apply
+    python3 ecrire_metaluna.py artus-films --apply
+
+| Fichier | Rôle |
+|---|---|
+| `collectes.py` | Table des collections : handle, éditeur, série numérotée |
+| `enum_metaluna.py` | Énumère le JSON Shopify, **fusionne** |
+| `tri_metaluna.py` | Relit le gabarit de fiche, mesure la couverture |
+| `resoudre_metaluna.py` | TMDB **et contrôle**, en une seule passe |
+| `miroir_metaluna.py` | Jaquettes vers `metaluna/<collection>/` sur R2 |
+| `ecrire_metaluna.py` | Films, éditions et liens (`--apply`) |
+
+**Une seule passe de résolution, contrôle compris**, là où Le Chat qui fume en
+a demandé deux : la source donne réalisateur et durée dès la première
+recherche, donc il n'y a pas à revenir plus tard chercher de quoi valider.
 
 ### Le Chat qui fume (`chat_qui_fume/`, 2026-08-01)
 
@@ -788,7 +876,7 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   Function les ajoute par fiche au lieu de les modifier, en se raccrochant à
   `og:site_name`, une balise qui existe à coup sûr.
 - **`sitemap.xml`** généré au build par `scripts/generer-sitemap.mjs` depuis la
-  base. **5 180 URL** au 1er août 2026, contre 5 072 la veille et 2 105 avant
+  base. **5 446 URL** au 1er août 2026, contre 5 072 la veille et 2 105 avant
   les campagnes de rattachement du 30 juillet 2026. Seuls les films
   rattachés à une édition y figurent, en **adresse canonique avec slug**. Le
   script casse le build s'il ne trouve aucun film, et aussi si `films.slug`
@@ -1016,7 +1104,7 @@ une recherche.
 
 ### Pages de regroupement, en place le 31 juillet 2026
 
-75 pages : `/formats`, `/editeurs`, `/genres` et leurs 72 entrées.
+78 pages : `/formats`, `/editeurs`, `/genres` et leurs 75 entrées.
 
 **Elles existent d'abord pour le crawl, pas pour la requête.** La profondeur de
 clic du site était : accueil, 50 films, mur. Le reste du catalogue n'existait
@@ -1032,8 +1120,8 @@ contenu mince, c'est-à-dire l'erreur qu'on vient d'écarter sur les éditions :
 
 | axe | pages | tête |
 |---|---|---|
-| format | 9 | Blu-ray 5 572, Blu-ray 4K 2 611, Steelbook 1 766 |
-| éditeur | 40 | Warner 310, Studio Canal 155, Carlotta 52 |
+| format | 9 | Blu-ray 5 950, Blu-ray 4K 2 632, Steelbook 1 766 |
+| éditeur | 43 | Warner 310, Studio Canal 249, Le Chat qui fume 182, Artus Films 152 |
 | genre | 23 | Drame 1 863 |
 
 Le seuil écarte aussi le bruit de saisie sans qu'on ait à le lister : `4K Ultra
@@ -1097,8 +1185,8 @@ illustrées, et c'est la première page d'éditeur à montrer des boîtiers.
 #### Pagination, en place le 31 juillet 2026
 
 `/formats/blu-ray` couvre ses **93 pages**, `/genres/horreur` ses 10. Le sitemap
-passe de 4 661 à **5 072 URL**, dont 411 pages suivantes, puis 5 180 après
-l'import du Chat qui fume.
+passe de 4 661 à **5 072 URL**, dont 411 pages suivantes, puis 5 446 après les
+trois imports du 1er août 2026.
 
 **Un quatrième axe `/collections` a été écarté le 1er août 2026**, alors même
 que `collection_editeur` venait d'être remplie. Il n'aurait porté qu'une seule
@@ -1874,6 +1962,36 @@ Documentés parce qu'ils se reproduiront.
   **saison**. `Rent-A-Girlfriend - Saison 2` annonce 2022 alors que la série
   commence en 2020, et le rattachement était juste. C'est la règle déjà notée
   plus haut, l'année d'un bandeau est un plafond pour une série, pas un filtre.
+- **Un contrôle par réalisateur ne vaut que sur un titre exact.** Sur un
+  rapprochement approchant, il valide n'importe quel film d'un réalisateur
+  prolifique : `Navajeros` (1980) s'est rattaché à `El diputado` (1978), tous
+  deux d'Eloy de la Iglesia, parce que le titre n'était qu'un repli sans
+  article. La durée, elle, reste recevable sur un repli : elle ne dépend pas
+  du titre.
+- **Comparer deux noms de réalisateur exige de la souplesse.** `Jess Franco`
+  et `Jesús Franco` sont le même homme, les catalogues français créditant le
+  pseudonyme et TMDB l'état civil. Comparer le nom de famille et l'initiale du
+  prénom suffit, et ce contrôle ne servant jamais seul, le risque d'homonymie
+  est couvert par l'exigence de titre exact.
+- **L'année du boîtier est souvent la sortie française, pas la production.**
+  `Eolomea` est annoncé 1976 pour un film de 1972, `Les Démons` 1978 pour
+  1973, avec dans les deux cas la durée exacte et le bon réalisateur. Un écart
+  d'années ne suffit donc pas à douter quand une mesure indépendante concorde.
+- **Distinguer l'homonyme du doute, au lieu de tout envoyer en relecture.**
+  Quand aucun contrôle ne confirme **et** que l'année diverge de plus de trois
+  ans, ce n'est pas un cas à relire, c'est une erreur : `Le Prêtre` d'Eloy de
+  la Iglesia (1978) tombait sur un film de 2021, `Danse macabre` de Margheriti
+  (1964) sur vingt minutes de 2023. Sur Artus Films, ce seul tri a ramené la
+  file de relecture de 17 à 2.
+- **Le nom du produit prime sur celui de la description.** Une fiche marchande
+  peut décrire un autre film que celui qu'elle vend, par copier-coller.
+- **Le signal du tri d'images change d'une boutique à l'autre, et se vérifie.**
+  Chez Le Chat qui fume le nom de fichier dit vrai (`IMAGEGRAB`) et
+  l'orientation trompe, le packshot étant carré. Chez Metaluna c'est l'inverse :
+  deux jaquettes s'appellent `Capture d'écran 2026-07-20 à 09.11.38.png`, le
+  gestionnaire ayant photographié son écran, et un filtre par nom les refusait
+  alors que c'était l'unique image du produit. **Trier sur ce qui se mesure,
+  pas sur ce qui se lit.**
 - **La durée du disque est une mesure indépendante, et la plus rentable du
   1er août 2026.** Le boîtier l'imprime (`1h28`), TMDB publie son `runtime` :
   les comparer ne rejoue pas notre rapprochement, ça le confronte à un chiffre
@@ -2083,6 +2201,11 @@ Ce qui a évité le plus d'erreurs :
 - Éditeur non professionnel (LCEN art. 6), **à compléter dès que le site
   devient commercial**
 - Attribution TMDB en pied de page (exigée par leur licence)
+- **Les visuels relevés chez Metaluna sont repris depuis le 1er août 2026**,
+  252 jaquettes. Ce sont les visuels des éditeurs, Studiocanal, Artus Films,
+  que Metaluna revend : le revendeur n'en est pas l'ayant droit, et `editeur`
+  en base porte l'éditeur réel, jamais son nom. Même raisonnement que
+  ci-dessous, et à réexaminer aux mêmes conditions.
 - **Les visuels du Chat qui fume sont repris depuis le 1er août 2026**, 473
   packshots de boîtier miroités sur R2. Même raisonnement que pour blu-ray.com
   ci-dessous : ce sont des visuels d'éditeur, et l'usage vise l'affiliation,
