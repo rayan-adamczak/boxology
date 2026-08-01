@@ -236,6 +236,38 @@ export interface EditionWithFilm extends Edition {
 /* ---- Films ---- */
 
 /**
+ * Filtre de recherche : sur le titre **et** sur le slug.
+ *
+ * Chercher « Mission impossible » ne rendait rien, alors que le catalogue
+ * porte neuf films de la saga : ils s'appellent `Mission : Impossible`, avec
+ * deux-points et espaces, et un `ilike` sur la chaîne saisie ne peut pas
+ * l'atteindre. Même mur sur `Star Wars : L'Ascension de Skywalker` ou
+ * `S.O.S. Fantômes`, c'est-à-dire sur toute la ponctuation interne.
+ *
+ * Le slug est déjà la forme normalisée du titre, accents repliés et
+ * ponctuation ramenée au tiret : `mission-impossible-1996`. Slugifier ce que
+ * l'utilisateur tape le rapproche donc sans rien ajouter en base.
+ *
+ * Les deux critères sont gardés, pas un seul : 16 films à titre non latin
+ * (japonais, chinois, hébreu, coréen) n'ont pas de slug du tout, et seul le
+ * titre permet de les trouver.
+ */
+function filtreRecherche(terme: string): string {
+  // La valeur passe dans une liste séparée par des virgules : une virgule ou
+  // une parenthèse dans la saisie casserait la syntaxe du filtre. Les
+  // guillemets la protègent, et les guillemets internes sont retirés.
+  const litteral = `"%${terme.replace(/"/g, "")}%"`;
+  const slug = terme
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const criteres = [`titre.ilike.${litteral}`];
+  if (slug) criteres.push(`slug.ilike."%${slug}%"`);
+  return criteres.join(",");
+}
+
+/**
  * Recherche par titre, ou catalogue par défaut quand la requête est vide.
  *
  * **Le classement par défaut est la popularité TMDB, pas l'ordre alphabétique.**
@@ -256,7 +288,7 @@ export async function searchFilms(query: string): Promise<Film[]> {
   const terme = query.trim();
   let req = supabase.from("films").select("*").limit(50);
   req = terme
-    ? req.ilike("titre", `%${terme}%`).order("titre", { ascending: true })
+    ? req.or(filtreRecherche(terme)).order("titre", { ascending: true })
     : req.order("popularite", { ascending: false, nullsFirst: false });
   const { data, error } = await req;
   if (error) throw new Error(`Erreur lors de la recherche de films: ${error.message}`);
