@@ -1440,9 +1440,32 @@ badges mais qu'**une seule forme servait à tout** : genres, acteurs, formats,
 zones, filtres, tous la même capsule. L'œil ne pouvait plus distinguer ce qui se
 clique de ce qui se lit.
 
-**Règle : la capsule est réservée à ce qui se clique.** Les filtres de format la
-gardent ; genres, distribution et métadonnées d'édition sont du texte à points
-médians. Ne pas la réintroduire pour décorer.
+**Règle, révisée le 1er août 2026 : la capsule dit une propriété relevée à la
+source, pas seulement ce qui se clique.**
+
+La règle d'origine réservait la capsule au cliquable, et rangeait genres,
+distribution et métadonnées d'édition en texte à points médians. Elle a tenu un
+jour et demi, puis les lignes d'édition sont repassées en badges : format, zone,
+pays. Ce n'est pas un revirement de goût, c'est que la règle visait mal.
+
+**Ce qui faisait « IA », c'était une forme unique pour des natures différentes**,
+pas la capsule elle-même. Or `Blu-ray 4K`, `Zone B` et `France` sont bien de même
+nature, trois valeurs discrètes tirées d'un champ de la source, et la capsule les
+sépare mieux qu'un point médian, qui les fond en une phrase.
+
+Ce qui reste en texte, et pourquoi :
+
+| | |
+|---|---|
+| année de parution | c'est une date, pas une propriété du disque |
+| code-barres | valeur unique, on la lit chiffre à chiffre |
+| genres, distribution | appartiennent à l'œuvre, pas à l'édition |
+
+**Le risque assumé** est que les badges d'une ligne d'édition tombent sous la
+rangée de filtres de format, qui a la même forme et se clique, elle. Ils sont
+donc plus petits, 12 px contre 13, et sans état de survol. Si la confusion se
+voit à l'usage, c'est le filtre qu'il faudra changer, lui seul ayant un état
+actif à montrer.
 
 **Typographie.** Bricolage Grotesque (`--reel-font-titre`) sur les titres et le
 mot-symbole, Inter pour le corps ; une grotesque à fort caractère fatigue sur un
