@@ -1,49 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-/** Flèche posée sur la colonne, 12 px après le début du contenu. */
-const DECALAGE_FLECHE = "calc(var(--reel-marge) + 12px)";
+/** Flèches posées sur la rangée, 12 px après chaque bord de la colonne. */
+const DECALAGE_FLECHE = 12;
 
-/*
-  Le voile tient **dans la marge et n'entre pas dans la colonne**.
-
-  Deux réglages ont échoué avant celui-ci. Un plateau opaque poussé jusqu'à
-  `marge + 68` éteignait la rangée d'un bloc, on voyait le voile lui-même. Un
-  fondu dilué sur 180 px à l'intérieur de la colonne a fait l'inverse : la
-  première jaquette traînait en fantôme au milieu du cadre, à moitié visible.
-
-  Le voile s'arrête donc exactement là où le contenu commence. Il est plein sur
-  presque toute la marge, relâche sur les 64 derniers pixels et atteint zéro sur
-  la verticale du titre. Rien ne déborde du cadre, et rien de ce qui est dans le
-  cadre n'est assombri.
-
-  Sous `lg` la marge ne fait que 16 ou 24 px, trop peu pour un fondu : la
-  largeur passe alors par un plancher de 56 px, et le voile mord sur le contenu,
-  faute de marge où tenir. C'est le cas où la rangée touche de toute façon le
-  bord de l'écran.
-
-  La flèche n'a plus de plateau derrière elle et n'en a pas besoin : elle porte
-  son propre fond plein, sa bordure et son ombre.
-*/
-const LARGEUR_VOILE = "max(var(--reel-marge), 56px)";
-const FIN_PLATEAU = "max(0px, calc(var(--reel-marge) - 64px))";
 
 /**
- * Distance de défilement sur laquelle voile et flèche montent de 0 à 1.
+ * Distance de défilement sur laquelle la flèche monte de 0 à 1.
  *
- * Ils apparaissaient d'un coup, sur un simple `scrollLeft > 1` : un pixel de
- * défilement faisait surgir un disque de 44 px et un voile de 456. La course
- * les fait monter avec le geste.
+ * Elle apparaissait d'un coup, sur un simple `scrollLeft > 1` : un pixel de
+ * défilement faisait surgir un disque de 44 px. La course la fait monter avec
+ * le geste.
  *
- * Deux valeurs ont été écartées. **140 px**, soit à peu près une carte, laissait
- * le voile au tiers alors que la première jaquette était déjà entrée dans la
- * marge : la carte se voyait en clair hors de la colonne et la flèche posée
- * dessus était presque transparente. **40 px** réglait ça mais se lisait comme
- * un déclic, un cran de molette faisant tout le trajet en une image.
- *
- * 90 px avec une sortie douce tient les deux bouts : la moitié de l'opacité est
- * gagnée dans les 26 premiers pixels, donc rien ne traîne à découvert, et le
- * dernier quart s'étale sur 30 px, donc rien ne claque.
+ * 40 px se lisait comme un déclic, un cran de molette faisant tout le trajet en
+ * une image. 90 px avec une sortie douce laisse le geste s'entendre sans que
+ * rien ne claque.
  */
 const COURSE_APPARITION = 90;
 
@@ -59,37 +30,26 @@ const adoucir = (t: number) => 1 - (1 - t) ** 2;
 /**
  * Rail horizontal : une rangée qui défile, deux flèches pour avancer.
  *
- * **La rangée va jusqu'au bord de l'écran, pas jusqu'à la colonne.** Le rail
- * sort de la gouttière et couvre toute la fenêtre (`.reel-rail` dans
- * `theme.css`), puis remet la marge de la page en rembourrage à l'intérieur,
- * de sorte que la première carte tombe quand même sur la verticale du titre.
+ * **La rangée tient dans la colonne, des deux côtés.** Les cartes sont donc
+ * tranchées net sur la verticale du titre à gauche comme à droite, et rien ne
+ * passe dans la marge.
  *
- * Le contraire a été essayé, rail arrêté sur la colonne : une jaquette tranchée
- * net au milieu de la page se lit comme un défaut d'affichage. La même jaquette
- * qui s'efface au bord de l'écran se lit comme une suite, et c'est tout l'objet
- * des voiles.
+ * Le débordement a été essayé, d'abord des deux côtés puis à droite seulement,
+ * avec un voile dégradé pour éteindre ce qui sortait. Aucune des deux variantes
+ * ne tient : la marge est vide parce que la page est alignée dessus, et une
+ * jaquette qui l'occupe, même à demi effacée, se lit comme une fuite. Le voile
+ * lui-même posait le problème inverse dès qu'il mordait vers l'intérieur, en
+ * laissant une carte fantôme au milieu du cadre.
  *
- * **Les flèches se posent sur les jaquettes, sur ce voile.** Elles ont été
- * essayées dans la marge, une fois celle-ci devenue assez large : rien ne les
- * recouvrait plus, mais elles s'éloignaient de la rangée qu'elles commandent et
- * le voile disparaissait avec elles. Le voile n'est donc pas seulement un
- * signal de continuité, il est le fond de la flèche : sans lui le chevron se
- * découpe sur une jaquette imprimée et devient illisible.
+ * Il n'y a donc plus de voile du tout. La flèche porte son propre fond plein,
+ * sa bordure et son ombre, elle n'a jamais eu besoin d'autre chose pour se
+ * détacher d'une jaquette imprimée.
  *
- * D'où les mesures ci-dessous, toutes tirées de `--reel-marge`, la marge de page
- * posée par `.reel-rail`. Elles doivent bouger ensemble : une valeur en dur
- * s'est déjà retrouvée plus étroite que la flèche, laissant reparaître la
- * jaquette sous le chevron.
- *
- * **Voile et flèche montent avec le défilement**, de 0 à 1 sur `COURSE_APPARITION`
- * et non d'un coup au premier pixel. Ils ne paraissent donc que du côté où il
- * reste quelque chose, et à la mesure de ce qui reste. Une flèche qui ne fait
- * rien est pire que pas de flèche.
- *
- * `pointer-events-none` sur les voiles : sans lui, ils intercepteraient le
- * glissement au doigt précisément à l'endroit où l'on attrape le rail.
+ * **Flèche et opacité montent avec le défilement**, de 0 à 1 sur
+ * `COURSE_APPARITION` et non d'un coup au premier pixel. Elles ne paraissent
+ * donc que du côté où il reste quelque chose, et à la mesure de ce qui reste.
+ * Une flèche qui ne fait rien est pire que pas de flèche.
  */
-
 export function RailHorizontal({ children, ariaLabel }: { children: React.ReactNode; ariaLabel: string }) {
   const rail = useRef<HTMLDivElement | null>(null);
   /** Avancement de l'apparition, de 0 à 1, de chaque côté. */
@@ -177,32 +137,14 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
   };
 
   return (
-    <div className="reel-rail relative">
+    <div className="relative">
       <div
         ref={rail}
-        className="reel-rail-piste flex gap-4 overflow-x-auto pt-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex gap-4 overflow-x-auto pt-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {children}
       </div>
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 transition-opacity duration-200 ease-out"
-        style={{
-          opacity: aGauche,
-          width: LARGEUR_VOILE,
-          background: `linear-gradient(to right, var(--reel-bg) 0, var(--reel-bg) ${FIN_PLATEAU}, transparent 100%)`,
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 transition-opacity duration-200 ease-out"
-        style={{
-          opacity: aDroite,
-          width: LARGEUR_VOILE,
-          background: `linear-gradient(to left, var(--reel-bg) 0, var(--reel-bg) ${FIN_PLATEAU}, transparent 100%)`,
-        }}
-      />
 
       {aGauche > 0.01 && (
         <button
