@@ -3,10 +3,33 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 /** Flèche posée sur la colonne, 12 px après le début du contenu. */
 const DECALAGE_FLECHE = "calc(var(--reel-marge) + 12px)";
-/** Le voile part du bord de l'écran et doit dépasser la flèche, qui finit à
- *  `--reel-marge + 56`. Le plateau opaque est donc calé au-delà. */
-const FIN_PLATEAU = "calc(var(--reel-marge) + 68px)";
-const LARGEUR_VOILE = "calc(var(--reel-marge) + 128px)";
+
+/*
+  Le voile est opaque sur la seule marge de page, puis se dilue sur 180 px à
+  l'intérieur de la colonne.
+
+  Le plateau couvrait auparavant la flèche entière, jusqu'à `marge + 68` : la
+  rangée s'éteignait d'un coup et le voile se voyait comme un bloc posé sur la
+  page. Il n'a en fait pas besoin d'aller si loin, la flèche portant son propre
+  fond plein, sa bordure et son ombre. Ce qu'il doit faire, c'est éteindre ce
+  qui se trouve dans la marge, là où plus rien n'est aligné sur la page, et
+  relâcher doucement ensuite.
+*/
+const FIN_PLATEAU = "var(--reel-marge)";
+const LARGEUR_VOILE = "calc(var(--reel-marge) + 180px)";
+
+/**
+ * Distance de défilement sur laquelle voile et flèche montent de 0 à 1.
+ *
+ * Ils apparaissaient d'un coup, sur un simple `scrollLeft > 1` : un pixel de
+ * défilement faisait surgir un disque de 44 px et un voile de 300. La course
+ * les fait maintenant monter avec le geste.
+ *
+ * 140 px, soit à peu près une carte : le voile est plein quand la première
+ * jaquette est entrée dans la marge, c'est-à-dire quand il a quelque chose à
+ * cacher.
+ */
+const COURSE_APPARITION = 140;
 
 /**
  * Rail horizontal : une rangée qui défile, deux flèches pour avancer.
@@ -28,13 +51,15 @@ const LARGEUR_VOILE = "calc(var(--reel-marge) + 128px)";
  * signal de continuité, il est le fond de la flèche : sans lui le chevron se
  * découpe sur une jaquette imprimée et devient illisible.
  *
- * D'où les trois mesures ci-dessous, toutes tirées de `--reel-marge`, la marge
- * de page posée par `.reel-rail`. Elles doivent bouger ensemble : un voile plus
- * étroit que la flèche laisse reparaître la jaquette sous le chevron, ce qui
- * s'est produit avec une valeur en dur.
+ * D'où les mesures ci-dessous, toutes tirées de `--reel-marge`, la marge de page
+ * posée par `.reel-rail`. Elles doivent bouger ensemble : une valeur en dur
+ * s'est déjà retrouvée plus étroite que la flèche, laissant reparaître la
+ * jaquette sous le chevron.
  *
- * Les voiles et les flèches ne paraissent que du côté où il reste quelque
- * chose. Une flèche qui ne fait rien est pire que pas de flèche.
+ * **Voile et flèche montent avec le défilement**, de 0 à 1 sur `COURSE_APPARITION`
+ * et non d'un coup au premier pixel. Ils ne paraissent donc que du côté où il
+ * reste quelque chose, et à la mesure de ce qui reste. Une flèche qui ne fait
+ * rien est pire que pas de flèche.
  *
  * `pointer-events-none` sur les voiles : sans lui, ils intercepteraient le
  * glissement au doigt précisément à l'endroit où l'on attrape le rail.
@@ -42,19 +67,26 @@ const LARGEUR_VOILE = "calc(var(--reel-marge) + 128px)";
 
 export function RailHorizontal({ children, ariaLabel }: { children: React.ReactNode; ariaLabel: string }) {
   const rail = useRef<HTMLDivElement | null>(null);
-  const [aGauche, setAGauche] = useState(false);
-  const [aDroite, setADroite] = useState(false);
+  /** Avancement de l'apparition, de 0 à 1, de chaque côté. */
+  const [aGauche, setAGauche] = useState(0);
+  const [aDroite, setADroite] = useState(0);
   /** Milieu de la vignette, en pixels depuis le haut du rail. */
   const [centreVignette, setCentreVignette] = useState<number | null>(null);
 
   const mesurer = () => {
     const el = rail.current;
     if (!el) return;
-    // Un pixel de marge : les largeurs sont fractionnaires, et `scrollLeft`
-    // n'atteint jamais exactement son maximum sur un écran à densité non
-    // entière, la flèche de droite serait restée allumée en bout de course.
-    setAGauche(el.scrollLeft > 1);
-    setADroite(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    /*
+      Un pixel de marge sur le reste : les largeurs sont fractionnaires, et
+      `scrollLeft` n'atteint jamais exactement son maximum sur un écran à
+      densité non entière, la flèche de droite serait restée allumée en bout de
+      course. Le `max(0, ...)` s'en charge, et la division par la course donne
+      l'avancement.
+    */
+    const reste = el.scrollWidth - el.clientWidth - el.scrollLeft;
+    const part = (x: number) => Math.min(1, Math.max(0, x - 1) / COURSE_APPARITION);
+    setAGauche(part(el.scrollLeft));
+    setADroite(part(reste));
 
     /*
       Les flèches se centrent sur l'image de la première carte, mesurée, et non
@@ -130,41 +162,41 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
 
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 transition-opacity"
+        className="pointer-events-none absolute inset-y-0 left-0"
         style={{
-          opacity: aGauche ? 1 : 0,
+          opacity: aGauche,
           width: LARGEUR_VOILE,
           background: `linear-gradient(to right, var(--reel-bg) 0, var(--reel-bg) ${FIN_PLATEAU}, transparent 100%)`,
         }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 transition-opacity"
+        className="pointer-events-none absolute inset-y-0 right-0"
         style={{
-          opacity: aDroite ? 1 : 0,
+          opacity: aDroite,
           width: LARGEUR_VOILE,
           background: `linear-gradient(to left, var(--reel-bg) 0, var(--reel-bg) ${FIN_PLATEAU}, transparent 100%)`,
         }}
       />
 
-      {aGauche && (
+      {aGauche > 0.01 && (
         <button
           type="button"
           onClick={() => pousser(-1)}
           aria-label={`${ariaLabel}, précédent`}
           className={fleche}
-          style={{ ...styleFleche, left: DECALAGE_FLECHE }}
+          style={{ ...styleFleche, left: DECALAGE_FLECHE, opacity: aGauche }}
         >
           <ChevronLeft size={20} color="var(--reel-text)" />
         </button>
       )}
-      {aDroite && (
+      {aDroite > 0.01 && (
         <button
           type="button"
           onClick={() => pousser(1)}
           aria-label={`${ariaLabel}, suivant`}
           className={fleche}
-          style={{ ...styleFleche, right: DECALAGE_FLECHE }}
+          style={{ ...styleFleche, right: DECALAGE_FLECHE, opacity: aDroite }}
         >
           <ChevronRight size={20} color="var(--reel-text)" />
         </button>
