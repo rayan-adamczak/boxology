@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 4 553 lignes
+### `films`, 4 556 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -318,7 +318,7 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 4 553 (3 845 films, 706 séries, 2 coffrets) |
+| Films | 4 556 (3 846 films, 708 séries, 2 coffrets) |
 | Éditions | 8 471 |
 | Codes-barres | 4 930 |
 | Éditions rattachées | 7 899 (93,2 %) |
@@ -1613,6 +1613,20 @@ Documentés parce qu'ils se reproduiront.
   **Le cas d'origine n'a été vu que par un humain regardant la page.** Ni la
   date, l'homonyme étant postérieur, ni le réalisateur, nommé dans une fiche sur
   trois, ne l'auraient signalé.
+- **Le bandeau blu-ray.com donne l'année de l'œuvre portée par le disque**, et
+  c'est le seul contrôle qui compare notre rattachement à une mesure
+  **indépendante** plutôt qu'à nos propres données. Passé sur les 125 films à
+  homonyme absent, il tranche seul : trois contaminés, cent vingt-deux sains.
+
+      Women's Revenge, coffret 3 films  bandeau 1972  -> Craven, pas le remake 2009
+      The Stand                         bandeau 2020  -> la minisérie de 2020
+      Les Revenants, saisons 1-2        bandeau 2012  -> la série française, pas
+                                                         le remake de Carlton Cuse
+
+  Un faux positif à connaître : sur une série, le bandeau porte l'année de la
+  **saison**. `Rent-A-Girlfriend - Saison 2` annonce 2022 alors que la série
+  commence en 2020, et le rattachement était juste. C'est la règle déjà notée
+  plus haut, l'année d'un bandeau est un plafond pour une série, pas un filtre.
 - **`Terminator 2` (1989) est un décalque italien de Bruno Mattei.** Deux
   éditions editioncollector y étaient rattachées au lieu du film de Cameron
   (1991), le titre d'exploitation français du décalque usurpe le sien.
