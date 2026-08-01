@@ -262,10 +262,10 @@ function CarteActeur({ membre, onClick }: { membre: CastMember; onClick: () => v
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col gap-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] rounded-[10px]"
+      className="group flex flex-col gap-2 rounded-[10px] text-left outline-none"
     >
       <span
-        className="relative block w-full overflow-hidden rounded-[10px] ring-1 ring-transparent transition group-hover:ring-[var(--reel-accent-clair)]"
+        className="relative block w-full overflow-hidden rounded-[10px]"
         style={{ aspectRatio: "2 / 3", backgroundColor: "var(--reel-surface)" }}
       >
         {membre.photo ? (
@@ -281,6 +281,26 @@ function CarteActeur({ membre, onClick }: { membre: CastMember; onClick: () => v
             <UserAvatar name={membre.nom} size={48} />
           </span>
         )}
+
+        {/*
+          Le contour du survol et du focus est **dessiné à l'intérieur** de la
+          vignette, par une couche posée par-dessus l'image, et non par un `ring`
+          sur le bouton.
+
+          Un `ring` se peint hors de la boîte. Le rail ayant perdu son
+          rembourrage horizontal le jour où la gouttière est devenue
+          proportionnelle, la première carte touche le bord du scrollport, et
+          `overflow-x: auto` rogne tout ce qui dépasse : le contour sortait
+          tronqué sur le premier et le dernier acteur, avec des coins coupés net.
+
+          Le focus passe par `group-focus-visible` pour la même raison, et parce
+          que deux contours, un sur le bouton et un sur la vignette, en font un
+          de trop.
+        */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-[10px] ring-1 ring-inset ring-transparent transition group-hover:ring-[var(--reel-accent-clair)] group-focus-visible:ring-2 group-focus-visible:ring-[var(--reel-accent-clair)]"
+        />
       </span>
       {/* La couleur passe par une classe et non par `style` : une couleur en
           ligne l'emporte sur toute règle CSS, y compris sur le survol. */}
