@@ -5,18 +5,28 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 const DECALAGE_FLECHE = "calc(var(--reel-marge) + 12px)";
 
 /*
-  Le voile est opaque sur la seule marge de page, puis se dilue sur 180 px à
-  l'intérieur de la colonne.
+  Le voile tient **dans la marge et n'entre pas dans la colonne**.
 
-  Le plateau couvrait auparavant la flèche entière, jusqu'à `marge + 68` : la
-  rangée s'éteignait d'un coup et le voile se voyait comme un bloc posé sur la
-  page. Il n'a en fait pas besoin d'aller si loin, la flèche portant son propre
-  fond plein, sa bordure et son ombre. Ce qu'il doit faire, c'est éteindre ce
-  qui se trouve dans la marge, là où plus rien n'est aligné sur la page, et
-  relâcher doucement ensuite.
+  Deux réglages ont échoué avant celui-ci. Un plateau opaque poussé jusqu'à
+  `marge + 68` éteignait la rangée d'un bloc, on voyait le voile lui-même. Un
+  fondu dilué sur 180 px à l'intérieur de la colonne a fait l'inverse : la
+  première jaquette traînait en fantôme au milieu du cadre, à moitié visible.
+
+  Le voile s'arrête donc exactement là où le contenu commence. Il est plein sur
+  presque toute la marge, relâche sur les 64 derniers pixels et atteint zéro sur
+  la verticale du titre. Rien ne déborde du cadre, et rien de ce qui est dans le
+  cadre n'est assombri.
+
+  Sous `lg` la marge ne fait que 16 ou 24 px, trop peu pour un fondu : la
+  largeur passe alors par un plancher de 56 px, et le voile mord sur le contenu,
+  faute de marge où tenir. C'est le cas où la rangée touche de toute façon le
+  bord de l'écran.
+
+  La flèche n'a plus de plateau derrière elle et n'en a pas besoin : elle porte
+  son propre fond plein, sa bordure et son ombre.
 */
-const FIN_PLATEAU = "var(--reel-marge)";
-const LARGEUR_VOILE = "calc(var(--reel-marge) + 180px)";
+const LARGEUR_VOILE = "max(var(--reel-marge), 56px)";
+const FIN_PLATEAU = "max(0px, calc(var(--reel-marge) - 64px))";
 
 /**
  * Distance de défilement sur laquelle voile et flèche montent de 0 à 1.
