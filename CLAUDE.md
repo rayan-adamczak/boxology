@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 4 584 lignes
+### `films`, 4 553 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -120,7 +120,8 @@ l'ancienne supprimée du tableau de bord.
 Deux lignes seulement n'ont pas de `tmdb_id`, elles échappent donc à toutes
 les passes d'enrichissement, qui énumèrent `tmdb_id=not.is.null`.
 
-**103 œuvres sans aucune édition ont été supprimées le 31 juillet 2026.**
+**134 œuvres sans aucune édition ont été supprimées le 31 juillet 2026**, en
+deux lots. Les 103 premières :
 C'était le résidu des corrections de genre : quand une édition passe du film
 `Bleach` à la série `Bleach`, la fiche film reste, vide. Un catalogue d'éditions
 physiques n'a rien à faire d'une œuvre qu'aucun disque ne porte, et le sitemap
@@ -128,6 +129,12 @@ ne les listait déjà pas. Sauvegarde complète dans
 `films_supprimes_20260731.json`, c'est le seul retour arrière, la suppression
 en base est définitive. Vérifié avant écriture : aucun lien, aucun
 `editions.film_id`, aucune ligne de `collections` ne les référençait.
+
+Les 31 suivantes sont le miroir exact des 51 liens faux décrits au §9 : des
+fiches TMDB créées uniquement pour porter un rattachement erroné, vidées dès
+que le lien a sauté. C'est ainsi que `Pack`, `CD`, `Complete`, `Impossible` et
+`A4` ont quitté le catalogue. Sauvegarde dans
+`films_supprimes_20260731_lot2.json`.
 
 **`titre` est un instantané pris à l'import, pas un miroir de TMDB.** Réaligné
 le 30 juillet 2026 : 91 des 3 554 films alors en base avaient divergé, 89 réécrits
@@ -311,7 +318,7 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 4 584 (3 870 films, 712 séries, 2 coffrets) |
+| Films | 4 553 (3 845 films, 706 séries, 2 coffrets) |
 | Éditions | 8 471 |
 | Codes-barres | 4 930 |
 | Éditions rattachées | 7 899 (93,2 %) |
