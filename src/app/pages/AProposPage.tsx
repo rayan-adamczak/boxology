@@ -56,7 +56,7 @@ export function AProposPage() {
         Voici ce qu’il fait, ce qu’il ne fait pas, et d’où viennent ses données.
       </p>
 
-      {/* Sommaire. Sur une page de vingt-six questions, arriver par une ancre
+      {/* Sommaire. Sur une page de vingt-neuf questions, arriver par une ancre
           depuis un moteur ou un lien partagé est le cas normal, pas l'exception. */}
       <nav
         className="mt-9 rounded-[12px] px-5 py-4"
