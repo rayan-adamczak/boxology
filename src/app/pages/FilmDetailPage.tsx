@@ -885,8 +885,14 @@ export function FilmDetailPage() {
                 négatives font mordre le rail sur le rembourrage de la page,
                 sans elles, le défilement s'arrêterait avant le bord et laisserait
                 croire qu'il n'y a plus rien.
+
+                Les valeurs doivent rester le miroir exact de `.reel-gouttiere`.
+                À partir de `lg` celle-ci n'a plus de rembourrage, elle pilote la
+                proportion par sa largeur : d'où le retour à zéro. Les `lg:-mx-10
+                lg:px-10` d'avant compensaient un rembourrage disparu, la bande
+                dépassait donc de 40 px dans la marge de chaque côté.
               */
-              <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
                   onClick={() => setFormatFilter(null)}
