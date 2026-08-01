@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 4 576 lignes
+### `films`, 4 545 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -130,7 +130,12 @@ ne les listait déjà pas. Sauvegarde complète dans
 en base est définitive. Vérifié avant écriture : aucun lien, aucun
 `editions.film_id`, aucune ligne de `collections` ne les référençait.
 
-Les 31 suivantes sont le miroir exact des 51 liens faux décrits au §9 : des
+Trente et une de plus le 1er août 2026, vidées par la relecture des liens
+`probable` : c'étaient les documentaires sur Bronson, Bogart ou Pagnol que les
+coffrets à leur nom avaient attirés. Sauvegarde dans
+`films_supprimes_20260801.json`.
+
+Les 31 précédentes sont le miroir exact des 51 liens faux décrits au §9 : des
 fiches TMDB créées uniquement pour porter un rattachement erroné, vidées dès
 que le lien a sauté. C'est ainsi que `Pack`, `CD`, `Complete`, `Impossible` et
 `A4` ont quitté le catalogue. Sauvegarde dans
@@ -220,21 +225,37 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films`, 10 851 liens
+### `edition_films`, 10 801 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
 Répartition : `bluray_page` 2 838, `film_id` 2 619, `bluray_tmdb` 2 484,
-`bluray_page_partiel` 1 678, `corrige_manuel` 657, `probable` 221,
+`bluray_page_partiel` 1 710, `corrige_manuel` 660, `probable` 171,
 `collection_tmdb` 199, `corrige_annee` 68.
 
-10 843 liens pour **7 939 éditions rattachées** : l'écart, ce sont les coffrets,
+10 801 liens pour **7 896 éditions rattachées** : l'écart, ce sont les coffrets,
 qui portent un lien par film.
 
-**`probable` marque les rattachements écrits sans relecture**, le 30 juillet
+**`probable` marquait les rattachements écrits sans relecture**, le 30 juillet
 2026, quand la file d'attente a été vidée d'un coup plutôt que validée ligne à
-ligne. Environ 15 % sont faux d'après les sondages. Ils sont isolables en une
-requête, ce qui permet de les corriger au fil des signalements :
+ligne. Les sondages estimaient 15 % de faux.
+
+**Relus le 1er août 2026 par le bandeau blu-ray.com**, qui donne l'année de
+l'œuvre sur le disque et sert donc de mesure indépendante : 161 confirmés,
+**50 contredits et supprimés**, 10 non mesurables faute de bandeau. Le taux
+réel était donc de 23 %, pas 15.
+
+Le motif est constant et vaut pour la suite : **un coffret au nom propre tombe
+sur un documentaire consacré à cette personne**.
+
+    Charles Bronson, coffret n°2  ->  « Charles Bronson, le génie du mâle » (2020)
+    Humphrey Bogart, 2 films      ->  « Biography: Humphrey Bogart »
+    Coffret Marcel Pagnol         ->  « Marcel Pagnol »
+    Peaky Blinders: Series 4      ->  un film nommé « Series 4 » (1972)
+    The Meg + Meg 2: The Trench   ->  « La Tranchée » (1999)
+
+Les 171 restants portent encore le label, alors qu'ils ont passé ce contrôle :
+il garde la trace de leur origine, pas un doute actuel. Ils restent isolables :
 
     GET /edition_films?source=eq.probable
 
@@ -318,11 +339,11 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 4 576 (3 857 films, 717 séries, 2 coffrets) |
+| Films | 4 545 (3 828 films, 715 séries, 2 coffrets) |
 | Éditions | 8 471 |
 | Codes-barres | 4 930 |
-| Éditions rattachées | 7 946 (93,8 %) |
-| Éditions sans film | 525 |
+| Éditions rattachées | 7 896 (93,2 %) |
+| Éditions sans film | 575 |
 | Éditions avec visuel | 8 443 (99,7 %) |
 | URL au sitemap | 3 349 |
 
