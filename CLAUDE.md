@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 4 570 lignes
+### `films`, 4 576 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -220,7 +220,7 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films`, 10 843 liens
+### `edition_films`, 10 851 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
@@ -318,11 +318,11 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 4 570 (3 851 films, 717 séries, 2 coffrets) |
+| Films | 4 576 (3 857 films, 717 séries, 2 coffrets) |
 | Éditions | 8 471 |
 | Codes-barres | 4 930 |
-| Éditions rattachées | 7 939 (93,7 %) |
-| Éditions sans film | 532 |
+| Éditions rattachées | 7 946 (93,8 %) |
+| Éditions sans film | 525 |
 | Éditions avec visuel | 8 443 (99,7 %) |
 | URL au sitemap | 3 349 |
 
@@ -1492,6 +1492,24 @@ Documentés parce qu'ils se reproduiront.
   tête ne vaut que si la queue retirée nomme un lot d'épisodes : sans cette
   condition, `Puccini: Tosca` devient *Puccini* (1973) et
   `The Fantastic Four: First Steps` la série animée de 1994.
+- **La virgule sépare les titres d'un coffret, mais elle en coupe aussi.**
+  `La Trilogie Marseillaise : Marius, Fanny, César` ne livre sa liste que par
+  elle, et `X-Men - La Prélogie` de même. En retour, `OSS 117 : Le Caire, nid
+  d'espions` se scinde en deux moitiés qui trouvent chacune un film parasite,
+  « Le Caire » (2002, popularité 0,01) et « Nid d'espions » (1943). Les
+  contrôles les arrêtent, mais le découpage ne doit jamais porter sur « et »
+  ni « and » : `Mon Ninja et moi 1 & 2` n'y survit pas.
+- **Un filtre appliqué hors de la chaîne ne tient pas.** Le garde-fou du
+  vocabulaire d'édition avait été passé à la main sur le fichier final ; au
+  premier rejeu, `Edition Limitée` était de retour. Il vit désormais dans
+  `controler.py`, où toutes les passes le traversent.
+- **La popularité écarte des rattachements justes sur les films anciens.**
+  `Beanpole` de Balagov, `City Girl` de Murnau, `La Femme du boulanger` de
+  Pagnol sont tous corrects et tous rejetés : ils ont des homonymes et une
+  popularité sous 1,3. Or quand le coffret annonce une plage d'années serrée,
+  c'est elle qui a départagé, pas la popularité. Le contrôle l'ignore parce que
+  la résolution ne conserve pas combien d'homonymes tombaient **dans la
+  plage**. Une dizaine de coffrets attendent cette distinction.
 - **Un candidat qui n'est que du vocabulaire d'édition n'est pas un titre.**
   La parenthèse de `The Da Vinci Code: Extended Version (Édition Limitée)` a
   trouvé une fiche TMDB nommée « Edition Limitée », popularité 0,13, synopsis
