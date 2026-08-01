@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router";
 import { Search, Loader2, Library, Bookmark, Disc3, ScanBarcode } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { RailHorizontal } from "../components/RailHorizontal";
@@ -36,6 +36,25 @@ import { lienFilm } from "../lib/liens";
  */
 const CATALOGUE = { films: "4 500", editions: "8 400", codesBarres: "5 300" };
 
+/**
+ * Libellé de section, calqué sur Letterboxd.
+ *
+ * Leur accueil ne titre pas ses rangées en gros : « Just Reviewed… » fait 13 px
+ * en capitales, en gris, et c'est la jaquette qui porte le regard. Nos titres à
+ * 20 px en graisse 600 se disputaient l'attention avec les visuels, sur une page
+ * dont le sujet est justement de montrer des objets.
+ *
+ * L'interlettrage est ce qui rend des capitales lisibles à cette taille : sans
+ * lui elles se referment et le mot devient un bloc.
+ */
+const LIBELLE_SECTION = {
+  fontSize: "13px",
+  fontWeight: 600,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "var(--reel-muted)",
+} as const;
+
 const ARGUMENTS_COMPTE = [
   {
     icone: Library,
@@ -58,28 +77,75 @@ const ARGUMENTS_COMPTE = [
 ];
 
 export function BrowsePage() {
-  useSeo({
-    titre: "jaquette.app, le catalogue des éditions Blu-ray et 4K françaises",
-    description:
-      "Retrouvez toutes les éditions physiques d’un film : steelbook, coffret collector, 4K, digibook. Comparez formats et contenus, et gardez la trace de votre collection.",
-    racine: true,
-  });
+  const [parametres, setParametres] = useSearchParams();
+  const qUrl = parametres.get("q") ?? "";
 
   const session = useSession();
   const [modaleOuverte, setModaleOuverte] = useState(false);
 
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(qUrl);
   const [films, setFilms] = useState<Film[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dernieres, setDernieres] = useState<EditionWithFilm[]>([]);
 
-  // Recherche par titre, temporisée.
+  /*
+    Une recherche est dans l'URL, `/?q=steelbook`.
+
+    Ce n'est pas pour le référencement : Google a **supprimé la sitelinks
+    searchbox en novembre 2023**, donc une `SearchAction` ne produirait plus
+    rien. C'est pour l'usage : une recherche s'envoie, se met en favori, et le
+    bouton retour cesse de faire quitter le site.
+
+    D'où le `noindex` : une page de résultats de recherche interne est du
+    contenu généré à la volée, et Google demande explicitement de ne pas les
+    faire indexer. `follow` reste, les liens vers les fiches doivent être
+    suivis. Le canonical, lui, est calculé depuis le seul `pathname`
+    (cf. `lib/seo.ts`), donc il vaut `/` quelle que soit la recherche.
+  */
+  useSeo(
+    qUrl
+      ? {
+          titre: `Recherche : ${qUrl}`,
+          description: `Résultats pour « ${qUrl} » dans le catalogue des éditions physiques.`,
+          noindex: true,
+        }
+      : {
+          titre: "jaquette.app, le catalogue des éditions Blu-ray et 4K françaises",
+          description:
+            "Retrouvez toutes les éditions physiques d’un film : steelbook, coffret collector, 4K, digibook. Comparez formats et contenus, et gardez la trace de votre collection.",
+          racine: true,
+        },
+  );
+
+  /*
+    L'URL redevient la source quand elle change sans qu'on ait tapé : retour
+    arrière, lien collé, onglet rouvert. Sans ça, le bouton retour changerait
+    l'adresse sans rien changer à l'écran.
+  */
+  useEffect(() => {
+    setQuery((actuel) => (actuel === qUrl ? actuel : qUrl));
+  }, [qUrl]);
+
+  /*
+    On empile une entrée d'historique quand la recherche s'ouvre ou se ferme,
+    et on remplace tant qu'on l'affine. Empiler à chaque frappe rendrait le
+    bouton retour inutilisable ; toujours remplacer ferait quitter le site
+    depuis une recherche.
+  */
+  const avaitUneRecherche = useRef(qUrl !== "");
+
+  // Recherche par titre, temporisée. Le même délai porte la requête et l'URL.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
     const t = setTimeout(async () => {
+      if (query !== qUrl) {
+        const bascule = avaitUneRecherche.current !== (query !== "");
+        setParametres(query ? { q: query } : {}, { replace: !bascule });
+        avaitUneRecherche.current = query !== "";
+      }
       try {
         const results = await searchFilms(query);
         if (!cancelled) setFilms(results);
@@ -149,7 +215,7 @@ export function BrowsePage() {
           </h1>
           <p
             className="mt-6 max-w-[660px]"
-            style={{ fontSize: "19px", color: "var(--reel-text)", lineHeight: "31px" }}
+            style={{ fontSize: "17px", color: "var(--reel-text)", lineHeight: "26px" }}
           >
             Plus de {CATALOGUE.films} films et {CATALOGUE.editions} éditions françaises
             (steelbooks, coffrets, 4K, digibooks), avec leurs formats, leurs zones et{" "}
@@ -190,7 +256,7 @@ export function BrowsePage() {
             {dernieres.length > 0 && (
               <section className="pt-10">
                 <div className="flex items-baseline justify-between gap-4">
-                  <h2 style={{ fontSize: "20px", fontWeight: 600, color: "var(--reel-text)" }}>
+                  <h2 style={LIBELLE_SECTION}>
                     Dernières parutions
                   </h2>
                 </div>
@@ -205,7 +271,7 @@ export function BrowsePage() {
             {invite && <EncartInscription onSInscrire={() => setModaleOuverte(true)} />}
 
             <section className="pt-12">
-              <h2 style={{ fontSize: "20px", fontWeight: 600, color: "var(--reel-text)" }}>
+              <h2 style={LIBELLE_SECTION}>
                 {invite ? "Pourquoi créer un compte" : "Ce que le compte apporte"}
               </h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -221,13 +287,13 @@ export function BrowsePage() {
                     <Icone size={20} color="var(--reel-accent-clair)" strokeWidth={2} />
                     <h3
                       className="mt-3"
-                      style={{ fontSize: "16px", fontWeight: 600, color: "var(--reel-text)" }}
+                      style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)" }}
                     >
                       {titre}
                     </h3>
                     <p
                       className="mt-1.5"
-                      style={{ fontSize: "14px", color: "var(--reel-muted)", lineHeight: "22px" }}
+                      style={{ fontSize: "14px", color: "var(--reel-muted)", lineHeight: "21px" }}
                     >
                       {texte}
                     </p>
@@ -239,7 +305,7 @@ export function BrowsePage() {
         )}
 
         <section className="pt-12">
-          <h2 style={{ fontSize: "20px", fontWeight: 600, color: "var(--reel-text)" }}>
+          <h2 style={LIBELLE_SECTION}>
             {recherche ? "Résultats" : "Parcourir le catalogue"}
           </h2>
 
@@ -421,7 +487,7 @@ function EncartInscription({ onSInscrire }: { onSInscrire: () => void }) {
           <h2
             style={{
               fontFamily: "var(--reel-font-titre)",
-              fontSize: "clamp(22px, 2.4vw, 30px)",
+              fontSize: "clamp(21px, 2vw, 26px)",
               fontWeight: 800,
               lineHeight: 1.15,
               color: "#fff",
@@ -429,7 +495,7 @@ function EncartInscription({ onSInscrire }: { onSInscrire: () => void }) {
           >
             Gardez la trace de ce que vous possédez
           </h2>
-          <p className="mt-3" style={{ fontSize: "16px", color: "rgba(255,255,255,0.85)", lineHeight: "25px" }}>
+          <p className="mt-3" style={{ fontSize: "15px", color: "rgba(255,255,255,0.85)", lineHeight: "23px" }}>
             Cochez vos éditions, notez celles que vous cherchez, et retrouvez la liste en rayon.
             Compte gratuit avec Google, rien d’autre à remplir.
           </p>

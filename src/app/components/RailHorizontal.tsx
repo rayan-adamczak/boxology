@@ -2,24 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 /**
- * Rail horizontal : voiles aux deux bouts, flèches pour avancer.
+ * Rail horizontal : une rangée qui défile, deux flèches pour avancer.
  *
- * Le rail mord sur la gouttière de la page, marges négatives compensées par un
+ * Sous `lg`, le rail mord sur la gouttière, marges négatives compensées par un
  * rembourrage égal, de sorte que les cartes s'alignent sur le reste au repos
- * mais courent jusqu'au bord de l'écran quand on fait défiler. **Les voiles
- * partent du même bord**, et c'est là tout l'intérêt : une carte coupée net par
- * le bord de l'écran se lit comme un défaut d'affichage, une carte qui s'efface
- * se lit comme une suite. Un voile qui s'arrêterait à la colonne laisserait une
- * bande de portrait à vif dans la gouttière.
+ * mais courent jusqu'au bord de l'écran quand on fait défiler. À partir de `lg`
+ * la gouttière n'a plus de rembourrage, elle pilote la proportion par sa
+ * largeur : le rail commence et finit alors exactement sur la verticale du
+ * reste de la page.
  *
- * Les flèches sont dans la colonne, donc par-dessus les voiles. C'est voulu :
- * elles doivent tomber là où l'œil les cherche, pas là où le dégradé finit.
- *
- * Les voiles et les flèches ne paraissent que du côté où il reste quelque
- * chose. Une flèche qui ne fait rien est pire que pas de flèche.
- *
- * `pointer-events-none` sur les voiles : sans lui, ils intercepteraient le
- * glissement au doigt précisément à l'endroit où l'on attrape le rail.
+ * Les flèches ne paraissent que du côté où il reste quelque chose. Une flèche
+ * qui ne fait rien est pire que pas de flèche.
  */
 export function RailHorizontal({ children, ariaLabel }: { children: React.ReactNode; ariaLabel: string }) {
   const rail = useRef<HTMLDivElement | null>(null);
@@ -92,6 +85,12 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
   // près tombait sur la carte dessous et ouvrait la fiche au lieu de défiler.
   // Le `top` vient de la mesure ci-dessus ; `34 %` n'est qu'un repli pour le
   // premier rendu, avant que les images aient une hauteur.
+  /*
+    Les flèches sortent dans la marge à partir de `lg` : la gouttière laisse
+    16 % de chaque côté, donc il y a la place, et elles ne recouvrent plus la
+    première ni la dernière jaquette. En dessous elles restent posées sur le
+    rail, faute de marge où aller.
+  */
   const fleche = "absolute z-20 flex size-11 -translate-y-1/2 items-center justify-center rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]";
   const styleFleche = {
     top: centreVignette !== null ? `${Math.round(centreVignette)}px` : "34%",
@@ -117,29 +116,21 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
         {children}
       </div>
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 w-16 transition-opacity sm:w-20"
-        style={{
-          opacity: aGauche ? 1 : 0,
-          background: "linear-gradient(to right, var(--reel-bg) 0%, var(--reel-bg) 55%, transparent 100%)",
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 w-16 transition-opacity sm:w-20"
-        style={{
-          opacity: aDroite ? 1 : 0,
-          background: "linear-gradient(to left, var(--reel-bg) 0%, var(--reel-bg) 55%, transparent 100%)",
-        }}
-      />
+      {/*
+        Les voiles dégradés aux deux bouts ont été retirés. Ils avaient un sens
+        quand le rail débordait jusqu'au bord de l'écran : ils disaient que la
+        rangée continuait. Depuis que la gouttière est proportionnelle, le rail
+        s'arrête sur la même verticale que le reste de la page, et un voile de
+        80 px mangeait la dernière jaquette à l'intérieur de la colonne. La
+        rangée doit aller jusqu'au bord comme les autres éléments.
+      */}
 
       {aGauche && (
         <button
           type="button"
           onClick={() => pousser(-1)}
           aria-label={`${ariaLabel}, précédent`}
-          className={`${fleche} left-6 sm:left-8 lg:left-12`}
+          className={`${fleche} left-2 sm:left-4 lg:-left-14`}
           style={styleFleche}
         >
           <ChevronLeft size={20} color="var(--reel-text)" />
@@ -150,7 +141,7 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
           type="button"
           onClick={() => pousser(1)}
           aria-label={`${ariaLabel}, suivant`}
-          className={`${fleche} right-6 sm:right-8 lg:right-12`}
+          className={`${fleche} right-2 sm:right-4 lg:-right-14`}
           style={styleFleche}
         >
           <ChevronRight size={20} color="var(--reel-text)" />
