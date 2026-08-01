@@ -168,7 +168,7 @@ function eclater(valeur: string): string[] {
  * sont marquées `untested`, donc invérifiées, et les afficher les ferait
  * passer pour des garanties.
  */
-function zonesDe(region: string | null): string[] {
+export function zonesDe(region: string | null): string[] {
   if (!region) return [];
   const affirme = region.split("(")[0];
   return Array.from(new Set(affirme.match(/\bRegion\s+([ABC])\b/g) || []))

@@ -12,6 +12,7 @@ import {
   getEditionsForFilm,
   splitList,
   agregerSpecs,
+  zonesDe,
   type Film,
   type Edition,
   type StatutValue,
@@ -47,6 +48,45 @@ function formatDateSortie(raw: string | null): string {
   if (!m) return raw;
   const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+/**
+ * Zones d'une édition, en badges.
+ *
+ * `editions.region` est du texte libre relevé chez blu-ray.com, et il peut
+ * décrire deux disques à la fois : « 4K Blu-ray: Region free 2K Blu-ray: Region
+ * B (A, C untested) ». Tel quel, ça fait un badge de soixante caractères.
+ *
+ * `zonesDe` fait déjà le tri pour l'onglet Détails et écarte les zones entre
+ * parenthèses, marquées `untested` donc invérifiées. On s'appuie dessus plutôt
+ * que d'en recopier une variante qui dériverait sans que ça se voie. Elle ne
+ * retient en revanche que les lettres, `Region free` n'en étant pas une : c'est
+ * la seule chose ajoutée ici, et elle vaut pour une édition entière, d'où sa
+ * place en tête.
+ */
+function zonesEdition(region: string | null): string[] {
+  const zones = zonesDe(region);
+  return /\bregion\s+free\b/i.test(region ?? "") ? ["Zone libre", ...zones] : zones;
+}
+
+/**
+ * Année de parution d'une édition, sur les deux colonnes qui la portent.
+ *
+ * `date_parution` est la colonne normalisée, mais elle n'existe que sur les
+ * lignes blu-ray.com : `dates_editions.py` l'a remplie depuis `date_sortie`, et
+ * editioncollector ne date rien. Prendre la seule colonne propre laisserait donc
+ * la moitié du catalogue sans année.
+ *
+ * `date_sortie` reste du texte dans la langue de la source, « Sep 30, 2025 » ou
+ * « September 8, 2024 ». On n'en tire que l'année, seule partie qui se lise sans
+ * analyser la langue, et on la borne : une chaîne comme `1920x1080` porte un
+ * millésime parfaitement valide, piège déjà rencontré côté import.
+ */
+function anneeEdition(ed: { date_parution?: string | null; date_sortie: string | null }): string {
+  const normalisee = ed.date_parution?.slice(0, 4);
+  if (normalisee && /^(19|20)\d{2}$/.test(normalisee)) return normalisee;
+  const m = /(?:^|[^\dx×])((?:19|20)\d{2})(?:$|[^\dx×])/.exec(ed.date_sortie ?? "");
+  return m ? m[1] : "";
 }
 
 /**
@@ -933,6 +973,7 @@ export function FilmDetailPage() {
               <div className="flex flex-col gap-3">
                 {filteredEditions.map((ed) => {
                   const fmtTags = splitList(ed.formats_extraits);
+                  const annee = anneeEdition(ed);
                   return (
                     <div
                       key={ed.id}
@@ -973,22 +1014,35 @@ export function FilmDetailPage() {
                             {ed.titre ?? "Édition sans titre"}
                           </p>
 
-                          {/* Format + région + pays + année */}
-                          {(fmtTags.length > 0 || ed.region || ed.pays || ed.date_sortie) && (
-                            <div className="flex flex-wrap gap-[6px]">
-                              {/*
-                                Quatre capsules par ligne, format, zone, pays,
-                                parfois l'année, faisaient quarante objets sur
-                                une fiche à dix éditions, pour ce qui tient en
-                                une phrase. En texte, ça se lit d'un coup d'œil
-                                et la capsule redevient le signal d'un contrôle.
-                              */}
-                              <span style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "19.5px" }}>
-                                {[...fmtTags, ed.region, ed.pays].filter(Boolean).join(" · ")}
-                              </span>
-                              {ed.date_sortie && (
+                          {/*
+                            Format, zone et pays en badges, puis l'année en
+                            texte nu. La distinction n'est pas décorative : le
+                            badge dit une propriété du disque relevée à la
+                            source, l'année est une date et se lit comme telle.
+                          */}
+                          {(fmtTags.length > 0 || ed.region || ed.pays || annee) && (
+                            <div className="flex flex-wrap items-center gap-[6px]">
+                              {[...fmtTags, ...zonesEdition(ed.region), ed.pays]
+                                .filter((v): v is string => Boolean(v))
+                                .map((valeur) => (
+                                  <span
+                                    key={valeur}
+                                    className="rounded-full"
+                                    style={{
+                                      fontSize: "12px",
+                                      lineHeight: "18px",
+                                      padding: "2px 9px",
+                                      color: "var(--reel-muted)",
+                                      backgroundColor: "var(--reel-surface-2)",
+                                      border: "1px solid var(--reel-border)",
+                                    }}
+                                  >
+                                    {valeur}
+                                  </span>
+                                ))}
+                              {annee && (
                                 <span style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "19.5px" }}>
-                                  {ed.date_sortie}
+                                  {annee}
                                 </span>
                               )}
                             </div>
@@ -1000,6 +1054,26 @@ export function FilmDetailPage() {
                             </p>
                           )}
                         </div>
+
+                        {/*
+                          Le code-barres au bout de la ligne, juste avant les
+                          boutons. C'est la donnée qu'on vient chercher en
+                          rayon, et elle n'a d'utilité que lue chiffre à
+                          chiffre : `tabular-nums` fige la chasse pour que deux
+                          EAN empilés s'alignent et se comparent.
+
+                          Masqué sous `sm` : à 375 px, treize chiffres à côté du
+                          titre et des deux boutons ne laissent plus rien au
+                          titre lui-même.
+                        */}
+                        {ed.ean && (
+                          <span
+                            className="hidden shrink-0 tabular-nums sm:block"
+                            style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "19.5px" }}
+                          >
+                            {ed.ean}
+                          </span>
+                        )}
 
                         <CircleStatusButtons
                           editionId={ed.id}
