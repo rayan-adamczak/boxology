@@ -928,7 +928,7 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   rattachés à une édition y figurent, en **adresse canonique avec slug**. Le
   script casse le build s'il ne trouve aucun film, et aussi si `films.slug`
   manque : voir plus bas pourquoi c'est le bon sens de la panne. Les pages fixes
-  y sont listées à la main, `/bienvenue` comprise ; les regroupements sont lus
+  y sont listées à la main, `/welcome` comprise ; les regroupements sont lus
   dans la table générée.
 - **Search Console** : propriété Domaine validée, sitemap soumis et lu.
 - **Listes personnelles et écrans du prototype** en `noindex, follow`.
@@ -1202,7 +1202,7 @@ si courte n'est pas une faute, c'est un début de mot.
 
 ### Pages de regroupement, en place le 31 juillet 2026
 
-78 pages : `/formats`, `/editeurs`, `/genres` et leurs 75 entrées.
+78 pages : `/formats`, `/publishers`, `/genres` et leurs 75 entrées.
 
 **Elles existent d'abord pour le crawl, pas pour la requête.** La profondeur de
 clic du site était : accueil, 50 films, mur. Le reste du catalogue n'existait
@@ -1518,7 +1518,7 @@ validation, pas la détection.
 
 ### Page de bienvenue, en ligne le 31 juillet 2026
 
-`/bienvenue`, `src/app/pages/BienvenuePage.tsx`, **embarquée dans le bundle
+`/welcome`, `src/app/pages/BienvenuePage.tsx`, **embarquée dans le bundle
 initial** (6,6 Ko compressés). Liée du pied de page et du sitemap.
 
 Elle a d'abord été posée en `lazy()`, et elle est tombée sur le piège du §9 comme
@@ -1527,7 +1527,7 @@ morceau pendant la propagation. C'est une porte d'entrée, donc un chemin de
 consultation, donc pas d'`import()` sur son chemin.
 
 **Le catalogue reste l'accueil.** C'est lui qui s'indexe, et on entre sur le
-site par une fiche film. `/bienvenue` est l'autre porte : celle qu'on donne en
+site par une fiche film. `/welcome` est l'autre porte : celle qu'on donne en
 lien quand on présente le site. Structure calquée sur la page d'accueil de
 Letterboxd : héros, six étapes numérotées à ancre propre (`#posseder`,
 `#envies`, `#comparer`, `#fiche-technique`, `#coffrets`, `#compte`), tour des
@@ -1743,7 +1743,7 @@ la page **dédoublée et décalée d'une centaine de pixels** : les deux forcent
 couche de composition sur toute la largeur, où le navigateur laisse des tuiles
 périmées quand la mise en page se décale, apparition d'une barre de défilement,
 changement de largeur. L'atmosphère passe par l'opacité et deux dégradés, comme
-sur la fiche film. Le titre reprend l'échelle de `/bienvenue`,
+sur la fiche film. Le titre reprend l'échelle de `/welcome`,
 `clamp(38px, 6vw, 68px)` : deux pages qui ouvrent le site ne peuvent pas
 annoncer deux tailles.
 
