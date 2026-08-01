@@ -10,7 +10,7 @@
  *
  * Ce fichier répond à quatre choses, dans cet ordre :
  *
- *   1. l'URL canonique d'une fiche est `/films/<slug>/<id>` ; toute autre forme
+ *   1. l'URL canonique d'une fiche est `/movies/<slug>/<id>` ; toute autre forme
  *      est redirigée en 301 vers elle ;
  *   2. un id qui n'existe pas répond un vrai 404, là où la réécriture SPA
  *      répondait 200 sur une page vide, un « soft 404 » aux yeux de Google ;
@@ -38,6 +38,10 @@ import { AXES, trouver, type NomAxe } from "../src/app/lib/regroupements";
 /* Même module que l'application, pour que les adresses et la fenêtre de
    numéros servies soient exactement celles qu'elle rendra ensuite. */
 import { PAR_PAGE, cheminPage, fenetrePages, nombreDePages } from "../src/app/lib/pagination";
+/* Adresses en anglais depuis le 1er août 2026, et redirections depuis leurs
+   anciennes formes françaises. Même module que l'application, pour que les
+   301 pointent exactement là où elle sait aller. */
+import { BASE_FILMS, redirectionDe } from "../src/app/lib/chemins";
 
 /* Types minimaux : @cloudflare/workers-types n'est pas installé, et le
    `tsconfig.json` ne couvre pas ce dossier. Ce qui est déclaré ici est le peu
@@ -168,7 +172,7 @@ function metadonnees(film: FilmSeo) {
 
 /** Chemin canonique d'une fiche. Sans slug, la forme nue reste valable. */
 function cheminCanonique(film: FilmSeo): string {
-  return film.slug ? `/films/${film.slug}/${film.id}` : `/films/${film.id}`;
+  return film.slug ? `${BASE_FILMS}/${film.slug}/${film.id}` : `${BASE_FILMS}/${film.id}`;
 }
 
 /** Texte vers HTML. `setInnerContent(..., {html:true})` n'échappe rien. */
@@ -514,7 +518,7 @@ async function lireListe(
       lignes: lignes.map((f) => ({
         libelle: f.titre,
         details: [f.annee, f.realisateur].filter(Boolean).join(" · "),
-        lien: f.slug ? `/films/${f.slug}/${f.id}` : `/films/${f.id}`,
+        lien: f.slug ? `${BASE_FILMS}/${f.slug}/${f.id}` : `${BASE_FILMS}/${f.id}`,
       })),
     };
   }
@@ -531,7 +535,7 @@ async function lireListe(
       ]
         .filter(Boolean)
         .join(" · "),
-      lien: film ? (film.slug ? `/films/${film.slug}/${film.id}` : `/films/${film.id}`) : null,
+      lien: film ? (film.slug ? `${BASE_FILMS}/${film.slug}/${film.id}` : `${BASE_FILMS}/${film.id}`) : null,
     };
   });
 
@@ -745,7 +749,7 @@ function injecterListe(
  * Le middleware ne traitait que les fiches films et les pages de regroupement ;
  * partout ailleurs, un client qui n'exécute pas le JavaScript recevait
  * `<div id="root"></div>` et rien d'autre. Mesuré le 1er août 2026 : 0 signe
- * dans le corps de `/` et de `/bienvenue`, contre 1 916 sur une fiche film.
+ * dans le corps de `/` et de `/welcome`, contre 1 916 sur une fiche film.
  * Google rend, la plupart des autres non, et l'accueil est précisément l'URL
  * qu'on partage.
  *
@@ -771,7 +775,7 @@ async function lireVitrineAccueil(): Promise<{ films: LigneListe[]; films_total:
     films: lignes.map((f) => ({
       libelle: f.titre,
       details: [f.annee, f.realisateur].filter(Boolean).join(" · "),
-      lien: f.slug ? `/films/${f.slug}/${f.id}` : `/films/${f.id}`,
+      lien: f.slug ? `${BASE_FILMS}/${f.slug}/${f.id}` : `${BASE_FILMS}/${f.id}`,
     })),
   };
 }
@@ -787,7 +791,7 @@ function liensAxes(): string {
           `margin-right:14px;display:inline-block">${echapper(AXES[a].titre)}</a>`,
       )
       .join("") +
-    `<a href="/bienvenue" style="color:var(--reel-accent-clair,#6ea8ff);display:inline-block">Comment ça marche</a>` +
+    `<a href="/welcome" style="color:var(--reel-accent-clair,#6ea8ff);display:inline-block">Comment ça marche</a>` +
     `</nav>`
   );
 }
@@ -833,7 +837,7 @@ async function servirAccueil(url: URL, next: () => Promise<Response>): Promise<R
 }
 
 /**
- * `/bienvenue` : le mode d'emploi, en texte.
+ * `/welcome` : le mode d'emploi, en texte.
  *
  * Aucune requête. Ce que la page explique ne dépend pas de la base, et une
  * page d'entrée qui tomberait au moindre hoquet de Supabase serait un mauvais
@@ -852,7 +856,7 @@ async function servirBienvenue(url: URL, next: () => Promise<Response>): Promise
   const reponse = await next();
   if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
 
-  const canonical = `${url.origin}/bienvenue`;
+  const canonical = `${url.origin}/welcome`;
   const meta = {
     titre: `Bienvenue | ${SITE_NOM}`,
     description:
@@ -1011,6 +1015,22 @@ export async function onRequest(context: Contexte): Promise<Response> {
     return reponse;
   }
 
+  /*
+   * Anciennes adresses françaises, en 301 vers leur forme anglaise.
+   *
+   * Placé avant tout le reste : `/films/…` et `/editeurs/…` ne doivent jamais
+   * atteindre les gestionnaires, qui ne connaissent plus que `/movies/` et
+   * `/publishers/`. Sans ce passage, ils tomberaient sur la réécriture SPA,
+   * donc un 200 sur une page que React redirigerait ensuite côté client :
+   * Google verrait deux adresses pour le même contenu au lieu d'une
+   * redirection franche.
+   *
+   * La chaîne de recherche est conservée, elle porte parfois un paramètre de
+   * campagne ou un `?liste=envies`.
+   */
+  const ancienne = redirectionDe(url.pathname);
+  if (ancienne) return Response.redirect(`${url.origin}${ancienne}${url.search}`, 301);
+
   /* Les deux pages d'entrée. Comme partout ici, toute erreur retombe sur
      `next()` : mieux vaut une page sans texte injecté qu'une page morte. */
   if (url.pathname === "/") {
@@ -1020,7 +1040,7 @@ export async function onRequest(context: Contexte): Promise<Response> {
       return next();
     }
   }
-  if (url.pathname === "/bienvenue") {
+  if (url.pathname === "/welcome") {
     try {
       return await servirBienvenue(url, next);
     } catch {
@@ -1031,10 +1051,10 @@ export async function onRequest(context: Contexte): Promise<Response> {
   const axe = axeDeChemin(url.pathname);
   if (axe) return servirRegroupement(axe, url, next);
 
-  if (!url.pathname.startsWith("/films/")) return next();
+  if (!url.pathname.startsWith(`${BASE_FILMS}/`)) return next();
 
   const segments = url.pathname.split("/").filter(Boolean);
-  // `/films/<id>` ou `/films/<slug>/<id>`, rien d'autre.
+  // `/movies/<id>` ou `/movies/<slug>/<id>`, rien d'autre.
   if (segments.length < 2 || segments.length > 3) return next();
 
   const dernier = segments[segments.length - 1];

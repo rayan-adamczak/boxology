@@ -78,9 +78,14 @@ try {
 }
 const slugParId = new Map(films.map((f) => [f.id, f.slug]));
 
+/* Adresses en anglais depuis le 1er août 2026. Le sitemap ne doit annoncer que
+   la forme neuve : y laisser `/films/` ferait rediriger en 301 chacune des
+   4 581 URL soumises, ce qui marche mais gaspille le budget de crawl. */
+const BASE_FILMS = "/movies";
+
 function cheminFilm(id) {
   const slug = slugParId.get(id);
-  return slug ? `/films/${slug}/${id}` : `/films/${id}`;
+  return slug ? `${BASE_FILMS}/${slug}/${id}` : `${BASE_FILMS}/${id}`;
 }
 
 const sansSlug = filmIds.filter((id) => !slugParId.get(id)).length;
@@ -107,7 +112,7 @@ function slugsDe(nomTable) {
 
 const regroupements = [
   ["/formats", slugsDe("FORMATS")],
-  ["/editeurs", slugsDe("EDITEURS")],
+  ["/publishers", slugsDe("EDITEURS")],
   ["/genres", slugsDe("GENRES")],
 ];
 
@@ -148,7 +153,7 @@ async function effectif(axe, libelle) {
 
 const AXES_SITEMAP = [
   ["formats", "/formats", slugsDe("FORMATS"), libellesDe("FORMATS")],
-  ["editeurs", "/editeurs", slugsDe("EDITEURS"), libellesDe("EDITEURS")],
+  ["editeurs", "/publishers", slugsDe("EDITEURS"), libellesDe("EDITEURS")],
   ["genres", "/genres", slugsDe("GENRES"), libellesDe("GENRES")],
 ];
 
@@ -170,10 +175,10 @@ for (const [axe, base, slugs, libelles] of AXES_SITEMAP) {
 
 const pages = [
   urlXml("/", "1.0"),
-  urlXml("/bienvenue", "0.7"),
-  urlXml("/a-propos", "0.5"),
-  urlXml("/mentions-legales", "0.3"),
-  urlXml("/confidentialite", "0.3"),
+  urlXml("/welcome", "0.7"),
+  urlXml("/about", "0.5"),
+  urlXml("/legal", "0.3"),
+  urlXml("/privacy", "0.3"),
   ...urlsRegroupements,
   ...filmIds.map((id) => urlXml(cheminFilm(id), "0.8")),
 ];
