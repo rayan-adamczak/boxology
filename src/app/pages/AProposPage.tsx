@@ -1,101 +1,147 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { PageStatique, Section, Encadre } from "../components/PageStatique";
-import { getStatsCatalogue, type StatsCatalogue } from "../lib/stats";
+import { ArrowLeft } from "lucide-react";
+import { FAQ, toutesLesQuestions } from "../lib/faq";
+import { useSeo } from "../lib/seo";
 
-const nb = (n: number) => n.toLocaleString("fr-FR");
-
+/**
+ * `/about`, en questions et réponses.
+ *
+ * Structure reprise de la FAQ de Letterboxd : un sommaire en tête, des sections
+ * à ancre, une question par bloc. Le contenu vit dans `lib/faq.ts`, que le
+ * middleware lit aussi pour écrire le corps servi aux moteurs : une seule
+ * source, donc la page et ce qu'un crawler reçoit disent forcément la même
+ * chose.
+ *
+ * Elle n'emploie pas `PageStatique` : celle-ci suppose un texte suivi, alors
+ * qu'ici il faut un sommaire, des ancres et une hiérarchie à deux niveaux.
+ *
+ * Les questions portent un `h3` sous un `h2` de section, là où Letterboxd met
+ * un `h1` par question. Un seul `h1` par page, c'est ce qu'attend un lecteur
+ * d'écran comme un moteur.
+ */
 export function AProposPage() {
-  const [stats, setStats] = useState<StatsCatalogue | null>(null);
-  useEffect(() => {
-    getStatsCatalogue().then(setStats);
-  }, []);
+  const nombre = toutesLesQuestions().length;
+
+  useSeo({
+    titre: "À propos et questions fréquentes",
+    description:
+      `Ce qu'est jaquette.app, d'où viennent les données, ce que le site ne fait pas, ` +
+      `et ce que devient un compte. ${nombre} questions.`,
+  });
 
   return (
-    <PageStatique
-      titre="À propos de Jaquette"
-      titreSeo="À propos"
-      sousTitre="Un catalogue des éditions physiques de films, pensé pour celles et ceux qui collectionnent."
-      description="Pourquoi Jaquette existe, d’où viennent les données et comment le catalogue est construit."
-    >
-      <Section titre="L’idée">
-        <p>
-          Un même film existe en dizaines d’éditions : steelbook, coffret collector, 4K, édition
-          limitée d’un revendeur, réédition anniversaire. Ces différences comptent pour qui
-          collectionne, et aucune base ne les recense correctement en français.
-        </p>
-        <p>
-          Jaquette sert à ça : retrouver quelle édition existe, ce qu’elle contient, et garder trace
-          de ce que l’on possède.
-        </p>
-      </Section>
+    <div className="mx-auto max-w-[760px] px-6 pb-24 pt-6">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-2 pb-6 transition"
+        style={{ fontSize: "14px", color: "var(--reel-muted)" }}
+      >
+        <ArrowLeft size={16} />
+        Retour au catalogue
+      </Link>
 
-      <Section titre="Ce que vous pouvez faire">
-        <ul className="flex list-disc flex-col gap-1 pl-5">
-          <li>parcourir les films et les éditions publiées en France ;</li>
-          <li>comparer formats, contenus et packagings d’un même titre ;</li>
-          <li>marquer une édition comme <em>possédée</em> pour construire votre collection ;</li>
-          <li>constituer une liste d’<em>envies</em>.</li>
+      <h1
+        style={{
+          fontFamily: "var(--reel-font-titre)",
+          fontSize: "clamp(28px, 5vw, 38px)",
+          fontWeight: 800,
+          color: "var(--reel-text)",
+          lineHeight: 1.15,
+        }}
+      >
+        À propos et questions fréquentes
+      </h1>
+      <p className="pt-3" style={{ fontSize: "16px", lineHeight: "26px", color: "var(--reel-muted)" }}>
+        Un catalogue des éditions physiques de films, pensé pour celles et ceux qui collectionnent.
+        Voici ce qu’il fait, ce qu’il ne fait pas, et d’où viennent ses données.
+      </p>
+
+      {/* Sommaire. Sur une page de vingt-six questions, arriver par une ancre
+          depuis un moteur ou un lien partagé est le cas normal, pas l'exception. */}
+      <nav
+        className="mt-9 rounded-[12px] px-5 py-4"
+        style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
+      >
+        <h2 style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--reel-muted)" }}>
+          Sommaire
+        </h2>
+        <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+          {FAQ.map((section) => (
+            <li key={section.ancre}>
+              <a
+                href={`#${section.ancre}`}
+                style={{ fontSize: "15px", color: "var(--reel-accent-clair)" }}
+                className="hover:underline"
+              >
+                {section.titre}
+              </a>
+            </li>
+          ))}
         </ul>
-        <Encadre>
-          Parcourir le catalogue ne demande rien. Marquer une édition comme possédée ou la mettre
-          en envies suppose en revanche un compte, créé avec Google : les listes sont enregistrées
-          côté serveur, donc retrouvées sur tous vos appareils. Elles ne sont visibles que de vous,
-          et supprimer votre compte les efface avec lui.
-        </Encadre>
-      </Section>
+      </nav>
 
-      <Section titre="D’où viennent les données">
-        <p>
-          Les informations sur les films (titres, années, synopsis, distribution, affiches)
-          proviennent de <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer noopener"
-          style={{ color: "var(--reel-accent)" }}>The Movie Database</a>, base communautaire ouverte.
-        </p>
-        <p>
-          Les données sur les éditions physiques (formats, dates, contenus, codes-barres) sont
-          compilées et vérifiées à partir de sources publiques spécialisées. Il s’agit de données
-          factuelles de catalogage.
-        </p>
-        {stats && (
-          <p>
-            Le catalogue compte aujourd’hui{" "}
-            <strong style={{ color: "var(--reel-text)" }}>{nb(stats.films)} œuvres</strong> et{" "}
-            <strong style={{ color: "var(--reel-text)" }}>{nb(stats.editions)} éditions</strong>,
-            et s’enrichit régulièrement.
-          </p>
-        )}
-      </Section>
+      <div className="flex flex-col gap-12 pt-12">
+        {FAQ.map((section) => (
+          <section key={section.ancre} id={section.ancre} style={{ scrollMarginTop: "96px" }}>
+            <h2
+              style={{
+                fontFamily: "var(--reel-font-titre)",
+                fontSize: "22px",
+                fontWeight: 700,
+                color: "var(--reel-text)",
+              }}
+            >
+              {section.titre}
+            </h2>
 
-      <Section titre="Ce que le site n’est pas">
-        <p>
-          Jaquette ne vend rien et ne permet aucun achat. C’est un catalogue informatif, sans
-          transaction ni intermédiation.
-        </p>
-        <p>
-          Le site ne comporte à ce jour aucun partenariat commercial. Si des liens d’affiliation
-          venaient à être ajoutés, ils seraient signalés clairement.
-        </p>
-      </Section>
+            <div className="mt-5 flex flex-col gap-7">
+              {section.questions.map((q) => (
+                <div key={q.ancre} id={q.ancre} style={{ scrollMarginTop: "96px" }}>
+                  <h3 style={{ fontSize: "16px", fontWeight: 600, color: "var(--reel-text)", lineHeight: "24px" }}>
+                    {q.question}
+                  </h3>
+                  {q.reponse.map((paragraphe, i) => (
+                    <p
+                      key={i}
+                      className="mt-2"
+                      style={{ fontSize: "15px", lineHeight: "25px", color: "var(--reel-muted)" }}
+                    >
+                      {paragraphe}
+                    </p>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
 
-      <Section titre="Qui est derrière">
-        <p>
-          Jaquette est un projet personnel de Rayan Adamczak, designer. Il est né d’un besoin
-          simple : savoir quelle édition d’un film on possède déjà avant d’en acheter une autre.
-        </p>
-        <p>
-          Remarques, corrections, éditions manquantes :{" "}
-          <a href="mailto:contact@jaquette.app" style={{ color: "var(--reel-accent)" }}>
+      <section
+        className="mt-14 rounded-[12px] px-5 py-4"
+        style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
+      >
+        <h2 style={{ fontSize: "16px", fontWeight: 600, color: "var(--reel-text)" }}>
+          Une question qui n’est pas là ?
+        </h2>
+        <p className="mt-2" style={{ fontSize: "15px", lineHeight: "25px", color: "var(--reel-muted)" }}>
+          Écrivez à{" "}
+          <a href="mailto:contact@jaquette.app" style={{ color: "var(--reel-accent-clair)" }}>
             contact@jaquette.app
           </a>
+          . Les corrections sur le catalogue sont particulièrement bienvenues.
         </p>
-      </Section>
-
-      <Section titre="En savoir plus">
-        <p className="flex flex-wrap gap-4">
-          <Link to="/legal" style={{ color: "var(--reel-accent)" }}>Mentions légales</Link>
-          <Link to="/privacy" style={{ color: "var(--reel-accent)" }}>Politique de confidentialité</Link>
+        <p className="mt-3 flex flex-wrap gap-4" style={{ fontSize: "15px" }}>
+          <Link to="/legal" style={{ color: "var(--reel-accent-clair)" }}>
+            Mentions légales
+          </Link>
+          <Link to="/privacy" style={{ color: "var(--reel-accent-clair)" }}>
+            Politique de confidentialité
+          </Link>
+          <Link to="/welcome" style={{ color: "var(--reel-accent-clair)" }}>
+            Comment ça marche
+          </Link>
         </p>
-      </Section>
-    </PageStatique>
+      </section>
+    </div>
   );
 }
