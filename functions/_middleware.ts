@@ -42,6 +42,9 @@ import { PAR_PAGE, cheminPage, fenetrePages, nombreDePages } from "../src/app/li
    anciennes formes françaises. Même module que l'application, pour que les
    301 pointent exactement là où elle sait aller. */
 import { BASE_FILMS, redirectionDe } from "../src/app/lib/chemins";
+/* Le contenu de `/about`. Même module que la page React, donc le corps servi
+   et ce qu'elle affiche ne peuvent pas diverger. */
+import { FAQ, toutesLesQuestions } from "../src/app/lib/faq";
 
 /* Types minimaux : @cloudflare/workers-types n'est pas installé, et le
    `tsconfig.json` ne couvre pas ce dossier. Ce qui est déclaré ici est le peu
@@ -852,6 +855,57 @@ const ETAPES_BIENVENUE: [string, string, string][] = [
   ["compte", "Votre compte, vos listes, effaçables", "La consultation ne demande rien. Le compte sert à ce que vos listes survivent à un vidage de cache et vous suivent d'un appareil à l'autre."],
 ];
 
+/**
+ * `/about` : les questions fréquentes, en texte.
+ *
+ * Aucune requête, le contenu est statique. C'est la page qui répond aux
+ * questions qu'on tape en toutes lettres, « jaquette.app c'est quoi »,
+ * « où sont hébergées mes données » : elle n'a d'intérêt que si un moteur peut
+ * la lire, et elle servait 48 octets jusqu'ici.
+ *
+ * Pas de balisage `FAQPage` : Google a restreint ce résultat enrichi aux sites
+ * gouvernementaux et de santé en août 2023, le déclarer ne produirait rien.
+ */
+async function servirAPropos(url: URL, next: () => Promise<Response>): Promise<Response> {
+  const reponse = await next();
+  if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
+
+  const nombre = toutesLesQuestions().length;
+  const canonical = `${url.origin}/about`;
+  const meta = {
+    titre: `À propos et questions fréquentes | ${SITE_NOM}`,
+    description:
+      `Ce qu'est ${SITE_NOM}, d'où viennent les données, ce que le site ne fait pas, ` +
+      `et ce que devient un compte. ${nombre} questions.`,
+  };
+
+  const corps = enveloppe(
+    `<h1 style="font-family:var(--reel-font-titre,inherit);font-size:38px;margin:0 0 12px">` +
+      `À propos et questions fréquentes</h1>` +
+      `<p style="margin:0 0 28px">${echapper(meta.description)}</p>` +
+      FAQ.map(
+        (section) =>
+          `<section id="${section.ancre}" style="margin:0 0 32px">` +
+          `<h2 style="font-size:22px;margin:0 0 14px">${echapper(section.titre)}</h2>` +
+          section.questions
+            .map(
+              (q) =>
+                `<div id="${q.ancre}" style="margin:0 0 18px">` +
+                `<h3 style="font-size:16px;margin:0 0 4px">${echapper(q.question)}</h3>` +
+                q.reponse
+                  .map((par) => `<p style="margin:0 0 6px;opacity:.8">${echapper(par)}</p>`)
+                  .join("") +
+                `</div>`,
+            )
+            .join("") +
+          `</section>`,
+      ).join("") +
+      liensAxes(),
+  );
+
+  return injecterListe(reponse, meta, canonical, corps, null);
+}
+
 async function servirBienvenue(url: URL, next: () => Promise<Response>): Promise<Response> {
   const reponse = await next();
   if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
@@ -1043,6 +1097,13 @@ export async function onRequest(context: Contexte): Promise<Response> {
   if (url.pathname === "/welcome") {
     try {
       return await servirBienvenue(url, next);
+    } catch {
+      return next();
+    }
+  }
+  if (url.pathname === "/about") {
+    try {
+      return await servirAPropos(url, next);
     } catch {
       return next();
     }
