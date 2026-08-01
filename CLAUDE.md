@@ -251,16 +251,24 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films`, 10 801 liens
+### `edition_films`, 12 444 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
-Répartition : `bluray_page` 2 838, `film_id` 2 619, `bluray_tmdb` 2 484,
-`bluray_page_partiel` 1 710, `corrige_manuel` 660, `probable` 171,
-`collection_tmdb` 199, `corrige_annee` 68.
+Répartition : `bluray_page` 2 891, `film_id` 2 619, `bluray_tmdb` 2 483,
+`bluray_page_partiel` 1 710, `corrige_manuel` 692, `metaluna_*` 1 322,
+`collection_tmdb` 199, `probable` 171, `chat_qui_fume` 134,
+`make_my_day` 86, `corrige_annee` 68, `chat_qui_fume_duree` 66,
+`metaluna_relecture` 76 et `metaluna_relecture_partiel` 2, `fusion_doublon` 3.
 
-10 801 liens pour **7 896 éditions rattachées** : l'écart, ce sont les coffrets,
-qui portent un lien par film.
+12 444 liens pour **9 517 éditions rattachées** sur 10 298, soit 92,4 % :
+l'écart entre liens et éditions, ce sont les coffrets, qui portent un lien par
+film.
+
+**La source d'un lien dit comment il a été obtenu, pas seulement d'où.** C'est
+ce qui rend chaque campagne isolable et annulable sans toucher aux autres :
+
+    GET /edition_films?source=eq.metaluna_relecture
 
 **`probable` marquait les rattachements écrits sans relecture**, le 30 juillet
 2026, quand la file d'attente a été vidée d'un coup plutôt que validée ligne à
@@ -365,11 +373,11 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 5 780 |
+| Films | 5 839 |
 | Éditions | 10 298 |
 | Codes-barres | 5 008, dont 13 codes de magasin sans valeur hors enseigne |
-| Éditions rattachées | 9 439 (91,7 %) |
-| Éditions sans film | 859 |
+| Éditions rattachées | 9 517 (92,4 %) |
+| Éditions sans film | 781 |
 | Éditions avec visuel | 9 830 (99,7 %) |
 | URL au sitemap | 5 446 |
 
@@ -805,6 +813,7 @@ catalogue vide : 404 à **zéro octet**, signature d'un chemin qui n'existe pas.
 | `resoudre_metaluna.py` | TMDB **et contrôle**, en une seule passe |
 | `miroir_metaluna.py` | Jaquettes vers `metaluna/<collection>/` sur R2 |
 | `ecrire_metaluna.py` | Films, éditions et liens (`--apply`), dédup par titre |
+| `relire_metaluna.py` | Reprend les orphelines, `<collection>` ou `--toutes` |
 
 Toutes les collections de `collectes.py` ont été importées le 1er août 2026 :
 `criterion`, `carlotta`, `rimini`, `esc`, `elephant`, `sidonis`,
@@ -814,6 +823,43 @@ tient en une entrée dans la table et une commande.
 **Une seule passe de résolution, contrôle compris**, là où Le Chat qui fume en
 a demandé deux : la source donne réalisateur et durée dès la première
 recherche, donc il n'y a pas à revenir plus tard chercher de quoi valider.
+
+**`relire_metaluna.py`, 1er août 2026 : 302 orphelines, 78 rattachées**, taux
+de la source porté de 81,3 % à **86,1 %**, 59 films créés. Liens sous
+`metaluna_relecture`, et `metaluna_relecture_partiel` quand un découpage n'est
+résolu qu'en partie.
+
+**Le levier du Chat qui fume ne s'applique pas ici, et c'est le relevé qui l'a
+dit.** `relire_chat.py` avait rendu 66 rattachements sur 87 en introduisant le
+contrôle par durée ; ici il est déjà passé. Motifs de blocage sur les 330 liens
+manquants :
+
+| motif | liens |
+|---|---|
+| aucun titre exact | **238** |
+| homonyme, année divergente | 63 |
+| titre exact, aucun contrôle ne confirme | 29 |
+
+Sept fois sur dix il manquait le **candidat**, pas la mesure : un contrôle ne
+contrôle rien quand TMDB n'a rien rendu. Le script élargit donc la recherche,
+six écritures par édition et 24 fiches relues contre une et quatre, et
+resserre en regard : **deux mesures concordantes exigées**, réalisateur et
+durée, réalisateur et année, ou durée et année plus un mot partagé.
+
+Les 63 homonymes ne sont **pas rouverts** : la passe précédente les a refusés
+en connaissance de cause, et rouvrir sans mesure neuve, c'est refaire le lot
+`probable`, faux à 23 %.
+
+**Les 224 qui restent ne sont pas un reliquat à retravailler.** Deux familles,
+toutes deux hors de portée d'une recherche : les œuvres que **TMDB ne
+référence pas**, tout le bis espagnol d'Eloy de la Iglesia chez Artus, et les
+coffrets d'auteur, `Coffret Jacques Rozier`, `Heimat - L'Intégrale`, que le §9
+interdit de forcer.
+
+Le script **importe** ses fonctions de rapprochement de `resoudre_metaluna.py`
+au lieu de les recopier : une seconde normalisation dériverait de la première
+sans que ça se voie, et c'est elle qui porte les pièges d'apostrophe
+typographique, de chiffres romains et de suffixe de format.
 
 ### Le Chat qui fume (`chat_qui_fume/`, 2026-08-01)
 
@@ -2396,6 +2442,26 @@ Documentés parce qu'ils se reproduiront.
   file de relecture de 17 à 2.
 - **Le nom du produit prime sur celui de la description.** Une fiche marchande
   peut décrire un autre film que celui qu'elle vend, par copier-coller.
+- **Un réalisateur qui refait son propre film met les deux mesures en
+  défaut.** `L'Homme au pousse-pousse` est d'Hiroshi Inagaki en **1943** et de
+  nouveau en **1958** : même nom, durées compatibles, et « réalisateur et
+  durée » validait le remake. Seule l'année les sépare, et la règle est
+  **asymétrique** : un candidat postérieur au millésime du boîtier est un
+  remake et se refuse, un candidat antérieur est le cas ordinaire où le
+  boîtier porte l'année d'édition et non celle de l'œuvre, `Dr. Mabuse`
+  annoncé 2025 pour un film de 1922. Un seul faux positif sur 80 liens, et il
+  ne se voyait qu'en listant les écarts d'année du lot retenu : **relire un
+  échantillon avant d'écrire**, une fois de plus.
+- **La virgule ouvre un sous-titre autant qu'elle sépare les titres d'un
+  coffret.** `Nosferatu, une symphonie de l'horreur` rend **zéro résultat**
+  chez TMDB quand `Nosferatu` seul trouve le film. Couper à la virgule pour
+  produire une **requête de plus** ne risque rien, ce sont les contrôles qui
+  tranchent ; c'est l'écrire en base sans contrôle qui serait fautif. Ne pas
+  confondre les deux usages du même découpage.
+- **Le vocabulaire d'édition s'écrit aussi sans accent.** Une classe
+  `édition\s+\w+` laisse passer `Caligula Edition Ultime`, que TMDB ne trouve
+  pas. Même famille que les accents en majuscules et que `translate()` appliqué
+  avant `lower()`.
 - **Le signal du tri d'images change d'une boutique à l'autre, et se vérifie.**
   Chez Le Chat qui fume le nom de fichier dit vrai (`IMAGEGRAB`) et
   l'orientation trompe, le packshot étant carré. Chez Metaluna c'est l'inverse :
