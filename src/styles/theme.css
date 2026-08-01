@@ -281,8 +281,67 @@
 
 @media (min-width: 1024px) {
   .reel-gouttiere {
-    width: clamp(880px, 68%, 1760px);
+    width: clamp(880px, 68vw, 1760px);
     max-width: none;
     padding-inline: 0;
   }
+}
+
+/*
+  Rail pleine largeur.
+
+  Une rangée qui défile ne doit pas s'arrêter net sur la colonne : une jaquette
+  tranchée au milieu de la page se lit comme un défaut d'affichage, alors que la
+  même jaquette qui s'efface au bord de l'écran se lit comme une suite. Le rail
+  sort donc de la gouttière et couvre toute la fenêtre, puis remet la marge de
+  la page en rembourrage à l'intérieur, pour que la première carte tombe quand
+  même sur la verticale du titre.
+
+  `margin-inline: calc(50% - 50vw)` est ce qui l'en fait sortir : le bord gauche
+  atterrit exactement à zéro quelle que soit la largeur de la gouttière.
+
+  `--reel-marge` porte la marge de la page, et c'est le seul endroit où elle est
+  écrite : le rembourrage de la piste, la position des flèches et la largeur des
+  voiles en dépendent tous, donc ils ne peuvent pas dériver les uns des autres.
+
+  Tout est en `vw` ici, y compris le `clamp` recopié de la gouttière, parce que
+  le référentiel est la fenêtre et non un parent. C'est aussi pourquoi la
+  gouttière est passée de `68%` à `68vw` juste au-dessus : les deux doivent
+  donner le même nombre au pixel près, sinon la première carte se décale du
+  titre. La contrepartie est la barre de défilement, comptée par `vw` et pas par
+  `%`, d'où le `overflow-x: clip` sur le corps de page.
+*/
+.reel-rail {
+  --reel-marge: 16px;
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
+@media (min-width: 640px) {
+  .reel-rail {
+    --reel-marge: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .reel-rail {
+    --reel-marge: calc((100vw - clamp(880px, 68vw, 1760px)) / 2);
+  }
+}
+
+.reel-rail-piste {
+  padding-inline: var(--reel-marge);
+}
+
+/*
+  `clip` et non `hidden` : `hidden` ferait du corps un conteneur de défilement,
+  et le bandeau en `sticky` se calerait dessus au lieu de la fenêtre. `clip` se
+  contente de rogner.
+
+  Il est là pour le rail pleine largeur, qui se mesure en `vw`. Sur un système à
+  barre de défilement classique, `100vw` dépasse la largeur utile de la barre,
+  et sans ce rognage la page gagnerait une barre horizontale de quinze pixels.
+*/
+body {
+  overflow-x: clip;
 }

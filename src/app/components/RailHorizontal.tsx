@@ -1,38 +1,37 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+/** Flèche posée sur la colonne, 12 px après le début du contenu. */
+const DECALAGE_FLECHE = "calc(var(--reel-marge) + 12px)";
+/** Le voile part du bord de l'écran et doit dépasser la flèche, qui finit à
+ *  `--reel-marge + 56`. Le plateau opaque est donc calé au-delà. */
+const FIN_PLATEAU = "calc(var(--reel-marge) + 68px)";
+const LARGEUR_VOILE = "calc(var(--reel-marge) + 128px)";
+
 /**
  * Rail horizontal : une rangée qui défile, deux flèches pour avancer.
  *
- * Sous `lg`, le rail mord sur la gouttière, marges négatives compensées par un
- * rembourrage égal, de sorte que les cartes s'alignent sur le reste au repos
- * mais courent jusqu'au bord de l'écran quand on fait défiler. À partir de `lg`
- * la gouttière n'a plus de rembourrage, elle pilote la proportion par sa
- * largeur : le rail commence et finit alors exactement sur la verticale du
- * reste de la page.
+ * **La rangée va jusqu'au bord de l'écran, pas jusqu'à la colonne.** Le rail
+ * sort de la gouttière et couvre toute la fenêtre (`.reel-rail` dans
+ * `theme.css`), puis remet la marge de la page en rembourrage à l'intérieur,
+ * de sorte que la première carte tombe quand même sur la verticale du titre.
  *
- * **Les flèches se posent sur les jaquettes, sur un voile dégradé.** Elles ont
- * été essayées dans la marge, une fois celle-ci devenue assez large : rien ne
- * les recouvrait plus, mais elles s'éloignaient de la rangée qu'elles
- * commandent et le voile disparaissait avec elles. Une flèche qui flotte dans
- * le vide se lit moins bien qu'une flèche posée sur ce qu'elle fait défiler.
+ * Le contraire a été essayé, rail arrêté sur la colonne : une jaquette tranchée
+ * net au milieu de la page se lit comme un défaut d'affichage. La même jaquette
+ * qui s'efface au bord de l'écran se lit comme une suite, et c'est tout l'objet
+ * des voiles.
  *
- * Le voile n'est donc pas là pour dire « ça continue », il est le fond de la
- * flèche : sans lui elle se découpe sur une jaquette imprimée et le chevron
- * devient illisible.
+ * **Les flèches se posent sur les jaquettes, sur ce voile.** Elles ont été
+ * essayées dans la marge, une fois celle-ci devenue assez large : rien ne les
+ * recouvrait plus, mais elles s'éloignaient de la rangée qu'elles commandent et
+ * le voile disparaissait avec elles. Le voile n'est donc pas seulement un
+ * signal de continuité, il est le fond de la flèche : sans lui le chevron se
+ * découpe sur une jaquette imprimée et devient illisible.
  *
- * **Il doit donc être plus large que la flèche, plateau opaque compris.** En
- * 80 px de large avec une opacité pleine sur 55 %, il ne couvrait que 44 px
- * alors que la flèche s'étend jusqu'à 92 px du bord : la jaquette reparaissait
- * sous sa moitié droite, et le voile se lisait comme un dégradé qui s'arrête
- * au milieu. Les largeurs sont calées sur la position de la flèche à chaque
- * palier, plateau à 70 % :
- *
- *     mobile   voile 112, plateau 78, flèche jusqu'à 68
- *     sm       voile 128, plateau 90, flèche jusqu'à 76
- *     lg       voile 144, plateau 101, flèche jusqu'à 92
- *
- * Déplacer une flèche demande de reprendre la largeur du voile avec.
+ * D'où les trois mesures ci-dessous, toutes tirées de `--reel-marge`, la marge
+ * de page posée par `.reel-rail`. Elles doivent bouger ensemble : un voile plus
+ * étroit que la flèche laisse reparaître la jaquette sous le chevron, ce qui
+ * s'est produit avec une valeur en dur.
  *
  * Les voiles et les flèches ne paraissent que du côté où il reste quelque
  * chose. Une flèche qui ne fait rien est pire que pas de flèche.
@@ -40,6 +39,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
  * `pointer-events-none` sur les voiles : sans lui, ils intercepteraient le
  * glissement au doigt précisément à l'endroit où l'on attrape le rail.
  */
+
 export function RailHorizontal({ children, ariaLabel }: { children: React.ReactNode; ariaLabel: string }) {
   const rail = useRef<HTMLDivElement | null>(null);
   const [aGauche, setAGauche] = useState(false);
@@ -111,10 +111,6 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
   // près tombait sur la carte dessous et ouvrait la fiche au lieu de défiler.
   // Le `top` vient de la mesure ci-dessus ; `34 %` n'est qu'un repli pour le
   // premier rendu, avant que les images aient une hauteur.
-  // Les flèches restent dans la colonne, donc par-dessus les voiles et les
-  // jaquettes : elles doivent tomber là où l'œil les cherche, sur la rangée
-  // qu'elles commandent. Sorties dans la marge, elles perdaient leur fond et
-  // leur rapport à ce qu'elles font défiler.
   const fleche = "absolute z-20 flex size-11 -translate-y-1/2 items-center justify-center rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]";
   const styleFleche = {
     top: centreVignette !== null ? `${Math.round(centreVignette)}px` : "34%",
@@ -123,37 +119,31 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
     boxShadow: "0 6px 18px rgba(0,0,0,0.45)",
   };
 
-  /*
-    La marge négative annule la gouttière pour que le rail défile d'un bord à
-    l'autre, et la remet en rembourrage à l'intérieur pour que la première carte
-    s'aligne quand même sur le texte. Les deux valeurs doivent donc rester le
-    miroir exact de `.reel-gouttiere` : à partir de `lg` celle-ci pilote la
-    proportion par sa largeur et n'a plus de rembourrage, d'où le retour à zéro.
-    Sans ça le rail dépassait de 40 px dans la marge.
-  */
   return (
-    <div className="relative -mx-4 sm:-mx-6 lg:mx-0">
+    <div className="reel-rail relative">
       <div
         ref={rail}
-        className="flex gap-4 overflow-x-auto px-4 pt-4 pb-2 sm:px-6 lg:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="reel-rail-piste flex gap-4 overflow-x-auto pt-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {children}
       </div>
 
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 w-28 transition-opacity sm:w-32 lg:w-36"
+        className="pointer-events-none absolute inset-y-0 left-0 transition-opacity"
         style={{
           opacity: aGauche ? 1 : 0,
-          background: "linear-gradient(to right, var(--reel-bg) 0%, var(--reel-bg) 70%, transparent 100%)",
+          width: LARGEUR_VOILE,
+          background: `linear-gradient(to right, var(--reel-bg) 0, var(--reel-bg) ${FIN_PLATEAU}, transparent 100%)`,
         }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 w-28 transition-opacity sm:w-32 lg:w-36"
+        className="pointer-events-none absolute inset-y-0 right-0 transition-opacity"
         style={{
           opacity: aDroite ? 1 : 0,
-          background: "linear-gradient(to left, var(--reel-bg) 0%, var(--reel-bg) 70%, transparent 100%)",
+          width: LARGEUR_VOILE,
+          background: `linear-gradient(to left, var(--reel-bg) 0, var(--reel-bg) ${FIN_PLATEAU}, transparent 100%)`,
         }}
       />
 
@@ -162,8 +152,8 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
           type="button"
           onClick={() => pousser(-1)}
           aria-label={`${ariaLabel}, précédent`}
-          className={`${fleche} left-6 sm:left-8 lg:left-12`}
-          style={styleFleche}
+          className={fleche}
+          style={{ ...styleFleche, left: DECALAGE_FLECHE }}
         >
           <ChevronLeft size={20} color="var(--reel-text)" />
         </button>
@@ -173,8 +163,8 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
           type="button"
           onClick={() => pousser(1)}
           aria-label={`${ariaLabel}, suivant`}
-          className={`${fleche} right-6 sm:right-8 lg:right-12`}
-          style={styleFleche}
+          className={fleche}
+          style={{ ...styleFleche, right: DECALAGE_FLECHE }}
         >
           <ChevronRight size={20} color="var(--reel-text)" />
         </button>
