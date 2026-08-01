@@ -367,7 +367,7 @@ valider un garde-fou.
 |---|---|
 | Films | 5 780 |
 | Éditions | 10 298 |
-| Codes-barres | 5 383 |
+| Codes-barres | 5 008, dont 13 codes de magasin sans valeur hors enseigne |
 | Éditions rattachées | 9 439 (91,7 %) |
 | Éditions sans film | 859 |
 | Éditions avec visuel | 9 830 (99,7 %) |
@@ -730,6 +730,58 @@ blu-ray.com du cache, au niveau du disque, ce qu'IMDb ne donne pas. Ne pas
 rouvrir le sujet sans raison neuve, et se rappeler qu'opposer une extraction à
 IMDb, c'est la clause « Base de données » de nos propres mentions légales
 retournée (cf. §10).
+
+### dvdfr.com : écarté, et pourquoi
+
+Mesuré le 1er août 2026. Le site couvre pile notre marché et donnerait des
+dates de parution françaises, des zones et des pistes audio par édition.
+**Aucun chemin ne rend un volume utile.**
+
+**Leur API XML est morte.** Tellico et Filmotech l'appellent encore, sur
+`\/api/search.php?gencode=` et `\/api/dvd.php?id=`, mais les six URL sondées,
+deux schémas, UA de navigateur, rendent toutes :
+
+    404  Cannot GET /9056/search.php
+
+C'est le 404 par défaut d'**Express** : le préfixe `\/api/` est aujourd'hui
+réécrit vers un service Node qui ne connaît aucune de ces routes. Le corps
+d'erreur, 154 octets en anglais, diffère de leur vrai 404, 98 967 octets en
+français : c'est ce qui prouve que la couche a changé, pas que l'URL est mal
+écrite. **Ne pas rouvrir sur la foi du code de Tellico**, qui date de 2010.
+
+Et le quota d'alors la rendait de toute façon inutilisable en masse :
+**200 fiches par utilisateur et par semaine**, réinitialisable trois fois, 800
+au plus, les consultations de jaquette comprises. Nos 5 008 EAN auraient
+demandé six semaines et demie dans le meilleur cas.
+
+**Le crawl HTML est fermé là où il faudrait qu'il ouvre.** Les facettes de
+`listeliv.php` sont en `Disallow`, `?code_support`, `?formats`,
+`?sousformats` : c'est exactement ce qui permettrait de n'énumérer que le
+Blu-ray. Sans elles il faut balayer un fonds DVD de 1998 à `Crawl-delay: 5`
+pour en tirer une fraction inconnue.
+
+**Trois politiques contradictoires sur le même site**, ce qui fait qu'aucune
+ne se lit comme leur position :
+
+| mécanisme | ce qu'il dit |
+|---|---|
+| `robots.txt`, bloc `*` | `Allow: /`, `Crawl-delay: 5` |
+| application | **429** à tout UA contenant `bot`, `curl/8` passe |
+| `robots.txt`, nommément | `ClaudeBot`, `GPTBot`, `CCBot`… en `Disallow: /` |
+
+Le filtre applicatif récompense donc le mensonge, ce qui le range du côté de
+la mesure technique et non de la décision éditoriale (§5). La seule règle sans
+ambiguïté est le `Disallow: /` nommant `ClaudeBot`, et elle tient : un
+assistant ne récupère aucune de leurs pages.
+
+Leur `Content-Signal: search=yes,ai-train=no,use=reference` vaut par ailleurs
+réservation de droits au titre de l'article 4 de la directive 2019/790, la
+même que celle que nous posons (§10).
+
+Sondes conservées dans `jaquette-scraping/dvdfr/`, corps bruts compris :
+`diag_dvdfr.py` (matrice chemins × UA), `api_vivante.sh`, `sonde_dvdfr.py`.
+Le premier sondage a rendu **zéro partout**, et c'était un scan cassé, pas un
+catalogue vide : 404 à **zéro octet**, signature d'un chemin qui n'existe pas.
 
 ---
 
@@ -2051,6 +2103,28 @@ Documentés parce qu'ils se reproduiront.
   y compris une figurine Amiibo et No Man's Sky. Inexploitable. `supports`
   (Blu-ray, 4K) est fiable quand il est renseigné, mais vide sur des disques
   réels : croiser avec un vocabulaire de formats relevé dans le titre.
+- **Une absence écrite comme une valeur est pire qu'une absence.** Le parseur
+  editioncollector posait `''` quand l'EAN manquait, là où les trois autres
+  sources posent `null` : 375 lignes sur 5 383. Les deux comptes sont justes et
+  ne mesurent pas la même chose, d'où l'écart entre le §4 et ce que rend un
+  script. Le décompte n'est pas le risque, la déduplication l'est : un
+  rapprochement filtrant `ean=not.is.null` ramasse les 375, et `'' = ''` est
+  vrai, donc 375 disques sans rapport deviennent un seul. Nettoyé le 1er août
+  2026, sauvegarde de la colonne entière dans `ean_avant_20260801.json`.
+- **`btrim(ean)` ne retire que les espaces, pas les tabulations.** La règle
+  ratait précisément la ligne qu'elle visait. Passer le jeu en toutes lettres,
+  `btrim(ean, ' ' || chr(9) || chr(10) || chr(13) || chr(160))`.
+- **Trois façons d'abîmer un EAN, toutes vues chez editioncollector** : une
+  tabulation en tête, un suffixe `000` sur treize chiffres, et deux codes dans
+  une même chaîne, `2630055458860, 3512394014763`. Couper le suffixe a fait
+  apparaître le **premier doublon inter-sources du catalogue**, `Ocean's
+  Collection` existant aussi chez blu-ray.com : le défaut de saisie masquait
+  le disque.
+- **Un code en `2xxxxxxxxxxxx` n'identifie rien hors du magasin.** Préfixe GS1
+  20-29, circulation restreinte, attribué en interne par une enseigne, Fnac
+  ici. Treize éditions n'ont que ça pour code, et l'ordre n'est pas stable
+  quand la fiche en porte deux. À traiter comme absent dans toute
+  déduplication, sous peine de rapprocher deux disques sans rapport.
 - **blu-ray.com sert de l'ISO-8859-1**, comme l'annonce son `<meta charset>`.
   Décodé en UTF-8, `TF1 Vidéo` devient `TF1 Vid<?>o`. Le défaut est resté
   invisible tant qu'aucun champ accentué n'était extrait, il est apparu le
