@@ -21,6 +21,19 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
  * flèche : sans lui elle se découpe sur une jaquette imprimée et le chevron
  * devient illisible.
  *
+ * **Il doit donc être plus large que la flèche, plateau opaque compris.** En
+ * 80 px de large avec une opacité pleine sur 55 %, il ne couvrait que 44 px
+ * alors que la flèche s'étend jusqu'à 92 px du bord : la jaquette reparaissait
+ * sous sa moitié droite, et le voile se lisait comme un dégradé qui s'arrête
+ * au milieu. Les largeurs sont calées sur la position de la flèche à chaque
+ * palier, plateau à 70 % :
+ *
+ *     mobile   voile 112, plateau 78, flèche jusqu'à 68
+ *     sm       voile 128, plateau 90, flèche jusqu'à 76
+ *     lg       voile 144, plateau 101, flèche jusqu'à 92
+ *
+ * Déplacer une flèche demande de reprendre la largeur du voile avec.
+ *
  * Les voiles et les flèches ne paraissent que du côté où il reste quelque
  * chose. Une flèche qui ne fait rien est pire que pas de flèche.
  *
@@ -129,18 +142,18 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
 
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 w-16 transition-opacity sm:w-20"
+        className="pointer-events-none absolute inset-y-0 left-0 w-28 transition-opacity sm:w-32 lg:w-36"
         style={{
           opacity: aGauche ? 1 : 0,
-          background: "linear-gradient(to right, var(--reel-bg) 0%, var(--reel-bg) 55%, transparent 100%)",
+          background: "linear-gradient(to right, var(--reel-bg) 0%, var(--reel-bg) 70%, transparent 100%)",
         }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 w-16 transition-opacity sm:w-20"
+        className="pointer-events-none absolute inset-y-0 right-0 w-28 transition-opacity sm:w-32 lg:w-36"
         style={{
           opacity: aDroite ? 1 : 0,
-          background: "linear-gradient(to left, var(--reel-bg) 0%, var(--reel-bg) 55%, transparent 100%)",
+          background: "linear-gradient(to left, var(--reel-bg) 0%, var(--reel-bg) 70%, transparent 100%)",
         }}
       />
 
