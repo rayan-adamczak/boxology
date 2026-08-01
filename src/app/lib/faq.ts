@@ -3,7 +3,7 @@
  *
  * Structure reprise de la FAQ de Letterboxd : des sections, des questions à
  * ancre propre, un sommaire en tête. Leur page en compte cent quinze ; celle-ci
- * en compte vingt-six, et c'est délibéré. Un site d'un mois qui écrirait cent
+ * en compte vingt-neuf, et c'est délibéré. Un site d'un mois qui écrirait cent
  * questions les inventerait, et cent réponses creuses sont exactement le
  * contenu mince qu'on a passé la journée à écarter du reste du site.
  *
