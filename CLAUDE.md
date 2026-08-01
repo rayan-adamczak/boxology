@@ -882,9 +882,25 @@ d'empoisonnement pendant une propagation.
   mettre la date du build annoncerait à Google que 4 418 pages changent à
   chaque déploiement, ce qui est faux et se retourne contre nous. Demande une
   colonne `maj_le`.
-- **Pas de `WebSite` + `SearchAction`.** La recherche de l'accueil est un état
-  React sans paramètre d'URL ; déclarer une `SearchAction` pointerait vers une
-  adresse qui ne filtre rien. À rouvrir si la recherche gagne un `?q=`.
+- **`WebSite` + `SearchAction` : le sujet est clos, pas en attente.** Google a
+  **supprimé la sitelinks searchbox en novembre 2023**. La déclarer ne produit
+  plus rien, même maintenant que la recherche a son `?q=`. Ne pas rouvrir.
+
+### Recherche dans l'URL, en place le 31 juillet 2026
+
+`/?q=steelbook`. Posé pour l'usage et non pour le référencement : une recherche
+s'envoie, se met en favori, et le bouton retour cesse de faire quitter le site.
+
+**La page de résultats est en `noindex, follow`.** Une recherche interne est du
+contenu généré à la volée, et Google demande explicitement de ne pas la faire
+indexer ; `follow` reste, les liens vers les fiches doivent être suivis. Le
+canonical est calculé depuis le seul `pathname` (`lib/seo.ts`), donc il vaut `/`
+quelle que soit la recherche, sans rien à changer.
+
+**Règle d'historique** : on empile une entrée quand la recherche s'ouvre ou se
+ferme, on remplace tant qu'on l'affine. Empiler à chaque frappe rendrait le
+bouton retour inutilisable ; toujours remplacer ferait quitter le site depuis
+une recherche.
 
 ### Pages de regroupement, en place le 31 juillet 2026
 
