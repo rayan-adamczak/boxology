@@ -22,14 +22,19 @@ const LARGEUR_VOILE = "calc(var(--reel-marge) + 180px)";
  * Distance de défilement sur laquelle voile et flèche montent de 0 à 1.
  *
  * Ils apparaissaient d'un coup, sur un simple `scrollLeft > 1` : un pixel de
- * défilement faisait surgir un disque de 44 px et un voile de 300. La course
- * les fait maintenant monter avec le geste.
+ * défilement faisait surgir un disque de 44 px et un voile de 456. La course
+ * les fait monter avec le geste.
  *
- * 140 px, soit à peu près une carte : le voile est plein quand la première
- * jaquette est entrée dans la marge, c'est-à-dire quand il a quelque chose à
- * cacher.
+ * **Elle doit rester courte.** Essayée à 140 px, soit à peu près une carte, elle
+ * laissait le voile à un tiers alors que la première jaquette était déjà entrée
+ * dans la marge : la carte se voyait donc hors de la colonne, et la flèche
+ * posée dessus était presque transparente. Le voile doit être plein dès que le
+ * rail a quelque chose à cacher, c'est-à-dire tout de suite.
+ *
+ * 40 px : assez pour que ce ne soit pas un déclic, assez court pour que le
+ * premier cran de molette suffise.
  */
-const COURSE_APPARITION = 140;
+const COURSE_APPARITION = 40;
 
 /**
  * Rail horizontal : une rangée qui défile, deux flèches pour avancer.
