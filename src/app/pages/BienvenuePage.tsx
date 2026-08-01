@@ -189,16 +189,21 @@ function Etape({
       id={id}
       /* `grid-cols-1` explicite : sans lui, la colonne implicite se dimensionne
          sur son contenu, et les vignettes prenaient chacune une largeur
-         différente sur téléphone. */
-      /* La colonne de la vignette se dimensionne sur la vignette (`auto`), le
-         texte prend le reste. Avec deux colonnes égales, la vignette restait
-         plaquée au bord et l'écart au texte variait de 66 à 166 px selon sa
-         largeur ; ici il vaut la gouttière de la grille, la même partout. */
+         différente sur téléphone.
+
+         C'est la colonne de texte qui porte une largeur fixe, et la vignette
+         qui prend le reste : les six paragraphes se lisent alors sur la même
+         mesure d'une étape à l'autre. La vignette est ensuite collée au texte
+         plutôt qu'au bord de l'écran, ce qui rend l'écart constant lui aussi ;
+         c'est le bord extérieur qui devient irrégulier, et il n'a rien à
+         aligner. */
       className={`grid scroll-mt-28 grid-cols-1 items-center gap-8 lg:gap-12 ${
-        inverse ? "lg:grid-cols-[auto_minmax(0,1fr)]" : "lg:grid-cols-[minmax(0,1fr)_auto]"
+        inverse
+          ? "lg:grid-cols-[minmax(0,1fr)_auto]"
+          : "lg:grid-cols-[auto_minmax(0,1fr)]"
       }`}
     >
-      <div className={inverse ? "lg:order-2" : undefined}>
+      <div className={`lg:w-[400px] xl:w-[440px] ${inverse ? "lg:order-2" : ""}`}>
         <span
           className="inline-flex h-7 w-7 items-center justify-center rounded-full"
           style={{
@@ -230,15 +235,23 @@ function Etape({
         </div>
       </div>
 
-      {/* La vignette déborde un peu de la colonne, du côté opposé au texte, pour
-          que la page respire autrement qu'en grille sage. À partir de `xl`
-          seulement : en dessous, la gouttière du conteneur fait moins de 64 px
-          et le débordement sortirait de l'écran. */}
-      {/* La vignette est plaquée du côté qui déborde : sa largeur lui est propre,
-          donc sans cet alignement elle flotterait au milieu de sa colonne. */}
+      {/*
+        La vignette est collée au texte, pas au bord de l'écran : c'est l'écart
+        au texte qui doit être constant d'une étape à l'autre, et il se voit,
+        alors que le bord extérieur, lui, n'a rien à aligner.
+
+        Le corollaire est assumé : les cadres n'ayant pas la même largeur, ils ne
+        finissent pas sur la même verticale. L'inverse, tout aligner au bord, a
+        été essayé et donnait des écarts de 48 à 192 px pour la même colonne de
+        texte, qu'aucune raison ne justifiait à l'œil.
+
+        Le débordement de 80 px ne sert plus qu'aux cadres larges, qui passent
+        alors la gouttière du conteneur. À partir de `xl` seulement : en dessous,
+        cette gouttière est plus étroite que le débordement.
+      */}
       <div
         className={
-          inverse ? "flex justify-start lg:order-1 xl:-ml-20" : "flex justify-end xl:-mr-20"
+          inverse ? "flex justify-end lg:order-1 xl:-ml-20" : "flex justify-start xl:-mr-20"
         }
       >
         {visuel}
@@ -250,21 +263,20 @@ function Etape({
 /**
  * Cadre commun des vignettes : une surface, un filet, du rembourrage.
  *
- * **Hauteur commune, largeur libre.** Les six vignettes montrent des choses de
- * formats très différents — une jaquette, une liste de trois lignes, un tableau
- * de six — et les forcer à la même largeur en étirait certaines dans le vide.
- * La hauteur, elle, doit être la même : c'est elle qui donne le rythme quand on
- * descend la page, une étape plus haute que la précédente se lit comme un
- * déséquilibre. Chaque vignette passe donc sa largeur, et le contenu est centré
- * dans la hauteur imposée.
+ * **Ni hauteur ni largeur imposées.** Une hauteur commune de 360 px a été
+ * essayée : elle donnait un rythme régulier, mais au prix de jaquettes réduites
+ * pour tenir dedans et de cadres à moitié vides quand le contenu était court.
+ * Chaque vignette prend donc la place que son contenu demande, et les visuels
+ * sont dimensionnés pour se voir, pas pour rentrer.
  *
- * En dessous de `lg` la hauteur est libre : sur un téléphone la colonne est
- * étroite, et un cadre à hauteur fixe rognerait son contenu.
+ * Reste de l'épisode : le cadre est en `overflow-hidden`, donc un contenu trop
+ * grand se coupe sans rien signaler. Comparer `scrollHeight` et `clientHeight`
+ * après une retouche vaut toujours.
  */
 function Cadre({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`flex w-full max-w-full flex-col justify-center overflow-hidden rounded-[16px] p-5 sm:p-6 lg:h-[360px] ${className ?? ""}`}
+      className={`flex w-full max-w-full flex-col justify-center overflow-hidden rounded-[16px] p-5 sm:p-7 ${className ?? ""}`}
       style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
     >
       {children}
@@ -288,8 +300,8 @@ function Jaquette({ src, className }: { src?: string | null; className?: string 
 function VisuelPosseder({ edition, film }: { edition?: EditionWithFilm; film?: Film }) {
   return (
     <Cadre className="lg:w-[520px] xl:w-[600px]">
-      <div className="flex items-center gap-5">
-        <div className="w-[132px] shrink-0 sm:w-[192px]">
+      <div className="flex items-center gap-6">
+        <div className="w-[140px] shrink-0 sm:w-[228px]">
           <Jaquette src={edition?.image_url ?? film?.affiche_url} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-4">
@@ -340,10 +352,10 @@ function VisuelEnvies({ lignes }: { lignes: LigneVitrine[] }) {
         {lignes.map(({ film, edition }, i) => (
           <li
             key={film.id}
-            className="flex items-center gap-4 py-3"
+            className="flex items-center gap-4 py-4"
             style={{ borderTop: i === 0 ? "none" : "1px solid var(--reel-border)" }}
           >
-            <span className="w-[46px] shrink-0">
+            <span className="w-[60px] shrink-0">
               <Jaquette src={edition?.image_url ?? film.affiche_url} />
             </span>
             <span className="min-w-0 flex-1">
@@ -424,7 +436,7 @@ function VisuelSpecs() {
         {lignes.map(([cle, valeur]) => (
           <div
             key={cle}
-            className="flex items-baseline justify-between gap-4 py-2.5"
+            className="flex items-baseline justify-between gap-4 py-3"
             style={{ borderTop: "1px solid var(--reel-border)" }}
           >
             <dt className="shrink-0" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
@@ -461,7 +473,7 @@ function VisuelCoffret({ coffret, films }: { coffret?: EditionWithFilm; films: F
           le sens de l'étape, un boîtier qui se range dans plusieurs fiches. À
           taille égale, l'œil lisait cinq objets de même rang. */}
       <div className="flex items-center gap-6">
-        <div className="w-[168px] shrink-0">
+        <div className="w-[200px] shrink-0">
           <Jaquette src={coffret?.image_url} />
         </div>
         <div className="min-w-0 flex-1">
@@ -490,23 +502,23 @@ function VisuelCoffret({ coffret, films }: { coffret?: EditionWithFilm; films: F
 /** Étape 6, le compte, et ce qu'il garde. */
 function VisuelCompte() {
   const points: [ReactNode, string][] = [
-    [<User key="c" size={14} />, "Connexion avec Google, rien d’autre à remplir"],
-    [<Layers key="l" size={14} />, "Vos listes suivent d’un appareil à l’autre"],
-    [<ShieldCheck key="s" size={14} />, "Données hébergées dans l’Union européenne"],
-    [<Check key="e" size={14} />, "Suppression du compte et des listes en deux clics"],
+    [<User key="c" size={17} />, "Connexion avec Google, rien d’autre à remplir"],
+    [<Layers key="l" size={17} />, "Vos listes suivent d’un appareil à l’autre"],
+    [<ShieldCheck key="s" size={17} />, "Données hébergées dans l’Union européenne"],
+    [<Check key="e" size={17} />, "Suppression du compte et des listes en deux clics"],
   ];
   return (
     <Cadre className="lg:w-[440px] xl:w-[520px]">
-      <ul className="flex flex-col gap-5">
+      <ul className="flex flex-col gap-7">
         {points.map(([icone, texte], i) => (
           <li key={i} className="flex items-center gap-3">
             <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
               style={{ backgroundColor: "var(--reel-accent-soft)", color: "var(--reel-accent-clair)" }}
             >
               {icone}
             </span>
-            <span style={{ fontSize: "15px", color: "var(--reel-text)" }}>{texte}</span>
+            <span style={{ fontSize: "16px", lineHeight: "23px", color: "var(--reel-text)" }}>{texte}</span>
           </li>
         ))}
       </ul>
