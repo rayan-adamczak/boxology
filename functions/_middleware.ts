@@ -737,6 +737,144 @@ function injecterListe(
     .transform(reponse);
 }
 
+/* ---- Accueil et page de bienvenue ---- */
+
+/**
+ * Les deux pages d'entrée du site ne servaient **aucun texte**.
+ *
+ * Le middleware ne traitait que les fiches films et les pages de regroupement ;
+ * partout ailleurs, un client qui n'exécute pas le JavaScript recevait
+ * `<div id="root"></div>` et rien d'autre. Mesuré le 1er août 2026 : 0 signe
+ * dans le corps de `/` et de `/bienvenue`, contre 1 916 sur une fiche film.
+ * Google rend, la plupart des autres non, et l'accueil est précisément l'URL
+ * qu'on partage.
+ *
+ * Comme pour les fiches, le corps injecté et le composant React doivent dire la
+ * même chose sans que rien ne le garantisse : le bloc reste donc volontairement
+ * pauvre, pour que la dérive soit lente.
+ */
+async function lireVitrineAccueil(): Promise<{ films: LigneListe[]; films_total: number }> {
+  const base = `https://${PROJET}.supabase.co/rest/v1`;
+  const reponse = await fetch(
+    `${base}/films?select=id,titre,slug,annee,realisateur,edition_films!inner(edition_id)` +
+      `&order=popularite.desc.nullslast,id.asc&limit=24`,
+    {
+      headers: { apikey: CLE_ANON, Authorization: `Bearer ${CLE_ANON}`, Prefer: "count=exact" },
+      cf: { cacheTtl: CACHE_SECONDES, cacheEverything: true },
+    } as RequestInit,
+  );
+  if (!reponse.ok) throw new Error(`accueil : HTTP ${reponse.status}`);
+  const total = Number((reponse.headers.get("content-range") ?? "").split("/")[1]) || 0;
+  const lignes = (await reponse.json()) as any[];
+  return {
+    films_total: total,
+    films: lignes.map((f) => ({
+      libelle: f.titre,
+      details: [f.annee, f.realisateur].filter(Boolean).join(" · "),
+      lien: f.slug ? `/films/${f.slug}/${f.id}` : `/films/${f.id}`,
+    })),
+  };
+}
+
+/** Liens vers les trois sommaires, pour qu'un crawler descende dans le catalogue. */
+function liensAxes(): string {
+  return (
+    `<nav style="margin:36px 0 0"><h2 style="font-size:20px;margin:0 0 12px">Parcourir</h2>` +
+    (Object.keys(AXES) as NomAxe[])
+      .map(
+        (a) =>
+          `<a href="${AXES[a].base}" style="color:var(--reel-accent-clair,#6ea8ff);` +
+          `margin-right:14px;display:inline-block">${echapper(AXES[a].titre)}</a>`,
+      )
+      .join("") +
+    `<a href="/bienvenue" style="color:var(--reel-accent-clair,#6ea8ff);display:inline-block">Comment ça marche</a>` +
+    `</nav>`
+  );
+}
+
+async function servirAccueil(url: URL, next: () => Promise<Response>): Promise<Response> {
+  const { films, films_total } = await lireVitrineAccueil();
+  const reponse = await next();
+  if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
+
+  const canonical = `${url.origin}/`;
+  const meta = {
+    titre: `${SITE_NOM}, le catalogue des éditions Blu-ray et 4K françaises`,
+    description:
+      `Les éditions physiques de ${films_total} films et séries publiées en France : Blu-ray, 4K, ` +
+      `steelbooks et coffrets, avec leurs formats, leur éditeur et leur code-barres.`,
+  };
+  const corps = enveloppe(
+    `<h1 style="font-family:var(--reel-font-titre,inherit);font-size:38px;margin:0 0 12px">` +
+      `Le catalogue des éditions physiques de films</h1>` +
+      `<p style="margin:0 0 28px">${echapper(meta.description)}</p>` +
+      `<h2 style="font-size:20px;margin:0 0 12px">Films les plus consultés</h2>` +
+      `<ul style="list-style:none;padding:0;margin:0">` +
+      films
+        .map(
+          (f) =>
+            `<li style="margin:0 0 10px"><a href="${f.lien}" ` +
+            `style="color:var(--reel-accent-clair,#6ea8ff)">${echapper(f.libelle)}</a>` +
+            (f.details ? ` <span style="opacity:.6">${echapper(f.details)}</span>` : "") +
+            `</li>`,
+        )
+        .join("") +
+      `</ul>` +
+      liensAxes(),
+  );
+
+  return injecterListe(
+    reponse,
+    meta,
+    canonical,
+    corps,
+    donneesListe(meta.titre, canonical, films, url.origin, 1, films_total),
+  );
+}
+
+/**
+ * `/bienvenue` : le mode d'emploi, en texte.
+ *
+ * Aucune requête. Ce que la page explique ne dépend pas de la base, et une
+ * page d'entrée qui tomberait au moindre hoquet de Supabase serait un mauvais
+ * échange. Les six intitulés reprennent ceux des étapes, ancres comprises.
+ */
+const ETAPES_BIENVENUE: [string, string, string][] = [
+  ["posseder", "Dites-nous ce que vous possédez", "Sur la fiche d'un film, chaque édition publiée en France est listée. Marquez celles qui sont sur votre étagère, elles rejoignent votre collection."],
+  ["envies", "Gardez la liste de ce qu'il vous manque", "Une édition repérée mais pas achetée va dans vos envies. La liste se consulte depuis le téléphone, en rayon."],
+  ["comparer", "Comparez les éditions d'un même film", "Première édition, réédition anniversaire, steelbook d'un revendeur, coffret : la fiche film les rassemble toutes, avec leurs formats, leur date et leur zone."],
+  ["fiche-technique", "Lisez la fiche du disque, pas seulement celle du film", "Définition, HDR, format d'image, pistes audio, sous-titres, éditeur. Une 4K en Dolby Vision et un Blu-ray 1080p du même film n'offrent pas la même chose."],
+  ["coffrets", "Les coffrets comptent pour chacun de leurs films", "Un coffret apparaît sur la fiche de chaque film qu'il contient, et le cocher une fois suffit à le voir partout."],
+  ["compte", "Votre compte, vos listes, effaçables", "La consultation ne demande rien. Le compte sert à ce que vos listes survivent à un vidage de cache et vous suivent d'un appareil à l'autre."],
+];
+
+async function servirBienvenue(url: URL, next: () => Promise<Response>): Promise<Response> {
+  const reponse = await next();
+  if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
+
+  const canonical = `${url.origin}/bienvenue`;
+  const meta = {
+    titre: `Bienvenue | ${SITE_NOM}`,
+    description:
+      `${SITE_NOM} recense les éditions physiques de films sorties en France : Blu-ray, 4K, ` +
+      `steelbooks et coffrets. Marquez ce que vous possédez, gardez la liste de ce qu'il vous manque.`,
+  };
+  const corps = enveloppe(
+    `<h1 style="font-family:var(--reel-font-titre,inherit);font-size:38px;margin:0 0 12px">` +
+      `Savoir quelle édition vous avez déjà</h1>` +
+      `<p style="margin:0 0 28px">${echapper(meta.description)}</p>` +
+      ETAPES_BIENVENUE.map(
+        ([ancre, titre, texte], i) =>
+          `<section id="${ancre}" style="margin:0 0 24px">` +
+          `<h2 style="font-size:20px;margin:0 0 6px">${i + 1}. ${echapper(titre)}</h2>` +
+          `<p style="margin:0">${echapper(texte)}</p></section>`,
+      ).join("") +
+      liensAxes(),
+  );
+
+  return injecterListe(reponse, meta, canonical, corps, null);
+}
+
 /**
  * Sert `/formats`, `/editeurs`, `/genres` et leurs pages.
  *
@@ -871,6 +1009,23 @@ export async function onRequest(context: Contexte): Promise<Response> {
       });
     }
     return reponse;
+  }
+
+  /* Les deux pages d'entrée. Comme partout ici, toute erreur retombe sur
+     `next()` : mieux vaut une page sans texte injecté qu'une page morte. */
+  if (url.pathname === "/") {
+    try {
+      return await servirAccueil(url, next);
+    } catch {
+      return next();
+    }
+  }
+  if (url.pathname === "/bienvenue") {
+    try {
+      return await servirBienvenue(url, next);
+    } catch {
+      return next();
+    }
   }
 
   const axe = axeDeChemin(url.pathname);
