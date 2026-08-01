@@ -1,4 +1,4 @@
-# Jaquette — contexte projet
+# Jaquette, contexte projet
 
 Catalogue des éditions physiques de films (Blu-ray, 4K, steelbooks, coffrets)
 pour le marché français. Anciennement *Boxology*, renommé en juillet 2026.
@@ -9,12 +9,12 @@ pour le marché français. Anciennement *Boxology*, renommé en juillet 2026.
 
 | | |
 |---|---|
-| Nom | **jaquette.app**, en minuscules, extension comprise. Depuis juillet 2026 : « jaquette » seul est un nom commun, le `.app` est ce qui démarque. Vaut partout — mot-symbole, `<title>`, `og:site_name` |
-| Domaine | `jaquette.app` — **en ligne**, apex et `www` |
+| Nom | **jaquette.app**, en minuscules, extension comprise. Depuis juillet 2026 : « jaquette » seul est un nom commun, le `.app` est ce qui démarque. Vaut partout : mot-symbole, `<title>`, `og:site_name` |
+| Domaine | `jaquette.app`, **en ligne**, apex et `www` |
 | Dépôt | `github.com/rayan-adamczak/jaquette` (public) |
 | Éditeur | Rayan Adamczak, designer, à titre non professionnel |
-| Contact | `contact@jaquette.app` — Cloudflare Email Routing, redirige vers rayan.adamczak@gmail.com. Réception seulement, pas d'envoi |
-| Compte Awin | `Boxology` (3006883) — 4 candidatures en attente |
+| Contact | `contact@jaquette.app`, Cloudflare Email Routing, redirige vers rayan.adamczak@gmail.com. Réception seulement, pas d'envoi |
+| Compte Awin | `Boxology` (3006883), 4 candidatures en attente |
 
 **Ambition** : devenir commercial via liens d'affiliation. Aujourd'hui purement
 informatif, aucun partenariat actif.
@@ -38,7 +38,7 @@ site. Le workflow et le site GitHub Pages sont retirés.
 
 Cloudflare Pages sert `public/_redirects` (`/* /index.html 200`), donc
 `/films/560` répond **200**. `vite.config.ts` garde une branche
-`DEPLOY_TARGET=github` désormais morte — sous-chemin `/jaquette/` et copie
+`DEPLOY_TARGET=github` désormais morte, sous-chemin `/jaquette/` et copie
 `404.html`. À supprimer un jour.
 
 `public/_headers` marque `/assets/*` en `immutable` : Cloudflare revalidait à
@@ -48,7 +48,7 @@ la règle, sinon un déploiement ne serait pas vu des visiteurs déjà venus.
 
 DNS géré par Cloudflare, domaine acheté chez Spaceship (nameservers
 `anna`/`lloyd.ns.cloudflare.com`). Un enregistrement `TXT` valide la propriété
-Google Search Console — **ne pas le supprimer**, la validation tomberait.
+Google Search Console, **ne pas le supprimer**, la validation tomberait.
 
 ### Courrier
 
@@ -56,11 +56,11 @@ Google Search Console — **ne pas le supprimer**, la validation tomberait.
 gratuit. Une règle redirige `contact@` vers `rayan.adamczak@gmail.com`, et le
 **catch-all est actif** vers la même boîte : toute adresse du domaine arrive,
 `bonjour@` comme `xyz@`. Aucune faute de frappe n'est perdue, mais rien ne
-filtre non plus — si le spam monte, repasser le catch-all en « Supprimer » et
+filtre non plus, si le spam monte, repasser le catch-all en « Supprimer » et
 n'ouvrir que les adresses utiles.
 
 Spaceship a été écarté : son transfert d'email et sa redirection d'URL supposent
-que la zone soit chez lui, et elle est chez Cloudflare — l'écran affiche
+que la zone soit chez lui, et elle est chez Cloudflare, l'écran affiche
 d'ailleurs « Redirection d'URL » grisée pour cette raison. Spacemail n'a jamais
 été souscrit.
 
@@ -68,7 +68,7 @@ Cinq enregistrements ajoutés à la zone, les quatre premiers **verrouillés** p
 Email Routing : trois `MX` vers `route{1,2,3}.mx.cloudflare.net`, un `TXT` DKIM
 sur `cf2024-1._domainkey`, un `TXT` SPF `v=spf1 include:_spf.mx.cloudflare.net
 ~all`. Puis, à la main, `_dmarc` en `v=DMARC1; p=none; rua=mailto:contact@…;
-fo=1` — `p=none` observe sans rien rejeter, à durcir une fois les rapports lus.
+fo=1`, où `p=none` observe sans rien rejeter, à durcir une fois les rapports lus.
 
 **Email Routing ne fait que recevoir.** Répondre depuis l'adresse demanderait un
 SMTP et un « Envoyer en tant que » dans Gmail.
@@ -100,7 +100,7 @@ Chargement : `set -a; . ~/.config/boxology.env; set +a`
 La clé `service_role` a été **retirée du code et tournée** le 30 juillet 2026.
 `import_supabase.py` la lisait en dur ; il lit désormais l'environnement et
 sort avec un message d'aide si la variable manque. `export_transcript.py`
-n'était pas concerné — il contient une regex `sb_secret_[A-Za-z0-9_\-]+` qui
+n'était pas concerné, il contient une regex `sb_secret_[A-Za-z0-9_\-]+` qui
 *caviarde* la clé, motif qu'un grep confond avec la chose elle-même.
 
 L'ancienne clé du script était déjà révoquée (401) ; celle en service, dans le
@@ -111,13 +111,13 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films` — 4 581 lignes
+### `films`, 4 581 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
 `genres` (text[]), `cast_principal` (jsonb), **`type`** (`film|serie|coffret`).
 
-Deux lignes seulement n'ont pas de `tmdb_id` — elles échappent donc à toutes
+Deux lignes seulement n'ont pas de `tmdb_id`, elles échappent donc à toutes
 les passes d'enrichissement, qui énumèrent `tmdb_id=not.is.null`.
 
 **103 œuvres sans aucune édition ont été supprimées le 31 juillet 2026.**
@@ -125,7 +125,7 @@ C'était le résidu des corrections de genre : quand une édition passe du film
 `Bleach` à la série `Bleach`, la fiche film reste, vide. Un catalogue d'éditions
 physiques n'a rien à faire d'une œuvre qu'aucun disque ne porte, et le sitemap
 ne les listait déjà pas. Sauvegarde complète dans
-`films_supprimes_20260731.json` — c'est le seul retour arrière, la suppression
+`films_supprimes_20260731.json`, c'est le seul retour arrière, la suppression
 en base est définitive. Vérifié avant écriture : aucun lien, aucun
 `editions.film_id`, aucune ligne de `collections` ne les référençait.
 
@@ -133,7 +133,7 @@ en base est définitive. Vérifié avant écriture : aucun lien, aucun
 le 30 juillet 2026 : 91 des 3 554 films alors en base avaient divergé, 89 réécrits
 (`rafraichir_titres.py`, ancienne valeur conservée dans `titres_avant.json`).
 Le rapprochement se fait sur `tmdb_id` et l'écriture est refusée si l'année de
-TMDB ne colle plus à celle en base — c'est ce garde-fou qui aurait attrapé le
+TMDB ne colle plus à celle en base, c'est ce garde-fou qui aurait attrapé le
 cas `Terminator 2` décrit plus bas.
 
 **Fiche technique, ajoutée le 30 juillet 2026** :
@@ -142,7 +142,7 @@ cas `Terminator 2` décrit plus bas.
 Migrations `20260730_titres_alternatifs.sql` et `20260730_fiche_technique.sql`.
 Alimentées par `enrichir_tmdb.py` et `champs_tmdb.py`.
 
-`cast_principal` porte désormais `{nom, role, photo}` — l'URL TMDB complète en
+`cast_principal` porte désormais `{nom, role, photo}`, l'URL TMDB complète en
 `w185`, comme `affiche_url` stocke une URL en `w500`. La taille fait partie de
 l'URL chez TMDB ; la fixer à l'import évite que chaque page la recompose.
 
@@ -157,11 +157,11 @@ toujours. Au 31 juillet 2026 la tête de liste est *L'Odyssée* (1 167),
 *Spider-Man : Brand New Day* (912), *Supergirl* (630).
 
 **Elle se périme, et c'est sa nature.** Sans repasse, la page d'accueil affiche
-indéfiniment les succès du jour de l'import — d'où la tâche hebdomadaire
+indéfiniment les succès du jour de l'import, d'où la tâche hebdomadaire
 décrite au §6.
 
-### `editions` — 8 471 lignes
-`id` (identity **ajoutée en juillet 2026** — elle manquait, toute insertion
+### `editions`, 8 471 lignes
+`id` (identity **ajoutée en juillet 2026**, elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `formats_extraits` (text[]), `url_source`, `contenu_brut`, `image_url`,
 `images_secondaires`, `slug`, `type`, `prix_editeur`, `univers`, `supports`,
@@ -172,17 +172,17 @@ applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 
 **`date_parution` (date), ajoutée le 31 juillet 2026.** Migration
 `20260731_dates_et_popularite.sql`, index décroissant, remplie par
-`dates_editions.py` — **2 543 dates converties, zéro échec**.
+`dates_editions.py`, **2 543 dates converties, zéro échec**.
 
 `date_sortie` reste du **texte** dans la langue de la source : `Sep 30, 2025`,
-`September 8, 2024`. Un `order by` dessus est alphabétique, donc faux — « Apr »
+`September 8, 2024`. Un `order by` dessus est alphabétique, donc faux : « Apr »
 passe avant « Sep » quelle que soit l'année. La chaîne brute est conservée : elle
 sert de preuve si la date analysée paraît fausse, sans retourner sur le site.
 
 **Les dates et les visuels ne se recouvrent pas du tout.** Les 2 543 lignes
 datées viennent toutes de blu-ray.com, qui ne publie aucune image ; les 3 193
 `image_url` sont chez editioncollector, qui ne publie aucune date. Une requête
-qui exige les deux rend **zéro ligne** — piège rencontré en construisant la page
+qui exige les deux rend **zéro ligne**, piège rencontré en construisant la page
 d'accueil.
 
 **Specs techniques, ajoutées le 30 juillet 2026** : `codec`, `resolution`,
@@ -191,7 +191,7 @@ d'accueil.
 `editeur`. Migration `20260730_specs_techniques.sql`, puis
 `20260730_fiche_technique.sql` pour `editeur`.
 
-Couverture, sur les 2 546 éditions blu-ray.com — les 3 193 lignes
+Couverture, sur les 2 546 éditions blu-ray.com, les 3 193 lignes
 editioncollector n'ont aucune spec, la source n'en publie pas :
 
 | | |
@@ -204,7 +204,7 @@ editioncollector n'ont aucune spec, la source n'en publie pas :
 
 Elles portent sur le **disque**, pas sur l'œuvre : une 4K en Dolby Vision et un
 Blu-ray 1080p du même film n'ont ni la même définition ni les mêmes pistes. La
-fiche film agrège à l'affichage — `agregerSpecs` dans `reelio-db.ts` — et se lit
+fiche film agrège à l'affichage (`agregerSpecs` dans `reelio-db.ts`) et se lit
 « disponible en Dolby Vision », pas « ce film est en Dolby Vision ».
 
 **Convention d'identifiant, changée en juillet 2026.** Les 3 180 premières
@@ -213,7 +213,7 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films` — 10 814 liens
+### `edition_films`, 10 814 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
@@ -234,7 +234,7 @@ requête, ce qui permet de les corriger au fil des signalements :
 **L'app lit les éditions via cette table**, pas via `editions.film_id`
 (cf. `getEditionsForFilm` dans `src/app/lib/reelio-db.ts`).
 
-### `collections` — appliquée le 30 juillet 2026, 2 lignes
+### `collections`, appliquée le 30 juillet 2026, 2 lignes
 Listes utilisateur : `user_id`, `edition_id` (bigint), `statut`
 (`envie|possede`), `cree_le`. Clé primaire composite `(user_id, edition_id)`
 plutôt qu'un `id` identity, pour que `on conflict (user_id, edition_id)`
@@ -249,18 +249,18 @@ Contient aussi la fonction `public.supprimer_mon_compte()`, `security definer`,
 `auth.users` de l'appelant, ce qu'une clé de navigateur ne peut pas faire.
 
 `supabase/migrations/20260730_collections.sql` reste la source, et il est
-idempotent — rejouable sans effet de bord.
+idempotent, rejouable sans effet de bord.
 
 **Comment l'appliquer.** Par l'éditeur SQL du tableau de bord, seule voie
 disponible : pas de `psql`, pas de CLI Supabase, et aucun mot de passe de base
-ni jeton `sbp_` sur la machine. La clé `service_role` ne suffit pas — PostgREST
+ni jeton `sbp_` sur la machine. La clé `service_role` ne suffit pas, PostgREST
 n'exécute pas de SQL arbitraire, donc aucun DDL. Coller par le presse-papiers
 (`pbcopy < fichier.sql`) et non taper : l'éditeur auto-indente et ferme les
 parenthèses, ce qui abîme un bloc `$$ ... $$`. Le tableau de bord annonce
 « destructive operations » pour les `drop policy if exists` que le script
 recrée trois lignes plus bas.
 
-### `bluray_import` — table de transit
+### `bluray_import`, table de transit
 3 100 fiches crawlées, avec statut : `promu` (2 546), `a_verifier` (464),
 `doublon` (90). Invisible du site, aucune policy anon.
 
@@ -274,7 +274,7 @@ de sauvegarde renvoient `[]` en anon. `collections` est plus fermée encore :
 `revoke all` sur le rôle `anon`, donc **401** et non tableau vide.
 
 La table `statuts` a été supprimée le 30 juillet 2026 (vestige mono-utilisateur
-sans `user_id`, deux lignes de test, aucune référence) —
+sans `user_id`, deux lignes de test, aucune référence),
 cf. `supabase/migrations/20260730_drop_statuts.sql`.
 
 Attention en vérifiant : PostgREST répond **200 avec un tableau vide** quand une
@@ -287,10 +287,10 @@ La barrière tombe donc avant la RLS et se voit. Vérifié le 30 juillet 2026 :
     anon GET /collections  ->  401, 42501 permission denied for table collections
 
 Un vrai refus, pas un tableau vide. Comme `revoke all` porte sur tous les
-privilèges, une écriture bute sur la même barrière — mais seul le SELECT a été
+privilèges, une écriture bute sur la même barrière, mais seul le SELECT a été
 réellement exercé.
 
-La clé `anon` du bundle est publique par nature — ce n'est pas une fuite.
+La clé `anon` du bundle est publique par nature, ce n'est pas une fuite.
 Vérifié : aucune `service_role` dans `dist/` ni dans l'historique git.
 
 **Toujours non vérifié** : le refus d'écriture anon sur `films`, `editions` et
@@ -325,7 +325,7 @@ les orphelines par `film_id is null` donne 858 au lieu de 416.
 
 **Enrichissement TMDB du 30 juillet 2026.** 3 273 films portaient un `tmdb_id`
 au lancement des passes ; les films créés depuis y échappent et devront être
-repris. Titres étrangers : **3 093 films**, 180 sans — TMDB n'en propose aucun
+repris. Titres étrangers : **3 093 films**, 180 sans, TMDB n'en propose aucun
 dans les six langues retenues (`en`, `es`, `de`, `it`, `ja`, `pt`).
 
 Le budget est le champ le moins couvert, et c'est normal : TMDB rend `0` quand
@@ -333,37 +333,37 @@ il l'ignore, et `0` est écrit `NULL` plutôt qu'affiché comme une mesure.
 
 Trois campagnes : 1 893 → 1 256 puis **1 256 → 377** le 30 juillet 2026, puis
 le crawl complet du 31 juillet, qui a fait entrer 2 732 éditions d'un coup et
-laissé 751 orphelines sur 8 471 — soit **91,1 % de rattachement**, contre 93,4 %
+laissé 751 orphelines sur 8 471, soit **91,1 % de rattachement**, contre 93,4 %
 sur un catalogue deux fois plus petit la veille.
 
 La seconde campagne est partie d'une relecture des pages blu-ray.com brutes
 conservées dans `crawl/pages/`. Le parseur d'origine n'en gardait que le codec,
-la résolution et les disques ; la page portait aussi un bandeau structuré —
-studio, plage d'années, **nombre de films**, durée — et, sur les coffrets, la
+la résolution et les disques ; la page portait aussi un bandeau structuré
+(studio, plage d'années, **nombre de films**, durée) et, sur les coffrets, la
 liste de leur contenu avec un lien par film. C'est ce qui a débloqué le lot :
 le nombre de films tranche entre édition simple et coffret sans avoir à
 interpréter le titre, là où « Intégrale » ou « Collection » mentent une fois
 sur deux.
 
-Reste 530 orphelines après le 31 juillet : 365 blu-ray.com — surtout des
-coffrets dont la page n'annonce pas le contenu — et 165 editioncollector.
+Reste 530 orphelines après le 31 juillet : 365 blu-ray.com (surtout des
+coffrets dont la page n'annonce pas le contenu) et 165 editioncollector.
 
 ---
 
 ## 5. Sources de données
 
-### editioncollector.fr — 3 193 éditions
+### editioncollector.fr, 3 193 éditions
 Source d'origine, **seule à fournir des visuels**.
 
 **Les images ne sont plus en hotlink depuis le 31 juillet 2026.** Les 7 220 URL
 distinctes ont été recopiées sur un bucket Cloudflare R2 et sont servies par
 `img.jaquette.app` : 7 212 objets, 0,78 Go, egress gratuit et CDN devant le
-bucket. Les huit manquantes étaient déjà mortes chez eux — trois 404, cinq 403 —
+bucket. Les huit manquantes étaient déjà mortes chez eux (trois 404, cinq 403),
 donc cassées sur le site avant même la bascule ; leur `image_url` est passée à
 `null`, une carte sans visuel se dégradant mieux qu'un visuel brisé.
 
 **Une image qui répond 200 n'est pas forcément une image.** 328 éditions
-pointaient vers `actularge.jpg`, un fichier de 3 155 octets — le même à l'octet
+pointaient vers `actularge.jpg`, un fichier de 3 155 octets, le même à l'octet
 près sur les 328, empreinte SHA identique : c'est le visuel d'attente
 d'editioncollector, recopié fidèlement par le miroir. À l'écran il donne un
 appareil photo gris, indistinguable d'un bug. Le contrôle par code HTTP ne
@@ -384,7 +384,7 @@ plafonne l'agrandissement de la visionneuse (cf. §8).
 d'origine, ligne à ligne : la bascule est réversible et l'appariement
 vérifiable. Migration `20260731_images_miroir.sql`, scripts `miroir_images.py`
 et `basculer_images.py`. Le site ne dépend donc plus d'un tiers pour ses
-visuels — c'était le seul point où une décision extérieure pouvait tout casser
+visuels, c'était le seul point où une décision extérieure pouvait tout casser
 du jour au lendemain.
 
 Leur `robots.txt` ne contient aucune règle `User-agent: *`, seulement deux
@@ -398,11 +398,11 @@ soit 13 éditions réelles.
 Ne pas se fier au sitemap : il annonçait 1 201 nouveautés, mais mêle figurines,
 jeux et livres, et ne couvre que 1 477 URL sur 3 193.
 
-### blu-ray.com — 2 546 éditions
+### blu-ray.com, 2 546 éditions
 Crawlé en juillet 2026, d'abord 3 100 fiches sur 5 486 seulement : le site
 renvoyait **403** sur le User-Agent du robot. Blocage levé, vérifié à 200 avec
 le même `Boxology-catalog-bot/1.0`, et **catalogue crawlé en entier le
-31 juillet 2026 — 5 917 fiches, zéro page abîmée**.
+31 juillet 2026, 5 917 fiches, zéro page abîmée**.
 
 Méthode : cookie pays via `setcountry.php?country=fr`, puis pagination de
 `movies.php`. Le sitemap seul ne donne pas le pays.
@@ -413,7 +413,7 @@ Apporte : EAN (72 %), date de sortie, zone, formats, **piste audio française
 **Les visuels ont été récupérés le 31 juillet 2026**, alors que la note
 précédente disait « pas de visuels, copyright ». 5 257 jaquettes sont dans le
 bucket sous `bluray/covers/<bluray_id>_large.jpg`, appariées par
-`editions.source_id` — le nom de l'objet porte l'identifiant, donc aucune table
+`editions.source_id`, le nom de l'objet porte l'identifiant, donc aucune table
 de correspondance à tenir. Écrites par `basculer_visuels_bluray.py`, l'URL
 d'origine conservée dans `image_url_source`.
 
@@ -422,19 +422,19 @@ C'est un changement de position assumé, pas un oubli : le §10 l'accompagne.
 Ne pas contourner un blocage (proxy, VPN, changement d'UA, session du compte).
 Le compte créé sur le site implique l'acceptation de leurs conditions.
 
-**Leur `robots.txt` interdit nommément les agents Claude** — `ClaudeBot`,
+**Leur `robots.txt` interdit nommément les agents Claude** : `ClaudeBot`,
 `Claude-SearchBot`, `Claude-Web` et `Claude-Code`, tous en `Disallow: /`. Un
 assistant ne doit donc pas récupérer leurs pages, quel que soit l'UA que le
 script enverrait : c'est l'agent qui est visé, pas l'outil. Le crawl se lance à
 la main. Le bloc `User-agent: *`, lui, n'interdit que `/cgi-bin/`,
 `/community/*.php`, `/link/`, `/search/`, `/movies/search.php` et
-`/news/search.php` — les fiches et `movies.php` restent ouverts, et aucun
+`/news/search.php` : les fiches et `movies.php` restent ouverts, et aucun
 `Crawl-delay` n'est imposé à `*` là où bingbot et Applebot en ont 10 s.
 
 **`enum_fr.py` écrase `catalogue_fr.json`, il ne le fusionne pas.** Les deux
 énumérations de juillet ne se recouvrent qu'à 5 050 sur ~5 480 : 436 fiches
 connues sont sorties du listing, 431 y sont entrées. Le total presque identique
-— 5 486 contre 5 481 — masquait complètement cette rotation, et prendre la
+(5 486 contre 5 481) masquait complètement cette rotation, et prendre la
 dernière aurait perdu une fiche sur huit. Le listing ne montre qu'une fenêtre ;
 une fiche qui en sort n'est pas retirée du site. **Toujours fusionner, et
 sauvegarder avant.** Union au 30 juillet 2026 : 5 917 ids.
@@ -446,7 +446,7 @@ robot. À aligner un jour : le 200 obtenu l'a été avec l'UA du robot.
 Métadonnées films et séries. Rattachement par titre **et année**.
 
 Fournit aussi, dans le même appel que les crédits : titres traduits
-(`translations`, et non `alternative_titles` — le second rend des variantes
+(`translations`, et non `alternative_titles`, le second rend des variantes
 d'écriture sans valeur pour la recherche), pays de production, budget,
 compositeur, et la **sortie salle française** via `release_dates` filtré sur
 `FR` et le type `3`. Ne pas prendre la première date française venue : sur
@@ -456,28 +456,28 @@ Les noms de pays de `production_countries` sont en anglais quelle que soit la
 langue demandée. `/configuration/countries?language=fr-FR` donne la table de
 traduction.
 
-### IMDb — écarté, et pourquoi
+### IMDb : écarté, et pourquoi
 La question s'est posée le 30 juillet 2026 pour la page « technical » de leurs
 fiches, qui porte ratio, HDR et pistes audio. **Trois voies, aucune ouverte :**
 
-- **Scraper** — interdit noir sur blanc par leurs Conditions of Use, clause
+- **Scraper** : interdit noir sur blanc par leurs Conditions of Use, clause
   « Robots and Screen Scraping ».
-- **Jeux de données gratuits** (`datasets.imdbws.com`) — licence *personal and
+- **Jeux de données gratuits** (`datasets.imdbws.com`) : licence *personal and
   non-commercial use only*, incompatible avec l'ambition d'affiliation. Et ils
   ne contiennent **aucune spec technique** : `title.basics`, `title.akas`,
   `title.ratings`, `title.crew`, `title.principals`, `name.basics`,
   `title.episode`, rien d'autre.
-- **Licence commerciale** — tarification entreprise, hors de proportion.
+- **Licence commerciale** : tarification entreprise, hors de proportion.
 
 Sans objet de toute façon : les specs sont déjà dans les 3 100 pages
 blu-ray.com du cache, au niveau du disque, ce qu'IMDb ne donne pas. Ne pas
-rouvrir le sujet sans raison neuve — et se rappeler qu'opposer une extraction à
+rouvrir le sujet sans raison neuve, et se rappeler qu'opposer une extraction à
 IMDb, c'est la clause « Base de données » de nos propres mentions légales
 retournée (cf. §10).
 
 ---
 
-## 6. Scripts — `~/Documents/jaquette-scraping/`
+## 6. Scripts (`~/Documents/jaquette-scraping/`)
 
 ### Import blu-ray.com (2026-07)
 
@@ -495,7 +495,7 @@ retournée (cf. §10).
 **L'étape 1b manquait**, et ne s'est vue qu'en rejouant la chaîne le 31 juillet
 2026 : les fiches chargées restent en statut `charge`, que l'étape 2 ne lit pas.
 Le tri avait été fait à la main en juillet. Elle écarte le rapprochement par
-titre, qui avait produit 464 `a_verifier` jamais relus depuis — une édition en
+titre, qui avait produit 464 `a_verifier` jamais relus depuis, une édition en
 double, visible et corrigeable, vaut mieux que deux produits fusionnés à tort.
 
 Trois défauts silencieux corrigés dans la même reprise :
@@ -505,8 +505,8 @@ Trois défauts silencieux corrigés dans la même reprise :
   Series ». `Defiance: Seasons 1 and 2` partait donc vers *Les Insurgés* (2008)
   et `Batman (The Original TV Series)` vers le film de 1989. 66 fiches remises
   dans le bon catalogue ;
-- **`on_conflict=tmdb_id` ne correspondait à aucune contrainte** — l'unique
-  index porte sur `(tmdb_id, type)` depuis juillet — et l'index des films
+- **`on_conflict=tmdb_id` ne correspondait à aucune contrainte** : l'unique
+  index porte sur `(tmdb_id, type)` depuis juillet, et l'index des films
   existants, keyé sur `tmdb_id` seul, écrasait une série par un film du même
   numéro ;
 - **une lecture qui échoue doit se voir.** `if st != 200: break` rendait une
@@ -539,7 +539,7 @@ Trois défauts silencieux corrigés dans la même reprise :
 
 Résultat cumulé : 1 893 → 1 256 orphelines, 637 rattachées, 332 films créés.
 
-### Seconde campagne orphelines — `orphelines_2026_07_30/`
+### Seconde campagne orphelines (`orphelines_2026_07_30/`)
 
 1 256 → 377 orphelines, 879 rattachées, 920 films créés, en neuf passes de
 résolution toutes en **lecture seule**, séparées de l'écriture.
@@ -547,19 +547,19 @@ résolution toutes en **lecture seule**, séparées de l'écriture.
 | Fichier | Rôle |
 |---|---|
 | `extraire.py` | Relit les pages brutes : bandeau, nombre de films, liste de contenu |
-| `resoudre.py` | Passe 1 — normalisation, appariement par titre exact |
-| `resoudre2.py` | Passe 2 — mono-œuvres : deux catalogues, sous-titre français |
-| `resoudre3.py` | Passe 3 — coffrets sans liste : découpage du titre, collection TMDB |
+| `resoudre.py` | Passe 1, normalisation, appariement par titre exact |
+| `resoudre2.py` | Passe 2, mono-œuvres : deux catalogues, sous-titre français |
+| `resoudre3.py` | Passe 3, coffrets sans liste : découpage du titre, collection TMDB |
 | `reparer_genre.py` | Rejoue en série ce qui a été résolu en film à tort |
-| `resoudre4.py` | Passe 4 — troncature du titre par la tête, pour les séries |
-| `resoudre5.py` | Passe 5 — coffrets restants, contrainte d'années assouplie |
-| `resoudre6.py` | Passe 6 — découpage accepté même partiel, les deux sources |
+| `resoudre4.py` | Passe 4, troncature du titre par la tête, pour les séries |
+| `resoudre5.py` | Passe 5, coffrets restants, contrainte d'années assouplie |
+| `resoudre6.py` | Passe 6, découpage accepté même partiel, les deux sources |
 | `resoudre_ec2.py` | editioncollector : bloc « Contenu : », préfixes d'édition |
-| `resoudre7.py` | Passe 7 — coffrets : `search/collection` par nom de saga |
-| `resoudre8.py` | Passe 8 — filmographie du réalisateur : **sans rendement**, gardé comme mesure |
+| `resoudre7.py` | Passe 7, coffrets : `search/collection` par nom de saga |
+| `resoudre8.py` | Passe 8, filmographie du réalisateur : **sans rendement**, gardé comme mesure |
 | `jumelle.py` | Recopie les liens d'une édition jumelle, à compte égal |
 | `contenu_ec.py` | Lit le bloc « Contenu : » d'editioncollector |
-| `resoudre_ec3.py` | Passe 9 — editioncollector : contenu relu, sagas développées |
+| `resoudre_ec3.py` | Passe 9, editioncollector : contenu relu, sagas développées |
 | `filtrer_ec3.py` | Contrôle serré, faute de plage d'années sur ces fiches |
 | `controler.py` | Trie en « sûr » et « à relire » avant écriture |
 | `filtrer6.py` | Durcit la passe 6, la moins étayée |
@@ -572,12 +572,12 @@ contenu du coffret est entièrement résolu, `bluray_page_partiel` sinon.
 
 **La relecture s'est faite par lots de dix**, présentés dans des artifacts avec
 le visuel du boîtier à gauche et l'affiche TMDB à droite. Le verdict revient
-par un fichier que la page enregistre — `window.claude.downloads` — et non par
+par un fichier que la page enregistre (`window.claude.downloads`) et non par
 le presse-papiers, que l'iframe d'un artifact n'autorise pas de façon fiable.
 Deux tentatives ont été perdues avant d'y arriver, dont une page de 2,6 Mo qui
 a figé l'onglet : embarquer les images en base64 impose de les redimensionner.
 
-`crawl/pages/` — 3 100 pages gzippées (170 Mo). Permettent de rejouer un
+`crawl/pages/` : 3 100 pages gzippées (170 Mo). Permettent de rejouer un
 parsing sans réseau. **Ne pas supprimer** tant que l'import n'est pas figé.
 
 ### Fiche technique et specs (2026-07-30)
@@ -603,7 +603,7 @@ valeurs une par une :
 - `Codec: MPEG-4 AVC` rendait `MPEG-4` sur **1 899 fiches**. Le lookahead
   `[A-Z][A-Za-z ]{2,20}:` acceptait « AVC Resolution: » comme début de champ
   suivant, donc coupait juste avant.
-- Les sous-titres sortaient doublés — `French, English French, English`. La
+- Les sous-titres sortaient doublés : `French, English French, English`. La
   page écrit la liste deux fois, une version courte visible et une longue
   masquée (`#shortsubs` / `#longsubs`), et l'aplatissement les colle. On lit
   maintenant le bloc `long*`, qui porte la liste entière.
@@ -631,7 +631,7 @@ reconnu et la passe rendrait **zéro date sans rien signaler**. Les mois passent
 donc par une table explicite.
 
 **La popularité se rafraîchit toute seule, une fois par semaine.**
-`~/Library/LaunchAgents/app.jaquette.popularite.plist`, **lundi 10 h** — et
+`~/Library/LaunchAgents/app.jaquette.popularite.plist`, **lundi 10 h**, et
 non la nuit : à 4 h la machine dort, launchd remettrait la passe au réveil et
 l'heure inscrite ne serait pas l'heure réelle.
 
@@ -650,7 +650,7 @@ d'un dépôt **public** l'exposerait à quiconque obtiendrait un jour un droit
 d'écriture dessus. Elle ne quitte pas `~/.config/boxology.env`. La contrepartie
 est assumée : la passe ne tourne que si le Mac est allumé.
 
-La passe repart de zéro à chaque fois — l'avancement sert à reprendre après une
+La passe repart de zéro à chaque fois, l'avancement sert à reprendre après une
 coupure, pas à sauter les films vus la semaine d'avant. C'est bien tout le
 catalogue qu'on veut réactualiser.
 
@@ -660,7 +660,7 @@ catalogue qu'on veut réactualiser.
 
 Chantier ouvert jusqu'en juillet 2026, désormais en place.
 
-- **`src/app/lib/seo.ts`** — hook `useSeo`, pose titre, description, canonical
+- **`src/app/lib/seo.ts`** : hook `useSeo`, pose titre, description, canonical
   et `og:` par page. Le canonical est **calculé depuis l'URL courante**, jamais
   passé en paramètre : une faute dans une page l'enverrait ailleurs.
 - **`index.html` ne porte ni canonical ni `og:url`.** Une valeur en dur y
@@ -676,7 +676,7 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   manque : voir plus bas pourquoi c'est le bon sens de la panne. Les pages fixes
   y sont listées à la main, `/bienvenue` comprise ; les regroupements sont lus
   dans la table générée.
-- **Search Console** — propriété Domaine validée, sitemap soumis et lu.
+- **Search Console** : propriété Domaine validée, sitemap soumis et lu.
 - **Listes personnelles et écrans du prototype** en `noindex, follow`.
 
 ### Rendu du `<head>` à la périphérie, en place le 31 juillet 2026
@@ -1043,7 +1043,7 @@ absolu remonte alors que le taux de rattachement se tient à 91,1 %.
 
 Ce que la relecture des cas ambigus a appris, le 31 juillet : **le sous-titre de
 la page porte souvent la réponse.** `Train to Busan Blu-ray (SteelBook)` annonce
-« 2 Movies » sur un disque unique de 118 min, ce qui paraissait absurde — son
+« 2 Movies » sur un disque unique de 118 min, ce qui paraissait absurde, son
 sous-titre dit `incl. Seoul Station`, le préquel animé de la même année. Le
 contrôle automatique avait bien refusé le candidat *Peninsula* (2020),
 postérieur au disque, mais il ne savait pas quoi mettre à la place. Même leçon
@@ -1051,7 +1051,7 @@ qu'ailleurs : relire la page, pas le champ qu'on en avait extrait.
 
 État de la campagne précédente, pour mémoire :
 
-- **116 coffrets blu-ray.com sans liste de contenu** — `Ozu en 20 films`,
+- **116 coffrets blu-ray.com sans liste de contenu** : `Ozu en 20 films`,
   `Douglas Sirk - Les Mélodrames allemands`. La page annonce le nombre de films
   mais ne les nomme pas, et le titre ne les nomme pas non plus. Trois leviers
   ont été essayés sur les 126 de départ ; deux ont donné, le troisième est
@@ -1067,14 +1067,14 @@ qu'ailleurs : relire la page, pas le champ qu'on en avait extrait.
   bandeau, elle n'égale jamais le compte annoncé : John Hughes 6 contre 5,
   Buster Keaton 11 contre 5, Fassbinder 39 contre 7, Kiarostami 14 contre 18,
   Lamberto Bava 16 contre 2. Sans égalité, aucun contrôle ne valide le
-  résultat, et choisir un sous-ensemble reviendrait à deviner — c'est ce qui a
+  résultat, et choisir un sous-ensemble reviendrait à deviner, c'est ce qui a
   produit le lot `probable`, faux à 15 %. Mesuré par `resoudre8.py`, gardé pour
   ne pas refaire l'essai.
-- **166 editioncollector** — pas de page brute conservée, et `contenu_brut`
+- **166 editioncollector** : pas de page brute conservée, et `contenu_brut`
   mêle packaging et œuvres dans la même liste à puces. La neuvième passe en a
   repris 29 (111 liens) en lisant ce bloc autrement : voir le piège des lignes
   de contenu plus bas.
-- **37 films et 25 séries** — surtout des opéras, des concerts et des captations
+- **37 films et 25 séries** : surtout des opéras, des concerts et des captations
   que TMDB ne référence pas. Recoupe le chantier « une quinzaine d'opéras à
   écarter » : ces fiches n'ont pas d'œuvre à laquelle se rattacher.
 - **236 rattachements `probable`** à vérifier au fil de la navigation, plus
@@ -1087,14 +1087,14 @@ validation, pas la détection.
 
 ### Fonctionnel
 - **Authentification en ligne depuis le 30 juillet 2026.** Google uniquement,
-  `auth-js` seul et chargé à la demande — +0,75 Ko compressé au bundle initial,
+  `auth-js` seul et chargé à la demande, +0,75 Ko compressé au bundle initial,
   le reste dans un morceau séparé de 24,5 Ko. Parcours exercé de bout en bout en
   production : connexion, écriture, cloisonnement entre comptes, suppression.
 - **Toute action demande un compte.** `collections.ts` lève `CompteRequis`,
   l'interface ouvre `ModaleConnexion`. Le site n'écrit plus rien dans
   localStorage : `local-statuts.ts` ne garde que lecture et effacement, pour
   reprendre une fois les listes d'avant à la première connexion.
-- **La consultation reste publique** — c'est la condition de l'indexation, donc
+- **La consultation reste publique** : c'est la condition de l'indexation, donc
   de la migration Cloudflare. Ne pas fermer le catalogue.
 - **Rapatrier les images** hébergées chez editioncollector
 - **Supprimer la branche `DEPLOY_TARGET=github`** de `vite.config.ts`
@@ -1108,10 +1108,10 @@ validation, pas la détection.
         python3 enrichir_tmdb.py --apply --cast-seul
 - **Une quinzaine d'opéras** à écarter du catalogue. **Ne pas filtrer par
   mot-clé** : « Opération Dragon », « Opération Tonnerre » et « Nosferatu, une
-  symphonie de l'horreur » sont des films. Les concerts, eux, sont gardés — TMDB
+  symphonie de l'horreur » sont des films. Les concerts, eux, sont gardés, TMDB
   les référence.
 
-### Page de bienvenue — en ligne le 31 juillet 2026
+### Page de bienvenue, en ligne le 31 juillet 2026
 
 `/bienvenue`, `src/app/pages/BienvenuePage.tsx`, chargée en `lazy()` (23 Ko,
 6,6 Ko compressé, bundle initial inchangé). Liée du pied de page et du sitemap.
@@ -1119,7 +1119,7 @@ validation, pas la détection.
 **Le catalogue reste l'accueil.** C'est lui qui s'indexe, et on entre sur le
 site par une fiche film. `/bienvenue` est l'autre porte : celle qu'on donne en
 lien quand on présente le site. Structure calquée sur la page d'accueil de
-Letterboxd — héros, six étapes numérotées à ancre propre (`#posseder`,
+Letterboxd : héros, six étapes numérotées à ancre propre (`#posseder`,
 `#envies`, `#comparer`, `#fiche-technique`, `#coffrets`, `#compte`), tour des
 grandes sections, puis l'invitation à créer un compte. Elle vient en dernier :
 on ne demande un compte qu'après avoir montré à quoi il sert.
@@ -1127,7 +1127,7 @@ on ne demande un compte qu'après avoir montré à quoi il sert.
 **Vignettes bâties, pas capturées.** Une capture vieillit à la première retouche
 d'interface. Les blocs emploient les jetons du site et lisent titres, visuels et
 formats en base. Les exemples sont **désignés par identifiant** et non par
-titre — un titre en base est un instantané d'import et bouge. Ils se répondent
+titre, un titre en base est un instantané d'import et bouge. Ils se répondent
 d'une étape à l'autre : Blade Runner 2049 pour la collection puis la
 comparaison, le coffret Petrol Tank et ses quatre Mad Max pour les coffrets.
 Étiqueter des éditions réelles « steelbook » ou « coffret » au hasard serait
@@ -1156,7 +1156,7 @@ jusqu'à une seconde.
 mêler les deux aurait emporté son travail dans le commit. À y remonter le jour
 où un second appelant apparaît.
 
-### Direction artistique — arrêtée le 30 juillet 2026
+### Direction artistique, arrêtée le 30 juillet 2026
 
 Le diagnostic de départ était « ça fait IA ». La cause n'était pas le nombre de
 badges mais qu'**une seule forme servait à tout** : genres, acteurs, formats,
@@ -1168,7 +1168,7 @@ gardent ; genres, distribution et métadonnées d'édition sont du texte à poin
 médians. Ne pas la réintroduire pour décorer.
 
 **Typographie.** Bricolage Grotesque (`--reel-font-titre`) sur les titres et le
-mot-symbole, Inter pour le corps — une grotesque à fort caractère fatigue sur un
+mot-symbole, Inter pour le corps ; une grotesque à fort caractère fatigue sur un
 synopsis. Space Grotesk a été écartée : c'est devenue la police par défaut du
 branding des produits d'IA, exactement ce qu'on fuyait.
 
@@ -1182,11 +1182,11 @@ sous le seuil AA.
 
 Surfaces en bleu nuit (`#101720`, `#18202c`, `#1f2836`) et non charbon neutre :
 le bleu cesse d'être un accent posé sur du gris. **Mesurer avant de changer une
-couleur** — c'est ainsi qu'on a trouvé l'échec AA.
+couleur** : c'est ainsi qu'on a trouvé l'échec AA.
 
 **L'image de l'œuvre porte l'identité.** Le héros de la fiche film affiche le
 `backdrop_url` TMDB, traité en atmosphère et non en illustration : opacité 0,38,
-léger flou, saturation réduite, plus deux dégradés — un horizontal qui donne au
+léger flou, saturation réduite, plus deux dégradés : un horizontal qui donne au
 texte un fond franc à gauche, un vertical qui fond le bas. Un seul dégradé
 vertical laissait le texte illisible sur un ciel clair.
 
@@ -1204,22 +1204,22 @@ titre.
 largeur en tête, puis deux fiches côte à côte : « L'œuvre » à gauche,
 « Image et son » à droite.
 
-Une fiche unique mélangeait ce qui relève de l'œuvre — réalisation, année,
-genres, titres étrangers, identiques quel que soit le disque — et ce qui relève
-du support — définition, HDR, pistes audio, qui changent d'une édition à
-l'autre. Les séparer dit d'où vient chaque ligne.
+Une fiche unique mélangeait ce qui relève de l'œuvre (réalisation, année,
+genres, titres étrangers, identiques quel que soit le disque) et ce qui relève
+du support (définition, HDR, pistes audio, qui changent d'une édition à
+l'autre). Les séparer dit d'où vient chaque ligne.
 
 L'ordre et le vocabulaire de « L'œuvre » sont calqués sur la fiche technique de
 **SensCritique**, prise comme référence : titre original, titres alternatifs,
 genres, année, pays, durée, dates de sortie, réalisateur, scénariste,
 producteurs, distributeur, budget, bande originale. Leur page ne contient
-**aucune spec technique** — leur « fiche technique » est notre bloc de gauche,
+**aucune spec technique** : leur « fiche technique » est notre bloc de gauche,
 et le bloc de droite n'a pas d'équivalent chez eux.
 
 Le distributeur manque et manquera : **TMDB ne le publie pas.**
 `production_companies` liste les sociétés de production, qui ne sont le
 distributeur que par coïncidence. L'éditeur vidéo de blu-ray.com le remplace, et
-il est dans le bloc de droite — il qualifie le disque, pas l'œuvre.
+il est dans le bloc de droite, il qualifie le disque, pas l'œuvre.
 
 La distribution est en grille de portraits et non en liste : empilée, elle
 tenait dans une demi-colonne mais lisait comme un annuaire, et les visages se
@@ -1229,8 +1229,8 @@ sans photo, sinon les cartes sans image remontent et désalignent les noms.
 **Page d'accueil déconnectée, refaite le 31 juillet 2026.** Elle ouvrait sur
 « Parcourir les films » et une grille alphabétique : le premier écran d'un
 catalogue de 5 700 éditions montrait *…Et pour quelques dollars de plus* et
-*[REC]*. Structure reprise de **SensCritique** et de **Letterboxd** — accroche
-illustrée, contenu, encart d'inscription, arguments — adaptée au sujet : ici
+*[REC]*. Structure reprise de **SensCritique** et de **Letterboxd** (accroche
+illustrée, contenu, encart d'inscription, arguments), adaptée au sujet : ici
 l'objet montré est la jaquette, pas la critique.
 
 Cinq sections : accroche avec mosaïque d'affiches et recherche, dernières
@@ -1243,8 +1243,8 @@ disparaît sous les yeux d'un visiteur déjà connecté.
 
 **Dès qu'on tape dans la recherche, tout le reste s'efface.** Quelqu'un qui
 cherche un titre veut son résultat, pas une page d'accueil autour. Et la
-recherche explicite reste **alphabétique** — on cherche un titre connu, l'ordre
-attendu est celui du dictionnaire — là où le catalogue par défaut est classé par
+recherche explicite reste **alphabétique** (on cherche un titre connu, l'ordre
+attendu est celui du dictionnaire), là où le catalogue par défaut est classé par
 `popularite`.
 
 `nulls: "last"` est indispensable sur ce tri : PostgreSQL classe les nuls en
@@ -1255,7 +1255,7 @@ renseignées.
 le voile d'abord, puis un `filter: blur()` sur les affiches, ont tous deux laissé
 la page **dédoublée et décalée d'une centaine de pixels** : les deux forcent une
 couche de composition sur toute la largeur, où le navigateur laisse des tuiles
-périmées quand la mise en page se décale — apparition d'une barre de défilement,
+périmées quand la mise en page se décale, apparition d'une barre de défilement,
 changement de largeur. L'atmosphère passe par l'opacité et deux dégradés, comme
 sur la fiche film. Le titre reprend l'échelle de `/bienvenue`,
 `clamp(38px, 6vw, 68px)` : deux pages qui ouvrent le site ne peuvent pas
@@ -1362,7 +1362,7 @@ Le mot-symbole est le seul élément de marque : la pastille bleue à icône de
 pellicule a été retirée, l'emplacement attend un vrai logo.
 
 ### Awin
-4 programmes en attente : Fnac, E.Leclerc, Cultura, Zavvi — **tous avec flux
+4 programmes en attente : Fnac, E.Leclerc, Cultura, Zavvi, **tous avec flux
 produits** (EAN + images + prix). Aucun accepté. Create-a-Feed inutilisable
 tant qu'aucun n'a validé (« Feed not found »).
 
@@ -1391,13 +1391,13 @@ Documentés parce qu'ils se reproduiront.
   réels : croiser avec un vocabulaire de formats relevé dans le titre.
 - **blu-ray.com sert de l'ISO-8859-1**, comme l'annonce son `<meta charset>`.
   Décodé en UTF-8, `TF1 Vidéo` devient `TF1 Vid<?>o`. Le défaut est resté
-  invisible tant qu'aucun champ accentué n'était extrait — il est apparu le
+  invisible tant qu'aucun champ accentué n'était extrait, il est apparu le
   jour où la colonne `editeur` a existé. Lire le `charset` du document, ne pas
   le supposer.
 - **Ne pas prendre `Mot: texte` pour une donnée.** Les blocs Audio et Subtitles
   contiennent des lignes qui en ont la forme sans être des pistes :
   `Note: Confirmed from disc on the player`, `Music:`, et des titres de films à
-  deux-points — `X-Men: Days of Future Past`, `Mission: Impossible`. Sur
+  deux-points, `X-Men: Days of Future Past`, `Mission: Impossible`. Sur
   107 « langues » audio relevées, une trentaine étaient de ce genre. Filtrer
   par un vocabulaire de langues, pas par la forme.
 - **Un champ peut porter plusieurs valeurs dans une seule chaîne** :
@@ -1413,14 +1413,14 @@ Documentés parce qu'ils se reproduiront.
   `Ça (1990) → Living To Die`.
 - Sur homonymes, la popularité départage mal quand elle est sous 1.
 - **Ne pas supprimer les indices avant de chercher.** Une regex de « bruit »
-  effaçait « Coffret 8 films » — précisément la preuve qu'il s'agit d'un
+  effaçait « Coffret 8 films », précisément la preuve qu'il s'agit d'un
   coffret. Résultat : `Clint Eastwood - Coffret 8 films → « Clint Eastwood »`,
   un documentaire homonyme.
 - **Un coffret dont le titre est un nom propre** tombe sur une fiche TMDB
   homonyme et confidentielle : Jean Vigo 0.1, Marcel Pagnol 0.2, Bruce Lee 0.4.
   Les rattachements corrects du même lot sont tous au-dessus de 1,3.
 - **« Intégrale » n'a pas le même sens selon le type.** Sur une série, elle
-  désigne l'œuvre entière — c'est juste. Sur un film, elle désigne la saga :
+  désigne l'œuvre entière, c'est juste. Sur un film, elle désigne la saga :
   `John Wick - L'intégrale` rattaché au seul premier épisode est faux.
 - **Une saison annoncée dans le titre exclut un film.**
 - **Le segment après deux-points ne peut pas chercher seul.** Il a donné
@@ -1437,23 +1437,23 @@ Documentés parce qu'ils se reproduiront.
 - **Une année dans le titre de l'édition est une contrainte, pas un ornement.**
   `Thelma et Louise (1991)` a été proposé vers un documentaire de 2025.
 - **Un disque ne peut pas contenir une œuvre postérieure à sa sortie.**
-  `date_sortie` sert de plafond — couverture faible, 28 éditions sur 297, mais
+  `date_sortie` sert de plafond, couverture faible, 28 éditions sur 297, mais
   décisive quand elle existe.
 - **Le titre retenu doit partager un mot significatif avec celui de
   l'édition.** Contrôle appliqué a posteriori sur 230 rattachements : quatre
   suspects, dont `Heroes: Season 3` → *Speed 2* et `Gremlins` → *Paris, Texas*.
-  Les deux autres étaient des traductions correctes — `Ulysses` → *Ulysse* —
+  Les deux autres étaient des traductions correctes (`Ulysses` → *Ulysse*),
   d'où une relecture plutôt qu'un rejet automatique.
-- **Séparer les résultats en deux niveaux** — écriture directe et relecture — a
+- **Séparer les résultats en deux niveaux** (écriture directe et relecture) a
   attrapé 100 % des faux positifs connus. Sans ce tri, le taux d'erreur du lot
   « résolu » était de 20 %.
 - **L'article initial ne peut pas être effacé sans repli.** Le normaliser rend
   `Batman` et `The Batman` identiques : un coffret des quatre Batman des années
   90 s'est retrouvé sous *The Batman* (2022). L'égalité stricte passe d'abord,
-  la variante sans article ne sert qu'en second — elle reste utile pour
+  la variante sans article ne sert qu'en second, elle reste utile pour
   rapprocher un titre français d'un titre anglais.
 - **Un exposant disparaît dans un repli ASCII.** `Alien³` devenait `alien`,
-  donc *Alien* (1979) — un doublon à l'intérieur du même coffret, ce qui est le
+  donc *Alien* (1979), un doublon à l'intérieur du même coffret, ce qui est le
   signe qu'il faut chercher. Traduire `¹²³` en chiffres avant de normaliser.
 - **La popularité ne départage que des homonymes.** Employée comme seuil
   absolu, elle vide précisément les coffrets qu'on veut sauver : un Tavernier
@@ -1480,7 +1480,7 @@ Documentés parce qu'ils se reproduiront.
   séparer.** `encode("ascii", "ignore")` réduisait `l’Anneau` à `lanneau` quand
   `l'anneau` donnait `l anneau` : les deux cessaient d'être comparables, et
   **tout titre français à apostrophe typographique échouait en silence**. Le
-  symptôme visible était un rattachement au repli — `Le Seigneur des Anneaux –
+  symptôme visible était un rattachement au repli : `Le Seigneur des Anneaux –
   La Communauté de l'Anneau` tombait sur le dessin animé de Bakshi (1978), la
   correspondance exacte ayant échoué et le fragment de tête ayant gagné.
   Ramener `’ “ ” – — …` à leur équivalent ASCII **avant** de replier.
@@ -1488,16 +1488,16 @@ Documentés parce qu'ils se reproduiront.
   une œuvre**, pas la marque des lignes à jeter : `La vie des morts (1991) en
   blu-ray`, `Steelbook blu-ray 2D+4K de Fog`. Rejeter les lignes contenant
   « blu-ray » revenait à jeter précisément ce qu'on cherchait. Retirer le
-  vocabulaire de support en tête et en queue, puis regarder ce qui reste — et
+  vocabulaire de support en tête et en queue, puis regarder ce qui reste, et
   si rien ne reste sur aucune ligne, c'est une édition d'un seul film, que le
   titre de l'édition nomme.
 - **Ne pas affiner indéfiniment un filtre à bruit.** Ce qu'un bloc « Contenu : »
-  laisse passer — `une broche La Main du Roi`, `2 art cards` — ne trouvera aucun
+  laisse passer (`une broche La Main du Roi`, `2 art cards`) ne trouvera aucun
   titre exact sur TMDB. La validation fait le tri ; la regex n'a qu'à
   dégrossir.
 - **Une ligne de contenu peut nommer une saga et non un film.** Dans un coffret
   Hobbit, `Le Seigneur des Anneaux` désigne la trilogie. Résolu comme un titre,
-  il rendait un seul film — et le mauvais. `search/collection` le développe,
+  il rendait un seul film, et le mauvais. `search/collection` le développe,
   à condition que la collection tienne dans les places restantes du boîtier.
 - **Le titre borne parfois lui-même le contenu** : `Sonic 1 & 2`, `Superman
   I-IV`. Sans cette borne, développer la saga Sonic dans un coffret de deux
@@ -1511,13 +1511,13 @@ Documentés parce qu'ils se reproduiront.
   colonne `id` du tout. Et comme la fonction de lecture avalait l'erreur en
   rendant une liste vide, le premier symptôme a été un « editions a creer : 0 »
   sans un mot. Le correctif d'un piège en a donc créé un autre, plus
-  silencieux — **une lecture qui échoue doit s'interrompre, pas rendre vide**.
+  silencieux : **une lecture qui échoue doit s'interrompre, pas rendre vide**.
 - **Sans `order`, la pagination PostgREST répète et saute des lignes.** `offset`
   s'applique alors à un ensemble non ordonné. Symptôme silencieux : un comptage
   d'orphelines est ressorti à 811 au lieu de 406, une page d'`edition_films`
   ayant disparu de la lecture. Toujours passer `order=id`.
 - **Un nettoyage de titre doit s'interdire de tout retirer.**
-  `import_4_titres.py` ôte le nom du film quand l'édition est rattachée — la
+  `import_4_titres.py` ôte le nom du film quand l'édition est rattachée, la
   fiche film le porte déjà. Bonne intention, mais sans garde-fou : 375 éditions
   se sont retrouvées intitulées « Blu-ray » ou « 4K Ultra HD + Blu-ray », donc
   indistinguables les unes des autres sur une fiche film, ce qui se lit comme un
@@ -1527,7 +1527,7 @@ Documentés parce qu'ils se reproduiront.
   de nom.
 - **Deux fiches blu-ray.com peuvent décrire le même disque.** 1917 en 4K existe
   sous les identifiants `261058` et `356715`, même slug. 567 slugs sont dans ce
-  cas, soit 1 344 éditions — mais un slug partagé ne prouve rien, trois pressages
+  cas, soit 1 344 éditions, mais un slug partagé ne prouve rien, trois pressages
   d'un même film le partagent aussi. Le seul indice fiable est l'EAN, et il ne
   signale que **4 doublons réels**. À trancher au cas par cas, pas en masse.
 - **Le suffixe de format se porte aussi sans le mot « Blu-ray ».** Les listes
@@ -1546,7 +1546,7 @@ Documentés parce qu'ils se reproduiront.
   l'a corrigé depuis en `S.O.S. Fantômes`. Un titre en base est daté de son
   import ; ne pas le prendre pour la vérité courante.
 - **La dérive s'était concentrée sur un seul lot** : 77 des 91 titres
-  divergents tenaient dans les ids 11000-11193, soit 194 lignes — 40 % du lot,
+  divergents tenaient dans les ids 11000-11193, soit 194 lignes, 40 % du lot,
   contre 0,4 % ailleurs. Ces titres avaient été écrits avec une normalisation
   d'affichage appliquée au passage (tirets et deux-points changés en ` : `,
   `&` changé en `and`, casse de titre forcée), donc n'avaient jamais
@@ -1560,7 +1560,7 @@ Documentés parce qu'ils se reproduiront.
   impossibles à rapprocher. `nettoyer_invisibles.py` les retire.
 - **`Terminator 2` (1989) est un décalque italien de Bruno Mattei.** Deux
   éditions editioncollector y étaient rattachées au lieu du film de Cameron
-  (1991) — le titre d'exploitation français du décalque usurpe le sien.
+  (1991), le titre d'exploitation français du décalque usurpe le sien.
   Corrigé le 30 juillet 2026. Même motif que Jean Vigo ou Bruce Lee : un titre
   exact tombant sur un homonyme confidentiel, ici invisible parce que l'année
   n'avait jamais été comparée.
@@ -1570,11 +1570,11 @@ Documentés parce qu'ils se reproduiront.
   code : esbuild ne vérifie pas les types, et un identifiant JSX dont l'import a
   été retiré devient une référence globale résolue à l'exécution. Un `Search`
   ainsi perdu a fait écran blanc sur tout le site sans que le build bronche.
-  `strict` reste désactivé — les écrans hérités de Figma Make noieraient le
+  `strict` reste désactivé, les écrans hérités de Figma Make noieraient le
   signal sous des centaines d'erreurs de nullité.
 - **Un `tsc` vert en local ne dit rien du build Cloudflare** quand plusieurs
   sessions travaillent dans le même répertoire. Le 31 juillet 2026, la page de
-  bienvenue importait `getDernieresEditions` de `reelio-db.ts` — fonction qui
+  bienvenue importait `getDernieresEditions` de `reelio-db.ts`, fonction qui
   n'existait que dans l'arbre de travail, l'autre session ne l'ayant pas encore
   poussée. Build local vert, déploiement rouge sur
   `error TS2305: has no exported member`. Le serveur de build ne voit que ce qui
@@ -1592,7 +1592,7 @@ Documentés parce qu'ils se reproduiront.
 - **Un déploiement Cloudflare n'écrit rien dans GitHub.** Ni check, ni
   `deployments` : `gh api .../deployments` ne rend que les vieux `github-pages`
   de juillet. Pour savoir si un push est parti, comparer le hachage du bundle
-  servi ou compter les URL du sitemap — et lire le journal dans le tableau de
+  servi ou compter les URL du sitemap, et lire le journal dans le tableau de
   bord Pages, seule source de la cause d'un échec.
 - **Après un déploiement, la première visite peut rendre l'ancienne page.**
   L'`index.html` en cache navigateur pointe l'ancien bundle : sur une route
@@ -1604,18 +1604,18 @@ Documentés parce qu'ils se reproduiront.
 - **TMDB numérote films et séries séparément.** Le film 1639 est *Speed 2*, la
   série 1639 est *Heroes*. `films.tmdb_id` était unique à lui seul : les deux
   ne pouvaient pas coexister, et une recherche par `tmdb_id` seul renvoyait
-  l'œuvre du mauvais catalogue — une édition de *Heroes* s'est retrouvée sous
+  l'œuvre du mauvais catalogue, une édition de *Heroes* s'est retrouvée sous
   *Speed 2*. L'unicité porte désormais sur `(tmdb_id, type)`,
   cf. `supabase/migrations/20260730_tmdb_id_par_type.sql`. Le défaut est
   silencieux : il ne se voit qu'au moment où une série heurte un film existant.
 - **`ON CONFLICT` ignore les index partiels.**
-- **`editions.id` n'avait pas d'identity** — insertion impossible.
+- **`editions.id` n'avait pas d'identity** : insertion impossible.
 - **`gzip.open(...).read()` lève `zlib.error` sur une page tronquée**, et
   `zlib.error` n'est ni `EOFError` ni `OSError`. Une passe sur 3 100 fichiers
   est tombée à la 2 000ᵉ. Rattraper les trois, et garder ce qui a été lu.
 - **Une reprise fondée sur le journal ne voit pas un cache abîmé.**
   `crawl_fr.py` écrit la page gzippée *puis* la ligne de `donnees.jsonl`, et
-  reprend sur le second. Une coupure entre les deux est sans conséquence — la
+  reprend sur le second. Une coupure entre les deux est sans conséquence, la
   fiche est refaite. Mais une page tronquée dont la ligne a été écrite devient
   invisible : la reprise la croit faite, et elle le reste indéfiniment. Ce sont
   les 12 pages abîmées du crawl de juillet. Remises dans la file le 30 juillet
@@ -1623,8 +1623,8 @@ Documentés parce qu'ils se reproduiront.
   journal.**
 - **Tailwind 4 a changé son preflight** : les `<button>` reçoivent
   `cursor: default` là où Tailwind 3 posait `cursor: pointer`. Toute
-  l'interface bâtie sur des boutons — onglets, capsules de format, cartes
-  d'acteurs — a cessé de signaler qu'elle était cliquable, sans que rien ne
+  l'interface bâtie sur des boutons (onglets, capsules de format, cartes
+  d'acteurs) a cessé de signaler qu'elle était cliquable, sans que rien ne
   casse. Réglé une fois dans `theme.css`, pas composant par composant.
 - **Une couleur en `style` inline gagne contre toute règle de survol.** Un
   `group-hover:text-…` posé à côté d'un `style={{ color }}` ne s'applique
@@ -1640,7 +1640,7 @@ Documentés parce qu'ils se reproduiront.
   un navigateur refusant d'exécuter un module en `text/html`, et le cache ne se
   répare pas de lui-même. Arrivé le 30 juillet 2026 juste après la mise en
   production de l'authentification, déclenché par une requête de vérification.
-  Ne jamais valider un déploiement en interrogeant une URL d'asset — charger la
+  Ne jamais valider un déploiement en interrogeant une URL d'asset, charger la
   page, qui demande ses assets au même déploiement. Signature : la même URL
   renvoie `text/html` sans paramètre et `application/javascript` avec `?x=1`,
   ce qui prouve que le fichier existe et que seul le cache est en cause.
@@ -1657,12 +1657,12 @@ Documentés parce qu'ils se reproduiront.
   | `import()` | `Failed to fetch dynamically imported module` |
 
   Le même build servi depuis `localhost` s'importait sans broncher, dans le
-  même navigateur — donc ni le code, ni le bundle. La purge du cache a rétabli
+  même navigateur, donc ni le code, ni le bundle. La purge du cache a rétabli
   le CSS mais pas l'import. **Cause jamais établie.**
 
   Ce qui est établi, en revanche, c'est pourquoi ça a mis le site à terre :
   `useSession` attendait `auth-js` sans `catch`, `session` restait `undefined`,
-  et la fiche film — qui ne lance ses requêtes qu'une fois la session résolue —
+  et la fiche film, qui ne lance ses requêtes qu'une fois la session résolue,
   ne sortait jamais de son écran de chargement. **Un catalogue public entier
   inaccessible faute d'une bibliothèque dont il n'a pas besoin.** Le correctif
   est dans `auth.ts` : à l'échec, on tranche à « pas de session » et la page
@@ -1677,7 +1677,7 @@ Documentés parce qu'ils se reproduiront.
   `fetch()` et `import()` sur le même morceau tranche en une commande.
 - **Basculer les nameservers casse DNSSEC.** Un enregistrement `DS` au registre
   signe la zone de l'ancien hébergeur ; si le nouveau répond à sa place, la
-  validation échoue et le domaine devient injoignable — SERVFAIL, pas lent.
+  validation échoue et le domaine devient injoignable (SERVFAIL, pas lent).
   Spaceship l'a retiré de lui-même, mais c'est à vérifier avant, pas après.
 - **Cloudflare fusionne `robots.txt`**, il ne l'écrase pas : son bloc managed
   passe en premier, le fichier du dépôt suit.
@@ -1694,7 +1694,7 @@ Ce qui a évité le plus d'erreurs :
 2. **Conserver les pages brutes.** Trois corrections de parseur rejouées sans
    une requête réseau. Et surtout : la seconde campagne orphelines n'a rien
    crawlé du tout. Ce qui manquait était déjà dans `crawl/pages/`, jeté par le
-   parseur — le nombre de films et la liste de contenu des coffrets. **Avant de
+   parseur : le nombre de films et la liste de contenu des coffrets. **Avant de
    déclarer une donnée absente de la source, relire la page, pas le champ
    qu'on en avait extrait.**
 3. **Vérifier qu'un scan qui renvoie « rien » fonctionne.** Un scan cassé
@@ -1710,14 +1710,14 @@ Ce qui a évité le plus d'erreurs :
 ## 10. Juridique
 
 - Mentions légales, confidentialité et à propos en ligne
-- Éditeur non professionnel (LCEN art. 6) — **à compléter dès que le site
+- Éditeur non professionnel (LCEN art. 6), **à compléter dès que le site
   devient commercial**
 - Attribution TMDB en pied de page (exigée par leur licence)
 - **Les visuels de blu-ray.com sont repris depuis le 31 juillet 2026**, ce que
   la version précédente de ce document interdisait. Décision prise en connaissance
   de cause : ce sont pour l'essentiel des visuels d'éditeur, mais le site vise
   l'affiliation, donc l'usage est commercial. À réexaminer si un flux Awin est
-  accepté — leurs images sont licenciées pour les affiliés et régleraient la
+  accepté, leurs images sont licenciées pour les affiliés et régleraient la
   question.
 - **Clause « Base de données »** dans les mentions légales : articles L. 341-1
   et suivants du code de la propriété intellectuelle, interdiction d'extraction
@@ -1730,7 +1730,7 @@ Ce qui a évité le plus d'erreurs :
 - **Position asymétrique à connaître** : la base a été constituée par
   extraction chez editioncollector et blu-ray.com. Opposer la clause à un tiers
   exposerait à ce rappel.
-- Données factuelles uniquement (EAN, dates, formats) — non protégeables
+- Données factuelles uniquement (EAN, dates, formats), non protégeables
   individuellement, mais le droit *sui generis* protège l'extraction d'une
   partie substantielle d'une base
 - Aucun tracker. Compte optionnel via Google uniquement.
@@ -1739,11 +1739,11 @@ Ce qui a évité le plus d'erreurs :
   serveur » est donc **fausse depuis qu'un compte a été utilisé** : un compte
   connecté fait vivre côté serveur son adresse et son identifiant Google dans
   `auth.users`, et la liste de ses éditions dans `collections`. Hébergement
-  Supabase en Suède, dans l'Union — c'est ce qu'annonce `/compte`. À vérifier
+  Supabase en Suède, dans l'Union, c'est ce qu'annonce `/compte`. À vérifier
   que les mentions publiées disent bien cela, et non l'inverse.
 - **Effacement (RGPD art. 17)** tenu par `public.supprimer_mon_compte()`,
   atteignable depuis `/compte`, lui-même lié depuis le menu du bandeau et
-  depuis la politique de confidentialité — laquelle annonçait déjà la
+  depuis la politique de confidentialité, laquelle annonçait déjà la
   suppression « accessible dans les réglages du compte ». Confirmation en deux
   temps avec un mot à recopier, et en cas de refus du serveur on ne prétend pas
   avoir supprimé.
