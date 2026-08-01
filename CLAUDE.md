@@ -1390,9 +1390,9 @@ qui saute d'une étape à l'autre si.
 **Aucune hauteur imposée**, et c'est un revirement : une hauteur commune de
 360 px a tenu quelques heures, elle donnait un beau rythme mais réduisait les
 jaquettes pour les faire rentrer et laissait les blocs courts à moitié vides.
-Les visuels sont maintenant dimensionnés pour se voir — jaquette de la
-collection à 228 px, coffret à 200, vignettes d'envies à 60 — et les hauteurs
-vont de 302 à 455 px.
+Les visuels sont maintenant dimensionnés pour se voir (jaquette de la collection
+à 228 px, coffret à 200, vignettes d'envies à 60) et les hauteurs vont de 302 à
+455 px.
 
 Ce que l'épisode laisse : **élargir un cadre grandit ce qu'il contient.** La
 comparaison d'éditions débordait dès que son cadre gagnait 40 px, ses quatre
