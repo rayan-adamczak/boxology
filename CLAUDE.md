@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 4 581 lignes
+### `films`, 4 584 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -213,15 +213,15 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films`, 10 814 liens
+### `edition_films`, 10 764 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
-Répartition : `bluray_page` 2 839, `film_id` 2 622, `bluray_tmdb` 2 510,
-`bluray_page_partiel` 1 678, `corrige_manuel` 662, `probable` 236,
+Répartition : `bluray_page` 2 838, `film_id` 2 619, `bluray_tmdb` 2 484,
+`bluray_page_partiel` 1 678, `corrige_manuel` 657, `probable` 221,
 `collection_tmdb` 199, `corrige_annee` 68.
 
-10 814 liens pour **7 941 éditions rattachées** : l'écart, ce sont les coffrets,
+10 764 liens pour **7 899 éditions rattachées** : l'écart, ce sont les coffrets,
 qui portent un lien par film.
 
 **`probable` marque les rattachements écrits sans relecture**, le 30 juillet
@@ -311,11 +311,11 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 4 581 (3 867 films, 712 séries, 2 coffrets) |
+| Films | 4 584 (3 870 films, 712 séries, 2 coffrets) |
 | Éditions | 8 471 |
 | Codes-barres | 4 930 |
-| Éditions rattachées | 7 941 (93,7 %) |
-| Éditions sans film | 530 |
+| Éditions rattachées | 7 899 (93,2 %) |
+| Éditions sans film | 572 |
 | Éditions avec visuel | 8 443 (99,7 %) |
 | URL au sitemap | 3 349 |
 
@@ -1558,6 +1558,38 @@ Documentés parce qu'ils se reproduiront.
   et marque de sens d'écriture en tête de titre (`‎Avatar Aang…`). Sans
   effet à l'œil, mais deux titres identiques à la lecture deviennent
   impossibles à rapprocher. `nettoyer_invisibles.py` les retire.
+- **Un disque ne peut pas porter un film sorti après lui, et ce contrôle est
+  le plus rentable écrit à ce jour.** Passé sur tout le catalogue le 31 juillet
+  2026, il a sorti **51 liens faux**, tous confirmés par TMDB : aucune des 51
+  années en base n'était fausse, donc c'étaient bien les liens. Le motif est
+  toujours celui du titre qui tombe sur un homonyme d'un seul mot, souvent
+  confidentiel :
+
+      Moonfall + Midway (Pack)          ->  un film nommé « Pack »
+      Jacques Brel, Blu-ray + CD        ->  un film nommé « CD »
+      Mission: Impossible 1-4 Boxset    ->  un film nommé « Impossible »
+      Coffret James Bond, Roger Moore   ->  « జేమ్స్ బాండ్ », en télougou
+      Engrenages, saisons 1 à 5         ->  « Spiral » (2017), pas la série
+
+  Les liens sont supprimés sans en proposer d'autres : l'édition redevient
+  orpheline, ce qui se voit et se corrige, là où un lien faux se lit comme une
+  vérité. Le contrôle ne couvre que les éditions datées, 2 543 sur 8 471, donc
+  tout editioncollector lui échappe.
+- **Un homonyme absent du catalogue attire les éditions du présent.**
+  `Ghost in the Shell` de 2017 n'était pas en base ; ses trois éditions sont
+  donc tombées sur l'animé de 1995, par un titre exact, sans qu'aucun contrôle
+  ne bronche. 125 films sont dans cette configuration (`homonymes_absents.json`),
+  mais la configuration seule ne prouve rien.
+
+  Ce qui a tranché, c'est **le réalisateur nommé dans le contenu de la fiche** :
+  « 45 mn de masterclass de Rupert Sanders » sur une édition rattachée à Oshii.
+  Passé sur les 125, ce contrôle a rendu deux cas de plus, `Dumbo` de Burton
+  pris pour l'animé de 1941 et le `Lolita` d'un coffret Kubrick pris pour celui
+  d'Adrian Lyne. Rendement faible, deux sur 8 471 éditions, mais nul ailleurs.
+
+  **Le cas d'origine n'a été vu que par un humain regardant la page.** Ni la
+  date, l'homonyme étant postérieur, ni le réalisateur, nommé dans une fiche sur
+  trois, ne l'auraient signalé.
 - **`Terminator 2` (1989) est un décalque italien de Bruno Mattei.** Deux
   éditions editioncollector y étaient rattachées au lieu du film de Cameron
   (1991), le titre d'exploitation français du décalque usurpe le sien.
