@@ -1454,6 +1454,11 @@ débordement se coupe sans rien signaler : comparer `scrollHeight` et
 `grid-cols-1` est explicite pour le téléphone : sans lui la colonne implicite se
 dimensionne sur son contenu, et chaque vignette prenait une largeur différente.
 
+Les icônes qui ouvrent un bloc suivent la même échelle que l'accueil : 22 px
+dans une pastille de 44 sur les cartes de section, 20 dans 40 sur « Bon à
+savoir ». À 16 dans 32 elles se lisaient comme des puces de liste plutôt que
+comme l'illustration du bloc.
+
 **Les vignettes débordent de 80 px du côté opposé au texte**, à partir de `xl`
 seulement. En dessous, la gouttière du conteneur est plus étroite que le
 débordement et la vignette sortirait de l'écran. Une marge en pourcentage ne
@@ -1586,6 +1591,17 @@ l'objet montré est la jaquette, pas la critique.
 
 Cinq sections : accroche avec mosaïque d'affiches et recherche, dernières
 parutions en rail, invitation à créer un compte, trois arguments, catalogue.
+
+**Échelle revue le 1er août 2026.** Le premier réglage, calqué sur la sobriété
+de Letterboxd, était descendu trop bas : à l'usage, les libellés de section et
+les icônes se lisaient comme des notes de bas de page. Libellés à 15 px au lieu
+de 13, icônes d'argument à 26 au lieu de 20, champ de recherche à 680 × 60 avec
+son texte à 17 px et sa loupe à 22. Le rapport à la jaquette est préservé, c'est
+elle qui porte toujours le regard.
+
+La ligne « Consultation libre, sans compte » sous le bouton d'inscription a été
+retirée : la page entière se consulte sans compte, le dire à cet endroit
+soulevait un doute que rien n'avait installé.
 
 **L'encart d'inscription vient après les parutions**, jamais avant : on demande
 un compte à quelqu'un qui a déjà vu ce que le site contient. Il n'apparaît
