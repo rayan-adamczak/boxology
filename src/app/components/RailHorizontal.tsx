@@ -25,16 +25,26 @@ const LARGEUR_VOILE = "calc(var(--reel-marge) + 180px)";
  * défilement faisait surgir un disque de 44 px et un voile de 456. La course
  * les fait monter avec le geste.
  *
- * **Elle doit rester courte.** Essayée à 140 px, soit à peu près une carte, elle
- * laissait le voile à un tiers alors que la première jaquette était déjà entrée
- * dans la marge : la carte se voyait donc hors de la colonne, et la flèche
- * posée dessus était presque transparente. Le voile doit être plein dès que le
- * rail a quelque chose à cacher, c'est-à-dire tout de suite.
+ * Deux valeurs ont été écartées. **140 px**, soit à peu près une carte, laissait
+ * le voile au tiers alors que la première jaquette était déjà entrée dans la
+ * marge : la carte se voyait en clair hors de la colonne et la flèche posée
+ * dessus était presque transparente. **40 px** réglait ça mais se lisait comme
+ * un déclic, un cran de molette faisant tout le trajet en une image.
  *
- * 40 px : assez pour que ce ne soit pas un déclic, assez court pour que le
- * premier cran de molette suffise.
+ * 90 px avec une sortie douce tient les deux bouts : la moitié de l'opacité est
+ * gagnée dans les 26 premiers pixels, donc rien ne traîne à découvert, et le
+ * dernier quart s'étale sur 30 px, donc rien ne claque.
  */
-const COURSE_APPARITION = 40;
+const COURSE_APPARITION = 90;
+
+/**
+ * Sortie douce, `1 - (1 - t)²`.
+ *
+ * Une rampe linéaire monte à vitesse constante puis s'arrête net à 1 : c'est
+ * cette cassure qu'on lit comme de la brutalité, pas la durée. La courbe part
+ * vite, ce qui couvre la jaquette dès le premier geste, et arrive à plat.
+ */
+const adoucir = (t: number) => 1 - (1 - t) ** 2;
 
 /**
  * Rail horizontal : une rangée qui défile, deux flèches pour avancer.
@@ -89,7 +99,7 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
       l'avancement.
     */
     const reste = el.scrollWidth - el.clientWidth - el.scrollLeft;
-    const part = (x: number) => Math.min(1, Math.max(0, x - 1) / COURSE_APPARITION);
+    const part = (x: number) => adoucir(Math.min(1, Math.max(0, x - 1) / COURSE_APPARITION));
     setAGauche(part(el.scrollLeft));
     setADroite(part(reste));
 
@@ -148,7 +158,7 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
   // près tombait sur la carte dessous et ouvrait la fiche au lieu de défiler.
   // Le `top` vient de la mesure ci-dessus ; `34 %` n'est qu'un repli pour le
   // premier rendu, avant que les images aient une hauteur.
-  const fleche = "absolute z-20 flex size-11 -translate-y-1/2 items-center justify-center rounded-full transition outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]";
+  const fleche = "absolute z-20 flex size-11 -translate-y-1/2 items-center justify-center rounded-full transition duration-200 ease-out outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]";
   const styleFleche = {
     top: centreVignette !== null ? `${Math.round(centreVignette)}px` : "34%",
     backgroundColor: "var(--reel-surface-2)",
@@ -167,7 +177,7 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
 
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0"
+        className="pointer-events-none absolute inset-y-0 left-0 transition-opacity duration-200 ease-out"
         style={{
           opacity: aGauche,
           width: LARGEUR_VOILE,
@@ -176,7 +186,7 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0"
+        className="pointer-events-none absolute inset-y-0 right-0 transition-opacity duration-200 ease-out"
         style={{
           opacity: aDroite,
           width: LARGEUR_VOILE,
