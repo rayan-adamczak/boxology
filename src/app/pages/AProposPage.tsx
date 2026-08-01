@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { FAQ, toutesLesQuestions } from "../lib/faq";
 import { useSeo } from "../lib/seo";
+import { useDefilementVersAncre } from "../lib/ancre";
 
 /**
  * `/about`, en questions et réponses.
@@ -21,6 +22,10 @@ import { useSeo } from "../lib/seo";
  */
 export function AProposPage() {
   const nombre = toutesLesQuestions().length;
+
+  // Vingt-neuf ancres ne servent à rien si un lien profond dépose le
+  // visiteur en haut de page.
+  useDefilementVersAncre();
 
   useSeo({
     titre: "À propos et questions fréquentes",
