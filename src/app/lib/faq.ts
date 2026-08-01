@@ -24,7 +24,13 @@
  */
 
 export interface Question {
-  /** Ancre d'URL, `#comment-marquer-une-edition`. Figée : elle se partage. */
+  /**
+   * Ancre d'URL, `#marking-an-edition`.
+   *
+   * En anglais comme les chemins (cf. `lib/chemins.ts`) : une ancre fait partie
+   * de l'adresse, `/about#delete-my-account` se copie et se partage, donc elle
+   * suit la même langue. Figée une fois publiée.
+   */
   ancre: string;
   question: string;
   /** Un paragraphe par entrée. */
@@ -39,11 +45,11 @@ export interface SectionFaq {
 
 export const FAQ: SectionFaq[] = [
   {
-    ancre: "le-site",
+    ancre: "about-the-site",
     titre: "Le site",
     questions: [
       {
-        ancre: "qu-est-ce-que-jaquette",
+        ancre: "what-is-jaquette",
         question: "Qu’est-ce que jaquette.app ?",
         reponse: [
           "Un catalogue des éditions physiques de films sorties en France : Blu-ray, 4K, steelbooks, digibooks, coffrets. Plus de 8 400 éditions rattachées à plus de 4 500 œuvres.",
@@ -51,7 +57,7 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "pourquoi-ce-nom",
+        ancre: "why-this-name",
         question: "Pourquoi « jaquette.app » ?",
         reponse: [
           "La jaquette est ce qui distingue une édition d’une autre sur une étagère, et c’est l’objet que le site montre en premier.",
@@ -59,21 +65,21 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "est-ce-gratuit",
+        ancre: "is-it-free",
         question: "Le site est-il gratuit ?",
         reponse: [
           "Oui, entièrement, et il n’y a pas d’abonnement payant prévu. Consulter le catalogue ne demande même pas de compte.",
         ],
       },
       {
-        ancre: "qui-est-derriere",
+        ancre: "who-is-behind",
         question: "Qui est derrière ?",
         reponse: [
           "Rayan Adamczak, designer, à titre personnel et non professionnel. Le projet est né d’un besoin simple : savoir quelle édition d’un film on possède déjà avant d’en acheter une autre.",
         ],
       },
       {
-        ancre: "vendez-vous-quelque-chose",
+        ancre: "do-you-sell-anything",
         question: "Vendez-vous quelque chose ?",
         reponse: [
           "Non. Le site ne vend rien, ne permet aucun achat, et ne comporte à ce jour aucun partenariat commercial.",
@@ -83,11 +89,11 @@ export const FAQ: SectionFaq[] = [
     ],
   },
   {
-    ancre: "le-catalogue",
+    ancre: "catalogue",
     titre: "Le catalogue",
     questions: [
       {
-        ancre: "d-ou-viennent-les-donnees",
+        ancre: "where-the-data-comes-from",
         question: "D’où viennent les données ?",
         reponse: [
           "Les informations sur les œuvres, titres, années, synopsis, distribution, affiches, viennent de The Movie Database, base communautaire ouverte.",
@@ -95,7 +101,7 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "quels-supports",
+        ancre: "which-formats",
         question: "Quels supports sont couverts ?",
         reponse: [
           "Le Blu-ray, le Blu-ray 4K et le Blu-ray 3D, avec leurs variantes de boîtier : steelbook, digipack, digibook, coffret, slipcover.",
@@ -103,14 +109,14 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "les-series",
+        ancre: "tv-series",
         question: "Les séries sont-elles couvertes ?",
         reponse: [
           "Oui, plus de 700 séries figurent au catalogue, avec leurs coffrets de saisons et leurs intégrales. Elles sont traitées comme les films.",
         ],
       },
       {
-        ancre: "pourquoi-pas-de-jaquette",
+        ancre: "missing-artwork",
         question: "Pourquoi certaines éditions n’ont-elles pas de visuel ?",
         reponse: [
           "Parce que la source qui les décrit n’en publie pas. Le catalogue est assemblé à partir de plusieurs sources, et elles ne fournissent pas les mêmes choses.",
@@ -118,7 +124,7 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "pourquoi-pas-de-fiche-technique",
+        ancre: "missing-specs",
         question: "Pourquoi certaines éditions n’ont-elles pas de fiche technique ?",
         reponse: [
           "Même raison, en miroir : les sources qui publient les jaquettes ne publient pas les spécifications du disque, et celles qui publient les spécifications ne publient pas les jaquettes.",
@@ -126,14 +132,14 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "edition-manquante",
+        ancre: "missing-edition",
         question: "Une édition manque, ou une information est fausse. Que faire ?",
         reponse: [
           "Écrire à contact@jaquette.app. Les corrections sont bienvenues, en particulier sur les rattachements entre une édition et son film : c’est la partie la plus difficile à automatiser, et il en reste de faux.",
         ],
       },
       {
-        ancre: "a-quelle-frequence",
+        ancre: "update-frequency",
         question: "À quelle fréquence le catalogue est-il mis à jour ?",
         reponse: [
           "Par campagnes, quand une nouvelle source est intégrée ou qu’une source existante est repassée. Il n’y a pas de mise à jour quotidienne automatique.",
@@ -142,11 +148,11 @@ export const FAQ: SectionFaq[] = [
     ],
   },
   {
-    ancre: "les-editions",
+    ancre: "editions",
     titre: "Les éditions",
     questions: [
       {
-        ancre: "qu-est-ce-qu-une-edition",
+        ancre: "what-is-an-edition",
         question: "Qu’appelez-vous une « édition » ?",
         reponse: [
           "Un objet physique précis, pas un film. Le steelbook 4K d’un revendeur et le Blu-ray simple du même titre sont deux éditions distinctes, avec leur propre code-barres, leur propre date et souvent leur propre contenu.",
@@ -154,7 +160,7 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "que-signifie-la-zone",
+        ancre: "region-codes",
         question: "Que signifie la zone A, B ou C ?",
         reponse: [
           "Le verrouillage régional du disque. Un Blu-ray de zone A ne se lit pas sur un lecteur européen non dézoné, et la France est en zone B.",
@@ -162,7 +168,7 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "a-quoi-sert-le-code-barres",
+        ancre: "barcodes",
         question: "À quoi sert le code-barres affiché sur une édition ?",
         reponse: [
           "À identifier le disque sans ambiguïté, en boutique ou en occasion. Deux éditions au titre presque identique se distinguent par leur EAN.",
@@ -170,7 +176,7 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "les-specs-du-disque",
+        ancre: "disc-specs",
         question: "Les spécifications décrivent-elles le film ou le disque ?",
         reponse: [
           "Le disque. Une 4K en Dolby Vision et un Blu-ray 1080p du même film n’ont ni la même définition ni les mêmes pistes audio.",
@@ -178,14 +184,14 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "les-coffrets",
+        ancre: "box-sets",
         question: "Comment un coffret apparaît-il ?",
         reponse: [
           "Sur la fiche de chacun des films qu’il contient. Un coffret de quatre films apparaît donc quatre fois, et le marquer une seule fois suffit à le voir partout.",
         ],
       },
       {
-        ancre: "prix",
+        ancre: "prices",
         question: "Les prix affichés sont-ils à jour ?",
         reponse: [
           "Non, et ils ne prétendent pas l’être. Quand un prix est indiqué, c’est le prix conseillé par l’éditeur au moment du relevé, pas le prix d’un marchand aujourd’hui.",
@@ -194,18 +200,18 @@ export const FAQ: SectionFaq[] = [
     ],
   },
   {
-    ancre: "collection-et-envies",
+    ancre: "collection-and-watchlist",
     titre: "Collection et envies",
     questions: [
       {
-        ancre: "comment-marquer-une-edition",
+        ancre: "marking-an-edition",
         question: "Comment marquer une édition comme possédée ?",
         reponse: [
           "Sur la fiche d’un film, chaque édition porte deux boutons ronds : l’un ajoute à votre collection, l’autre à vos envies. Un second clic retire.",
         ],
       },
       {
-        ancre: "faut-il-un-compte",
+        ancre: "do-i-need-an-account",
         question: "Faut-il un compte ?",
         reponse: [
           "Pour consulter, non, et ça ne changera pas. Pour marquer une édition ou constituer une liste d’envies, oui.",
@@ -213,7 +219,7 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "mes-listes-sont-elles-publiques",
+        ancre: "list-privacy",
         question: "Mes listes sont-elles visibles par d’autres ?",
         reponse: [
           "Non. Elles ne sont lisibles que par vous, et la base l’impose : aucun autre compte n’a le droit de les lire.",
@@ -221,7 +227,7 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "exporter-mes-listes",
+        ancre: "import-and-export",
         question: "Puis-je exporter ou importer mes listes ?",
         reponse: [
           "Pas encore. Il n’y a ni import depuis un autre service ni export au format fichier. C’est une lacune connue.",
@@ -230,11 +236,11 @@ export const FAQ: SectionFaq[] = [
     ],
   },
   {
-    ancre: "compte-et-donnees",
+    ancre: "account-and-data",
     titre: "Compte et données",
     questions: [
       {
-        ancre: "pourquoi-google",
+        ancre: "why-google-sign-in",
         question: "Pourquoi la connexion se fait-elle uniquement avec Google ?",
         reponse: [
           "Pour n’avoir ni mot de passe à stocker, ni procédure de réinitialisation à tenir, ni formulaire d’inscription à remplir. C’est le choix le plus sobre pour un projet personnel.",
@@ -242,14 +248,14 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "ou-sont-mes-donnees",
+        ancre: "where-my-data-lives",
         question: "Où sont hébergées mes données ?",
         reponse: [
           "Sur Supabase, en Suède, donc dans l’Union européenne. Ce qui existe côté serveur se limite à votre adresse e-mail, votre identifiant Google, et la liste des éditions que vous avez marquées.",
         ],
       },
       {
-        ancre: "supprimer-mon-compte",
+        ancre: "delete-my-account",
         question: "Comment supprimer mon compte ?",
         reponse: [
           "Depuis la page Mon compte. La suppression est immédiate et définitive : elle efface le compte et toutes vos listes avec lui.",
@@ -266,18 +272,18 @@ export const FAQ: SectionFaq[] = [
     ],
   },
   {
-    ancre: "technique",
+    ancre: "technical",
     titre: "Questions techniques",
     questions: [
       {
-        ancre: "api",
+        ancre: "api-and-apps",
         question: "Existe-t-il une API ou une application mobile ?",
         reponse: [
           "Non, ni l’un ni l’autre. Le site est conçu pour être utilisable au téléphone, en rayon, mais ce n’est pas une application installable.",
         ],
       },
       {
-        ancre: "reutiliser-les-donnees",
+        ancre: "reusing-the-data",
         question: "Puis-je réutiliser les données du catalogue ?",
         reponse: [
           "La consultation, l’usage privé et la citation avec lien sont libres. L’extraction massive de la base ne l’est pas : sa constitution représente un investissement protégé par le droit des bases de données.",
@@ -285,7 +291,7 @@ export const FAQ: SectionFaq[] = [
         ],
       },
       {
-        ancre: "signaler-un-bug",
+        ancre: "reporting-a-problem",
         question: "Comment signaler un problème sur le site ?",
         reponse: [
           "À contact@jaquette.app, avec l’adresse de la page concernée si possible.",
