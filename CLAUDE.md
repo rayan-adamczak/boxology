@@ -1310,12 +1310,70 @@ sur la fiche film. Le titre reprend l'échelle de `/bienvenue`,
 `clamp(38px, 6vw, 68px)` : deux pages qui ouvrent le site ne peuvent pas
 annoncer deux tailles.
 
-**`RailHorizontal`** (`src/app/components/`) est partagé entre la distribution
-de la fiche film et les parutions de l'accueil. Ses flèches se centrent sur
-**l'image mesurée** de la première carte, et non sur un pourcentage de hauteur :
-le `34 %` d'origine visait le portrait d'un acteur et tombait au-dessus des
-jaquettes, plus hautes. Mesurer libère le composant de la forme de ce qu'il
-transporte.
+### Gouttière, arrêtée le 1er août 2026
+
+`.reel-gouttiere` dans `theme.css`, une classe pour tout le site.
+
+**La marge est une proportion, pas un nombre de pixels.** Un plafond en pixels
+avec un rembourrage fixe, `max-w-[1440px] px-4 sm:px-6 lg:px-10`, donne une
+marge généreuse sur grand écran, où le plafond mord, et presque rien juste en
+dessous : à 1 440 px de fenêtre il restait 40 px de chaque côté, soit 2,8 % de
+la largeur, et la page touchait les bords.
+
+    clamp(880px, 68%, 1760px)
+
+16 % de marge de chaque côté. Le plancher de 880 px évite qu'à 1 024 la
+proportion ne laisse que 696 px de contenu, le plafond de 1 760 px évite la
+ligne illisible au-delà de 2 588 px. En pourcentage et **non en `vw`**, qui
+compte la barre de défilement et déborderait de quelques pixels. Sous `lg` la
+gouttière reste en pixels : sur un téléphone la proportion mangerait la moitié
+de l'écran.
+
+Elle remplace une douzaine de conteneurs recopiés page par page, qui avaient
+fini par diverger : le bandeau montait à `lg:px-16` là où le contenu restait à
+`lg:px-10`, donc **le mot-symbole ne tombait pas sur la même verticale que le
+titre juste dessous**.
+
+### `RailHorizontal`
+
+Partagé entre la distribution de la fiche film et les parutions de l'accueil.
+
+Ses flèches se centrent sur **l'image mesurée** de la première carte, et non sur
+un pourcentage de hauteur : le `34 %` d'origine visait le portrait d'un acteur
+et tombait au-dessus des jaquettes, plus hautes. Mesurer libère le composant de
+la forme de ce qu'il transporte.
+
+**La rangée tient dans la colonne, des deux côtés.** Trois variantes ont été
+essayées avant d'y revenir, et elles sont consignées parce que l'idée de faire
+déborder un rail revient naturellement :
+
+| variante | ce qui cloche |
+|---|---|
+| débord des deux côtés | une jaquette dans la marge se lit comme une fuite |
+| débord à droite seulement | même défaut, à droite |
+| voile dilué vers l'intérieur | carte fantôme à mi-teinte au milieu du cadre |
+
+La marge est vide parce que toute la page est alignée dessus. Une jaquette qui
+l'occupe, même à demi effacée, se voit. C'est le seul point qui compte, et il ne
+se déduit pas d'un raisonnement sur le débordement : il s'est vu à l'écran.
+
+Le débord coûtait par ailleurs `margin-inline: calc(50% - 50vw)`, donc une
+mesure en `vw`, donc la gouttière en `vw` pour rester alignée, donc un
+`overflow-x: clip` sur le corps pour rattraper la barre de défilement. Trois
+réglages en cascade pour un effet qui ne tenait pas.
+
+**Voile court aux deux bouts**, 88 px, plateau opaque de 32. Le rail étant
+tranché net sur la verticale du titre, une jaquette coupée en plein milieu de
+son image se lit comme un défaut d'affichage ; le voile lui rend une fin. Court,
+parce que ce qu'il faut voiler est la tranche, pas la carte. Il n'a pas à servir
+de fond à la flèche, qui porte le sien.
+
+**Voile et flèche montent avec le défilement**, sur 90 px, en `1 - (1 - t)²`.
+Ils apparaissaient sur un `scrollLeft > 1`, donc un pixel faisait surgir un
+disque de 44 px. Deux valeurs écartées : 140 px laissait la jaquette à découvert
+le temps que le voile monte, 40 px se lisait comme un déclic. **Le défaut n'était
+pas la durée mais la rampe linéaire**, qui monte à vitesse constante puis
+s'arrête net à 1.
 
 ### Visionneuse d'images, en place le 31 juillet 2026
 
