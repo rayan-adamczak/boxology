@@ -294,13 +294,13 @@ export function BrowsePage() {
                     <Icone size={26} color="var(--reel-accent-clair)" strokeWidth={2} />
                     <h3
                       className="mt-3"
-                      style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)" }}
+                      style={{ fontSize: "17px", fontWeight: 600, color: "var(--reel-text)" }}
                     >
                       {titre}
                     </h3>
                     <p
                       className="mt-1.5"
-                      style={{ fontSize: "14px", color: "var(--reel-muted)", lineHeight: "21px" }}
+                      style={{ fontSize: "15px", color: "var(--reel-muted)", lineHeight: "23px" }}
                     >
                       {texte}
                     </p>
@@ -317,7 +317,7 @@ export function BrowsePage() {
           </h2>
 
           {error && (
-            <p className="mt-4" style={{ fontSize: "14px", color: "#ff6b6b" }}>
+            <p className="mt-4" style={{ fontSize: "15px", color: "#ff6b6b" }}>
               {error}
             </p>
           )}
@@ -328,7 +328,7 @@ export function BrowsePage() {
             ainsi, et l'utilisateur refera la faute la fois suivante.
           */}
           {!loading && approchante && films.length > 0 && (
-            <p className="mt-4" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
+            <p className="mt-4" style={{ fontSize: "15px", color: "var(--reel-muted)" }}>
               Aucun titre ne correspond exactement à «&nbsp;{query.trim()}&nbsp;». Voici les plus
               proches.
             </p>
@@ -337,10 +337,10 @@ export function BrowsePage() {
           {loading ? (
             <div className="mt-5 flex items-center gap-2" style={{ color: "var(--reel-muted)" }}>
               <Loader2 size={18} className="animate-spin" />
-              <span style={{ fontSize: "14px" }}>Chargement…</span>
+              <span style={{ fontSize: "15px" }}>Chargement…</span>
             </div>
           ) : films.length === 0 ? (
-            <p className="mt-5" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
+            <p className="mt-5" style={{ fontSize: "15px", color: "var(--reel-muted)" }}>
               Aucun film trouvé.
             </p>
           ) : (
@@ -363,7 +363,7 @@ export function BrowsePage() {
                   </div>
                   <p
                     className="mt-2 line-clamp-2"
-                    style={{ fontSize: "13px", fontWeight: 500, color: "var(--reel-text)" }}
+                    style={{ fontSize: "14px", fontWeight: 500, color: "var(--reel-text)" }}
                   >
                     {film.titre}
                   </p>
@@ -456,12 +456,12 @@ function CarteEdition({ edition }: { edition: EditionWithFilm }) {
       </span>
       <span
         className="mt-2 line-clamp-2 block text-[var(--reel-text)] transition-colors group-hover:text-[var(--reel-accent-clair)]"
-        style={{ fontSize: "13px", fontWeight: 600, lineHeight: "18px" }}
+        style={{ fontSize: "15px", fontWeight: 600, lineHeight: "20px" }}
       >
         {edition.film?.titre ?? edition.titre}
       </span>
       {formats.length > 0 && (
-        <span className="block" style={{ fontSize: "12px", color: "var(--reel-muted)" }}>
+        <span className="block" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
           {formats.join(" · ")}
         </span>
       )}
@@ -469,7 +469,7 @@ function CarteEdition({ edition }: { edition: EditionWithFilm }) {
   );
 
   return (
-    <div className="w-[124px] shrink-0 sm:w-[140px]">
+    <div className="w-[150px] shrink-0 sm:w-[186px]">
       {lien ? (
         <Link
           to={lien}
@@ -514,7 +514,7 @@ function EncartInscription({ onSInscrire }: { onSInscrire: () => void }) {
           >
             Gardez la trace de ce que vous possédez
           </h2>
-          <p className="mt-3" style={{ fontSize: "15px", color: "rgba(255,255,255,0.85)", lineHeight: "23px" }}>
+          <p className="mt-3" style={{ fontSize: "16px", color: "rgba(255,255,255,0.85)", lineHeight: "25px" }}>
             Cochez vos éditions, notez celles que vous cherchez, et retrouvez la liste en rayon.
             Compte gratuit avec Google, rien d’autre à remplir.
           </p>
