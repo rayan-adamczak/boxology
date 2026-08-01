@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 5 477 lignes
+### `films`, 5 780 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -172,7 +172,7 @@ toujours. Au 31 juillet 2026 la tête de liste est *L'Odyssée* (1 167),
 indéfiniment les succès du jour de l'import, d'où la tâche hebdomadaire
 décrite au §6.
 
-### `editions`, 9 862 lignes
+### `editions`, 10 298 lignes
 `id` (identity **ajoutée en juillet 2026**, elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `formats_extraits` (text[]), `url_source`, `contenu_brut`, `image_url`,
@@ -181,7 +181,7 @@ applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `film_id` (film principal), **`source`**, **`source_id`**.
 
 `source` vaut `editioncollector.fr` (3 193), `bluray.com` (5 278) ou
-`lechatquifume.com` (212) ou `metalunastore.fr` (1 179).
+`lechatquifume.com` (212) ou `metalunastore.fr` (1 615).
 
 **`collection_editeur` et `numero_collection`, ajoutées le 1er août 2026.**
 Migration `20260801_collection_editeur.sql`, index sur le couple. La série
@@ -365,25 +365,35 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 5 477 (4 753 films, 722 séries, 2 coffrets) |
-| Éditions | 9 862 |
+| Films | 5 780 |
+| Éditions | 10 298 |
 | Codes-barres | 5 383 |
-| Éditions rattachées | 9 076 (92,0 %) |
-| Éditions sans film | 786 |
+| Éditions rattachées | 9 439 (91,7 %) |
+| Éditions sans film | 859 |
 | Éditions avec visuel | 9 830 (99,7 %) |
 | URL au sitemap | 5 446 |
 
-**Six sources sont entrées le 1er août 2026**, +1 391 éditions et +932 films :
+**Dix catalogues d'éditeurs sont entrés le 1er août 2026**, +1 827 éditions et
++1 235 films, soit une journée qui a fait grossir la base d'un cinquième :
 
 | source | éditions | rattachées | visuels sur R2 |
 |---|---|---|---|
+| Criterion (Metaluna) | 338 | 269 (80 %) | 340 |
+| Carlotta Films (Metaluna) | 231 | 172 (72 %) | 250 |
 | Le Chat qui fume | 212 | 197 (93 %) | 473 |
 | Rimini Editions (Metaluna) | 191 | 174 (89 %) | 197 |
 | ESC Editions (Metaluna) | 177 | 145 (81 %) | 181 |
-| Criterion (Metaluna) | 338 | 269 (80 %) | 340 |
-| Carlotta Films (Metaluna) | 231 | 172 (72 %) | 250 |
+| Elephant Films (Metaluna) | 177 | 143 (80 %) | 191 |
+| Sidonis Calysta (Metaluna) | 158 | 140 (89 %) | 158 |
 | Artus Films (Metaluna) | 148 | 114 (77 %) | 155 |
 | Make My Day! (Metaluna) | 94 | 86 (91 %) | 97 |
+| Extralucid Films (Metaluna) | 56 | 45 (80 %) | 56 |
+| Potemkine (Metaluna) | 52 | 40 (71 %) | 58 |
+
+**Metaluna concentre les orphelines** : 302 sur 1 615, soit 18,7 %, contre
+7,2 % chez blu-ray.com et 5,1 % chez editioncollector. Ce n'est pas le
+parseur, c'est le catalogue : ces éditeurs d'auteur vendent des coffrets et
+des rétrospectives que TMDB n'indexe pas comme des œuvres.
 
 **Le taux suit la qualité de la fiche, pas celle de la source.** Rimini est à
 89 % et Carlotta à 72 % chez le même revendeur, avec le même parseur : là où
@@ -606,7 +616,7 @@ Cinq produits n'ont aucune image et aucune fiche : ce sont des titres à
 paraître. `enum_chat.py` **fusionne** au lieu d'écraser, une repasse les
 récupérera.
 
-### metalunastore.fr, 1 179 éditions, 1er août 2026
+### metalunastore.fr, 1 615 éditions, 1er août 2026
 
 Revendeur, pas éditeur, et c'est ce qui le rend utile : **il liste des
 catalogues d'éditeurs entiers** que ces éditeurs ne vendent pas eux-mêmes.
@@ -618,13 +628,20 @@ Shopify, donc le même endpoint que Le Chat qui fume, plus
 
 | collection | fiches | état |
 |---|---|---|
-| Criterion | 338 | importée, marché US assumé, région A |
-| Carlotta Films | 231 | importée |
-| Rimini Editions | 191 | importée |
-| ESC Editions | 177 | importée |
-| Artus Films | 148 | importée |
-| Make My Day! | 94 | importée |
-| Elephant, Sidonis, Potemkine, Extralucid | ~515 | déclarées, non collectées |
+| Criterion | 338 | marché US assumé, région A |
+| Carlotta Films | 231 | |
+| Rimini Editions | 191 | |
+| ESC Editions | 177 | |
+| Elephant Films | 177 | |
+| Sidonis Calysta | 158 | |
+| Artus Films | 148 | |
+| Make My Day! | 94 | seule série **numérotée**, N°1 à 98 |
+| Extralucid Films | 56 | |
+| Potemkine | 52 | |
+
+**Les neuf collections déclarées sont collectées.** `Wild Side` existe chez
+eux mais compte zéro produit, et leur propre boutique était en maintenance le
+1er août 2026 : Ultra Collector reste à faire.
 
 **Le compteur de collection ment sur le volume réel.** `collections.json`
 annonce 370 fiches pour Criterion et 272 pour ESC ; le listing paginé en rend
@@ -737,9 +754,10 @@ retournée (cf. §10).
 | `miroir_metaluna.py` | Jaquettes vers `metaluna/<collection>/` sur R2 |
 | `ecrire_metaluna.py` | Films, éditions et liens (`--apply`), dédup par titre |
 
-Collections importées le 1er août 2026 : `criterion`, `carlotta`, `rimini`,
-`esc`, `artus-films`, `make-my-day`. Restent déclarées dans `collectes.py` et
-non collectées : `elephant`, `sidonis`, `potemkine`, `extralucid`.
+Toutes les collections de `collectes.py` ont été importées le 1er août 2026 :
+`criterion`, `carlotta`, `rimini`, `esc`, `elephant`, `sidonis`,
+`artus-films`, `make-my-day`, `extralucid`, `potemkine`. Ajouter une source
+tient en une entrée dans la table et une commande.
 
 **Une seule passe de résolution, contrôle compris**, là où Le Chat qui fume en
 a demandé deux : la source donne réalisateur et durée dès la première
