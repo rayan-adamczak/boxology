@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 4 545 lignes
+### `films`, 4 739 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -172,7 +172,7 @@ toujours. Au 31 juillet 2026 la tête de liste est *L'Odyssée* (1 167),
 indéfiniment les succès du jour de l'import, d'où la tâche hebdomadaire
 décrite au §6.
 
-### `editions`, 8 471 lignes
+### `editions`, 8 689 lignes
 `id` (identity **ajoutée en juillet 2026**, elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `formats_extraits` (text[]), `url_source`, `contenu_brut`, `image_url`,
@@ -180,7 +180,22 @@ applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `langues`, `nb_commentaires`, `nb_wishlist`, `prix_fnac_extrait`,
 `film_id` (film principal), **`source`**, **`source_id`**.
 
-`source` vaut `editioncollector.fr` (3 193) ou `bluray.com` (5 278).
+`source` vaut `editioncollector.fr` (3 193), `bluray.com` (5 278) ou
+`lechatquifume.com` (218).
+
+**`collection_editeur` et `numero_collection`, ajoutées le 1er août 2026.**
+Migration `20260801_collection_editeur.sql`, index sur le couple. La série
+numérotée d'un éditeur, Criterion et ses spines, Ultra Collector, Make My
+Day!, n'est pas la même chose que `editeur`, qui dit qui presse le disque :
+Studiocanal édite « Make My Day! » **et** cent titres hors collection.
+
+La colonne s'appelle `collection_editeur` et non `collection` : la table
+`collections` porte les listes utilisateur, et deux noms proches sur deux
+notions sans rapport se lisent de travers.
+
+`numero_collection` est encore **vide partout**. Le Chat qui fume numérote son
+`sku` de 013 à 271, mais ce compteur couvre aussi la revue *Nitrate* et les
+badges : c'est une référence de boutique, pas un rang de collection.
 
 **`date_parution` (date), ajoutée le 31 juillet 2026.** Migration
 `20260731_dates_et_popularite.sql`, index décroissant, remplie par
@@ -339,13 +354,16 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 4 545 (3 828 films, 715 séries, 2 coffrets) |
-| Éditions | 8 471 |
-| Codes-barres | 4 930 |
-| Éditions rattachées | 7 896 (93,2 %) |
-| Éditions sans film | 575 |
-| Éditions avec visuel | 8 443 (99,7 %) |
-| URL au sitemap | 3 349 |
+| Films | 4 739 (3 958 films, 716 séries, 2 coffrets) |
+| Éditions | 8 689 |
+| Codes-barres | 5 383 |
+| Éditions rattachées | 8 093 (93,1 %) |
+| Éditions sans film | 596 |
+| Éditions avec visuel | 8 657 (99,6 %) |
+| URL au sitemap | 5 180 |
+
+Au 1er août 2026, après l'import du Chat qui fume : +131 films, +218 éditions,
+puis +63 films et +66 liens à la relecture par contrôle de durée.
 
 `editions.film_id` est `null` sur 858 lignes, ce qui ne veut plus rien dire :
 la colonne est un vestige, le rattachement vit dans `edition_films`. Compter
@@ -381,7 +399,9 @@ coffrets dont la page n'annonce pas le contenu) et 165 editioncollector.
 ## 5. Sources de données
 
 ### editioncollector.fr, 3 193 éditions
-Source d'origine, **seule à fournir des visuels**.
+Source d'origine, et longtemps **seule à fournir des visuels**. Ce n'est plus
+vrai : blu-ray.com en a donné 5 257 le 31 juillet 2026, et Le Chat qui fume
+473 le 1er août.
 
 **Les images ne sont plus en hotlink depuis le 31 juillet 2026.** Les 7 220 URL
 distinctes ont été recopiées sur un bucket Cloudflare R2 et sont servies par
@@ -470,6 +490,63 @@ sauvegarder avant.** Union au 30 juillet 2026 : 5 917 ids.
 Le script s'annonce par ailleurs comme Chrome, là où `crawl_fr.py` déclare le
 robot. À aligner un jour : le 200 obtenu l'a été avec l'UA du robot.
 
+### lechatquifume.com, 218 éditions, 1er août 2026
+
+Boutique **Shopify**, donc le catalogue entier sort en JSON structuré, sans une
+ligne de HTML à parser :
+
+    /collections/all/products.json?limit=250&page=1
+
+236 produits, une seule page. Leur `robots.txt` autorise `/collections/` et
+`/products/` à `User-agent: *` et ne vise nommément aucun agent.
+
+**C'est la première source à donner specs et visuel sur la même ligne.** Le
+non-recouvrement total consigné plus haut, dates chez blu-ray.com contre images
+chez editioncollector, ne vaut pas pour elle : `body_html` ouvre sur une ligne
+technique et le produit porte ses packshots.
+
+    36 Fillette - 1988 - 1h28 - Français - Format 1.66 - Version intégrale
+    BLU-RAY - 1920x1080/24p
+    Français en DTS-HD MA 2.0
+
+Couverture sur les 222 disques : durée 90 %, année 85 %, résolution 84 %,
+synopsis 86 %, ratio 39 %, EAN 37 %.
+
+**L'EAN est dans `variants[0].sku`, pas dans la description.** 82 sku sont des
+EAN 13, 127 des références de boutique à trois chiffres. Shopify n'expose pas
+le champ `barcode` publiquement, ce qui fait croire à tort qu'il n'y a pas de
+code-barres.
+
+**`vendor` n'est pas l'éditeur, c'est l'ayant droit du film.** `36 Fillette` de
+Breillat y est marqué `IMPEX`, `Blow Out` `MGM`, `Flaming Brothers`
+`FORTUNE STAR`. Écrire `editeur = vendor` produirait 222 valeurs fausses. Les
+vrais labels sont annoncés dans la description, en tête et **avant le RÉSUMÉ** :
+`UNE ÉDITION BADLANDS`, `UNE ÉDITION INTERSECTIONS`, `DE L'ÉDITEUR NABAN`,
+`MDC FILMS`. Quatre en tout, vocabulaire fermé relevé sur les 222 fiches.
+
+`product_type` est vide sur 231 des 236 lignes, inexploitable, exactement comme
+le champ `universes` d'editioncollector.
+
+**Ils publient les captures d'écran du film dans le même tableau `images` que
+les jaquettes.** Sur 1 044 images, 538 sont des photogrammes. Le tri se fait sur
+le **nom de fichier**, jamais sur l'orientation : le packshot est carré
+(1000×1000) et non portrait, tandis que `3D-OUVERTE` est paysage tout en étant
+un vrai visuel produit. `IMAGEGRAB` et le ratio 1.78 en 1920×1080 signent la
+capture ; `3D SIMPLE`, `OUVERTE`, `ETUI`, `SCANAVO` signent le boîtier.
+
+Les 473 visuels retenus sont sur R2 sous `chat/<id produit>/<nom>`, 105 Mo,
+`image_url_source` gardant l'URL Shopify.
+
+**Le packshot carré passe dans le `object-cover` 2/3 du site sans rien changer
+au code.** Le rognage est **latéral**, 16,7 % de chaque côté, et il mange la
+marge blanche, pas le boîtier. Vérifié à l'image avant d'écrire. Un recadrage
+automatique avait été envisagé puis écarté : leur fond est un **dégradé** gris
+et non un aplat, donc la détection de contenu ne rogne rien sur les JPEG.
+
+Cinq produits n'ont aucune image et aucune fiche : ce sont des titres à
+paraître. `enum_chat.py` **fusionne** au lieu d'écraser, une repasse les
+récupérera.
+
 ### TMDB
 Métadonnées films et séries. Rattachement par titre **et année**.
 
@@ -506,6 +583,20 @@ retournée (cf. §10).
 ---
 
 ## 6. Scripts (`~/Documents/jaquette-scraping/`)
+
+### Le Chat qui fume (`chat_qui_fume/`, 2026-08-01)
+
+| Fichier | Rôle |
+|---|---|
+| `enum_chat.py` | Énumère le JSON Shopify, **fusionne** avec l'existant |
+| `tri_chat.py` | Disques contre dérivés, packshots contre captures, relit la description |
+| `resoudre_chat.py` | TMDB et doublons par EAN, **lecture seule** |
+| `miroir_chat.py` | Visuels de boîtier vers R2, simulation par défaut |
+| `ecrire_chat.py` | Films, éditions et liens (`--apply`), quatre garde-fous |
+| `editeur_chat.py` | Renseigne `editeur` d'après les labels annoncés (`--apply`) |
+| `relire_chat.py` | Reprend les orphelines par **contrôle de durée** (`--apply`) |
+
+Résultat : 218 éditions, 197 rattachées (92,9 % hors dérivés), 194 films créés.
 
 ### Import blu-ray.com (2026-07)
 
@@ -697,8 +788,8 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   Function les ajoute par fiche au lieu de les modifier, en se raccrochant à
   `og:site_name`, une balise qui existe à coup sûr.
 - **`sitemap.xml`** généré au build par `scripts/generer-sitemap.mjs` depuis la
-  base. 5 072 URL, dont 4 581 fiches films et 486 pages de regroupement, contre
-  2 105 avant les campagnes de rattachement du 30 juillet 2026. Seuls les films
+  base. **5 180 URL** au 1er août 2026, contre 5 072 la veille et 2 105 avant
+  les campagnes de rattachement du 30 juillet 2026. Seuls les films
   rattachés à une édition y figurent, en **adresse canonique avec slug**. Le
   script casse le build s'il ne trouve aucun film, et aussi si `films.slug`
   manque : voir plus bas pourquoi c'est le bon sens de la panne. Les pages fixes
@@ -998,13 +1089,25 @@ dont le nom ne change pas.
 `order=image_url.asc.nullslast`. Ce n'est pas de la coquetterie : les visuels
 sont chez editioncollector et les specs chez blu-ray.com sans recouvrement (§3),
 donc sans ce tri `/formats/steelbook` s'ouvrait sur soixante lignes de texte nu.
-Les pages d'éditeur, elles, sont entièrement blu-ray.com, donc sans image : la
-vignette retombe sur l'affiche du film.
+Les pages d'éditeur étaient entièrement blu-ray.com, donc sans image, la
+vignette retombant sur l'affiche du film. **Ce n'est plus vrai depuis le
+1er août 2026** : `/editeurs/le-chat-qui-fume` porte 188 éditions, toutes
+illustrées, et c'est la première page d'éditeur à montrer des boîtiers.
 
 #### Pagination, en place le 31 juillet 2026
 
 `/formats/blu-ray` couvre ses **93 pages**, `/genres/horreur` ses 10. Le sitemap
-passe de 4 661 à **5 072 URL**, dont 411 pages suivantes.
+passe de 4 661 à **5 072 URL**, dont 411 pages suivantes, puis 5 180 après
+l'import du Chat qui fume.
+
+**Un quatrième axe `/collections` a été écarté le 1er août 2026**, alors même
+que `collection_editeur` venait d'être remplie. Il n'aurait porté qu'une seule
+entrée, or chaque page de regroupement doit lister les autres entrées de son
+axe pour n'être pas une impasse, et le sommaire aurait tenu en un lien.
+`editeur` faisait déjà le travail : remplir la colonne a suffi à créer
+`/editeurs/le-chat-qui-fume` et `/editeurs/intersections` au build suivant,
+sans une ligne de front. **Rouvrir le jour où une deuxième collection numérotée
+entre au catalogue**, Criterion ou Make My Day!.
 
 `/genres/horreur` pour la première page, `/genres/horreur/3` ensuite. **Pas de
 `/1`** : deux adresses pour le même contenu sont deux doublons, et le middleware
@@ -1734,6 +1837,41 @@ Documentés parce qu'ils se reproduiront.
   **saison**. `Rent-A-Girlfriend - Saison 2` annonce 2022 alors que la série
   commence en 2020, et le rattachement était juste. C'est la règle déjà notée
   plus haut, l'année d'un bandeau est un plafond pour une série, pas un filtre.
+- **La durée du disque est une mesure indépendante, et la plus rentable du
+  1er août 2026.** Le boîtier l'imprime (`1h28`), TMDB publie son `runtime` :
+  les comparer ne rejoue pas notre rapprochement, ça le confronte à un chiffre
+  venu d'ailleurs, comme le bandeau blu-ray.com plus haut. Sur les 87 orphelines
+  du Chat qui fume, elle en a rattaché **66**, dont tous les titres que TMDB
+  n'indexe qu'en langue originale : `Angel Guts` 78 contre 79, `Fat Choi Spirit`
+  97 contre 96, `Histoire d'une femme yakuza` 86 contre 86, cette dernière
+  trouvée sous `Yasagure anego den: Sôkatsu rinchi`. Le réalisateur nommé dans
+  la description prend le relais quand la durée manque.
+- **Une tolérance de durée doit être proportionnelle, jamais en minutes fixes.**
+  Le speedup PAL vaut exactement **4,17 %** : un master de 92 minutes en rend
+  88. Une marge de 4 minutes refusait donc `Justice sans sommation`, 92 contre
+  87, alors que son titre original `皇家女將` correspondait. Marge retenue : 6 %
+  avec un plancher de 4 minutes, rupture au-delà de 25 %.
+- **La conversion des chiffres romains doit porter sur la requête envoyée à
+  TMDB, pas seulement sur la comparaison.** TMDB ne la fait pas de son côté :
+  chercher `EXTERMINATOR II` rendait `Class of 2001`, quand `Exterminator 2`
+  rend le bon film à l'écart de durée zéro. Le défaut est **invisible**, la
+  recherche renvoyant un résultat plausible plutôt qu'une absence.
+- **`primary_release_year` est un filtre dur chez TMDB.** Le passer élimine
+  l'œuvre au lieu de la classer : `Blue Sunshine`, annoncé 1978 sur le boîtier
+  et daté 1977 chez eux, rendait zéro résultat, et `Cherry 2000` cherché en
+  l'an 2000 aussi, l'année ayant été lue dans son propre titre. Chercher **sans
+  année**, puis contrôler l'année sur des résultats qu'on a vus. L'année
+  classe, elle n'élimine pas ; le plafond de date de sortie, lui, élimine.
+- **Un catalogue mélange trois séparateurs, et n'en connaître qu'un donne des
+  titres de ferraille.** Chez Le Chat qui fume, ` - `, ` / ` et ` | `
+  cohabitent : `Fresh / 1994 / 1h54 / États-Unis` et
+  `1983 | 105 MIN | USA | BD-50 | 1920x1080` partaient entiers vers TMDB.
+- **`1920x1080` porte un millésime parfaitement valide.** Sans exclusion
+  explicite, une extraction d'année date un disque sur deux de 1920.
+- **Une durée en minutes n'est pas une œuvre.** Compter les lignes minutées
+  d'un `body_html` faisait passer 159 disques sur 222 pour des coffrets,
+  `36 Fillette` compris : ce sont les suppléments, `Entretien avec … 25 mn`.
+  Une œuvre du catalogue s'écrit toujours en heures.
 - **`Terminator 2` (1989) est un décalque italien de Bruno Mattei.** Deux
   éditions editioncollector y étaient rattachées au lieu du film de Cameron
   (1991), le titre d'exploitation français du décalque usurpe le sien.
@@ -1895,6 +2033,13 @@ Ce qui a évité le plus d'erreurs :
 - Éditeur non professionnel (LCEN art. 6), **à compléter dès que le site
   devient commercial**
 - Attribution TMDB en pied de page (exigée par leur licence)
+- **Les visuels du Chat qui fume sont repris depuis le 1er août 2026**, 473
+  packshots de boîtier miroités sur R2. Même raisonnement que pour blu-ray.com
+  ci-dessous : ce sont des visuels d'éditeur, et l'usage vise l'affiliation,
+  donc commercial. Les captures d'écran du film, elles, **n'ont pas été
+  reprises** : 538 photogrammes laissés chez eux, refusés deux fois, au tri
+  puis juste avant le transfert. La distinction n'est pas que technique, une
+  jaquette identifie un produit là où un photogramme reproduit l'œuvre.
 - **Les visuels de blu-ray.com sont repris depuis le 31 juillet 2026**, ce que
   la version précédente de ce document interdisait. Décision prise en connaissance
   de cause : ce sont pour l'essentiel des visuels d'éditeur, mais le site vise
