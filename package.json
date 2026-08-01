@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit && vite build && node scripts/generer-sitemap.mjs",
+    "build": "tsc --noEmit && node scripts/generer-regroupements.mjs && vite build && node scripts/generer-sitemap.mjs",
     "typecheck": "tsc --noEmit",
     "dev": "vite",
     "sitemap": "node scripts/generer-sitemap.mjs"
