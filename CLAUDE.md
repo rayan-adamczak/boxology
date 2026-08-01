@@ -1285,27 +1285,35 @@ comparaison, le coffret Petrol Tank et ses quatre Mad Max pour les coffrets.
 Étiqueter des éditions réelles « steelbook » ou « coffret » au hasard serait
 faux à l'écran même si le propos est juste.
 
-**Hauteur commune, largeur libre.** Les six vignettes montrent des objets de
+**Colonne de texte fixe, vignette libre.** Le texte fait 400 px à partir de
+`lg` et 440 à partir de `xl`, identique sur les six étapes : la mesure de
+lecture se remarque d'un bloc à l'autre. La vignette prend le reste et porte sa
+propre largeur, de 500 à 644 px, parce que ces blocs montrent des objets de
 formats très différents, une jaquette, une liste de trois lignes, un tableau de
-six, et les forcer à la même largeur en étirait certaines dans le vide. C'est la
-hauteur qui doit être commune, 360 px à partir de `lg` : elle donne le rythme
-quand on descend la page, une étape plus haute que la précédente se lit comme un
-déséquilibre. Chaque vignette porte donc sa largeur, de 500 à 660 px, et son
-contenu est centré dans la hauteur imposée. Sous `lg` la hauteur redevient
-libre, un cadre fixe rognerait sur une colonne étroite.
+six, et qu'une largeur unique en étirait certains dans le vide.
 
-Corollaire à ne pas perdre : **élargir un cadre grandit ce qu'il contient**. La
-comparaison d'éditions dépassait la hauteur commune dès que son cadre gagnait
-40 px, ses quatre jaquettes suivant la largeur. Vérifier `scrollHeight` contre
-`clientHeight` sur les six après chaque retouche, le débordement est invisible à
-l'œil puisque le cadre est en `overflow-hidden`.
+**La vignette est collée au texte, pas au bord de l'écran.** L'écart vaut 48 px
+partout. L'inverse a été essayé, cadres plaqués au bord extérieur : l'écart au
+texte devenait le reste de la ligne et variait de 48 à 192 px sans raison
+visible. Le corollaire est assumé, les cadres ne finissent pas sur la même
+verticale, mais un bord extérieur irrégulier ne se lit pas, un écart au texte
+qui saute d'une étape à l'autre si.
 
-**La colonne de la vignette se dimensionne sur la vignette** (`auto`), le texte
-prend le reste. Avec deux colonnes égales et la vignette plaquée au bord,
-l'écart au texte variait de 66 à 166 px selon sa largeur ; il vaut maintenant la
-gouttière de la grille, la même partout. `grid-cols-1` est explicite pour le
-téléphone : sans lui la colonne implicite se dimensionne sur son contenu, et
-chaque vignette prenait une largeur différente.
+**Aucune hauteur imposée**, et c'est un revirement : une hauteur commune de
+360 px a tenu quelques heures, elle donnait un beau rythme mais réduisait les
+jaquettes pour les faire rentrer et laissait les blocs courts à moitié vides.
+Les visuels sont maintenant dimensionnés pour se voir — jaquette de la
+collection à 228 px, coffret à 200, vignettes d'envies à 60 — et les hauteurs
+vont de 302 à 455 px.
+
+Ce que l'épisode laisse : **élargir un cadre grandit ce qu'il contient.** La
+comparaison d'éditions débordait dès que son cadre gagnait 40 px, ses quatre
+jaquettes suivant la largeur. Le cadre étant en `overflow-hidden`, le
+débordement se coupe sans rien signaler : comparer `scrollHeight` et
+`clientHeight` sur les six après chaque retouche.
+
+`grid-cols-1` est explicite pour le téléphone : sans lui la colonne implicite se
+dimensionne sur son contenu, et chaque vignette prenait une largeur différente.
 
 **Les vignettes débordent de 80 px du côté opposé au texte**, à partir de `xl`
 seulement. En dessous, la gouttière du conteneur est plus étroite que le
@@ -1942,6 +1950,19 @@ Documentés parce qu'ils se reproduiront.
   neuve, on obtient la page « introuvable » alors que tout est en ligne. Un
   rechargement suffit, il n'y a rien à purger. Ne pas confondre avec l'incident
   d'asset estampillé `immutable`, qui, lui, ne se répare pas seul.
+- **Le bundle d'un déploiement neuf peut répondre 404 plusieurs minutes**, et la
+  page est alors blanche : `index.html` est servi, le CSS aussi, mais le script
+  qu'il référence n'existe pas encore sur cet edge, donc `#root` reste vide et
+  la console ne dit rien. Mesuré le 1er août 2026, sept minutes durant, avec un
+  nom de bundle **stable** tout du long, ce qui écarte la bascule entre deux
+  versions : c'est la propagation de l'asset lui-même. Se répare seul, ne rien
+  purger. Signature à reconnaître dans la console de la page blanche :
+
+      performance.getEntriesByType('resource')
+        .filter(e => e.name.includes('/assets/'))
+        .map(e => [e.name.split('/').pop(), e.responseStatus])
+
+  Un `404` sur le `.js` et un `200` sur le `.css` disent tout.
 - **PostgREST plafonne à 1 000 lignes.** Paginer, toujours. Le piège s'est
   reproduit : un `limit=1893` a silencieusement traité 1 000 lignes.
 - **TMDB numérote films et séries séparément.** Le film 1639 est *Speed 2*, la
