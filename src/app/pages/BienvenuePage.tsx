@@ -502,10 +502,10 @@ function VisuelCoffret({ coffret, films }: { coffret?: EditionWithFilm; films: F
 /** Étape 6, le compte, et ce qu'il garde. */
 function VisuelCompte() {
   const points: [ReactNode, string][] = [
-    [<User key="c" size={17} />, "Connexion avec Google, rien d’autre à remplir"],
-    [<Layers key="l" size={17} />, "Vos listes suivent d’un appareil à l’autre"],
-    [<ShieldCheck key="s" size={17} />, "Données hébergées dans l’Union européenne"],
-    [<Check key="e" size={17} />, "Suppression du compte et des listes en deux clics"],
+    [<User key="c" size={19} />, "Connexion avec Google, rien d’autre à remplir"],
+    [<Layers key="l" size={19} />, "Vos listes suivent d’un appareil à l’autre"],
+    [<ShieldCheck key="s" size={19} />, "Données hébergées dans l’Union européenne"],
+    [<Check key="e" size={19} />, "Suppression du compte et des listes en deux clics"],
   ];
   return (
     <Cadre className="lg:w-[440px] xl:w-[520px]">
@@ -545,7 +545,7 @@ function CarteSection({
       style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
     >
       <span
-        className="flex h-9 w-9 items-center justify-center rounded-full"
+        className="flex h-11 w-11 items-center justify-center rounded-full"
         style={{ backgroundColor: "var(--reel-accent-soft)", color: "var(--reel-accent-clair)" }}
       >
         {icone}
@@ -872,15 +872,15 @@ export function BienvenuePage() {
         />
 
         <div className="grid gap-5 pt-10 sm:grid-cols-3">
-          <CarteSection to="/" icone={<Search size={17} />} titre="Catalogue">
+          <CarteSection to="/" icone={<Search size={22} />} titre="Catalogue">
             La recherche par titre, les dernières éditions parues et l’entrée vers toutes les
             fiches. C’est la page d’accueil du site.
           </CarteSection>
-          <CarteSection to="/" icone={<Disc3 size={17} />} titre="Fiche film">
+          <CarteSection to="/" icone={<Disc3 size={22} />} titre="Fiche film">
             Le film, sa distribution, ses éditions françaises et la fiche technique des disques.
             Ouvrez n’importe quelle jaquette du catalogue pour y arriver.
           </CarteSection>
-          <CarteSection to="/profil" icone={<User size={17} />} titre="Profil">
+          <CarteSection to="/profil" icone={<User size={22} />} titre="Profil">
             Votre collection et vos envies, groupées par film. Privées, et hors des moteurs de
             recherche.
           </CarteSection>
@@ -894,29 +894,29 @@ export function BienvenuePage() {
         <div className="grid gap-x-14 gap-y-9 pt-10 sm:grid-cols-2">
           {[
             [
-              <ScanBarcode key="i" size={16} />,
+              <ScanBarcode key="i" size={20} />,
               "Les codes-barres sont renseignés",
               "La plupart des éditions portent leur EAN, ce qui permet de lever un doute entre deux tirages presque identiques.",
             ],
             [
-              <Layers key="i" size={16} />,
+              <Layers key="i" size={20} />,
               "Films, séries et coffrets",
               "Le catalogue ne s’arrête pas au cinéma : les séries éditées en France y figurent aussi, saison par saison.",
             ],
             [
-              <Sparkles key="i" size={16} />,
+              <Sparkles key="i" size={20} />,
               "Les données viennent de TMDB et de sources spécialisées",
               "Affiches, synopsis et distribution proviennent de The Movie Database. Les éditions physiques sont compilées à partir de sources publiques de catalogage.",
             ],
             [
-              <ShieldCheck key="i" size={16} />,
+              <ShieldCheck key="i" size={20} />,
               "Rien n’est à vendre ici",
               "jaquette.app est informatif : aucune transaction, aucun partenariat commercial à ce jour. Si des liens d’affiliation apparaissaient, ils seraient signalés.",
             ],
           ].map(([icone, titre, texte], i) => (
             <div key={i} className="flex gap-3">
               <span
-                className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
                 style={{ backgroundColor: "var(--reel-accent-soft)", color: "var(--reel-accent-clair)" }}
               >
                 {icone}
