@@ -1285,6 +1285,35 @@ comparaison, le coffret Petrol Tank et ses quatre Mad Max pour les coffrets.
 Étiqueter des éditions réelles « steelbook » ou « coffret » au hasard serait
 faux à l'écran même si le propos est juste.
 
+**Hauteur commune, largeur libre.** Les six vignettes montrent des objets de
+formats très différents, une jaquette, une liste de trois lignes, un tableau de
+six, et les forcer à la même largeur en étirait certaines dans le vide. C'est la
+hauteur qui doit être commune, 360 px à partir de `lg` : elle donne le rythme
+quand on descend la page, une étape plus haute que la précédente se lit comme un
+déséquilibre. Chaque vignette porte donc sa largeur, de 500 à 660 px, et son
+contenu est centré dans la hauteur imposée. Sous `lg` la hauteur redevient
+libre, un cadre fixe rognerait sur une colonne étroite.
+
+Corollaire à ne pas perdre : **élargir un cadre grandit ce qu'il contient**. La
+comparaison d'éditions dépassait la hauteur commune dès que son cadre gagnait
+40 px, ses quatre jaquettes suivant la largeur. Vérifier `scrollHeight` contre
+`clientHeight` sur les six après chaque retouche, le débordement est invisible à
+l'œil puisque le cadre est en `overflow-hidden`.
+
+**La colonne de la vignette se dimensionne sur la vignette** (`auto`), le texte
+prend le reste. Avec deux colonnes égales et la vignette plaquée au bord,
+l'écart au texte variait de 66 à 166 px selon sa largeur ; il vaut maintenant la
+gouttière de la grille, la même partout. `grid-cols-1` est explicite pour le
+téléphone : sans lui la colonne implicite se dimensionne sur son contenu, et
+chaque vignette prenait une largeur différente.
+
+**Les vignettes débordent de 80 px du côté opposé au texte**, à partir de `xl`
+seulement. En dessous, la gouttière du conteneur est plus étroite que le
+débordement et la vignette sortirait de l'écran. Une marge en pourcentage ne
+convient pas : elle se résout sur le bloc conteneur, donc sur la colonne de
+grille et non sur la page, et la vignette est sortie de 283 px hors cadre avant
+qu'on le voie.
+
 **La liste d'envies tourne chaque semaine**, sans tâche planifiée
 (`src/app/lib/vitrine.ts`) : le numéro de semaine décale une fenêtre de trois
 films dans un vivier des vingt-quatre plus populaires sortis en salle depuis
