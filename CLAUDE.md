@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 4 939 lignes
+### `films`, 5 477 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -172,7 +172,7 @@ toujours. Au 31 juillet 2026 la tête de liste est *L'Odyssée* (1 167),
 indéfiniment les succès du jour de l'import, d'où la tâche hebdomadaire
 décrite au §6.
 
-### `editions`, 8 925 lignes
+### `editions`, 9 862 lignes
 `id` (identity **ajoutée en juillet 2026**, elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `formats_extraits` (text[]), `url_source`, `contenu_brut`, `image_url`,
@@ -181,7 +181,7 @@ applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `film_id` (film principal), **`source`**, **`source_id`**.
 
 `source` vaut `editioncollector.fr` (3 193), `bluray.com` (5 278) ou
-`lechatquifume.com` (212) ou `metalunastore.fr` (242).
+`lechatquifume.com` (212) ou `metalunastore.fr` (1 179).
 
 **`collection_editeur` et `numero_collection`, ajoutées le 1er août 2026.**
 Migration `20260801_collection_editeur.sql`, index sur le couple. La série
@@ -193,8 +193,19 @@ La colonne s'appelle `collection_editeur` et non `collection` : la table
 `collections` porte les listes utilisateur, et deux noms proches sur deux
 notions sans rapport se lisent de travers.
 
-`numero_collection` est encore **vide partout**. Le Chat qui fume numérote son
-`sku` de 013 à 271, mais ce compteur couvre aussi la revue *Nitrate* et les
+**Ces deux colonnes sont remplies et invisibles.** 644 éditions portent une
+`collection_editeur`, 93 un `numero_collection`, et `grep` sur `src/`,
+`functions/` et `scripts/` n'en rend **aucune occurrence** : rien ne les
+affiche, rien ne les indexe, aucun axe `/collections` n'existe. Elles sont
+prêtes, pas exploitées.
+
+L'axe avait été écarté le 1er août parce qu'il n'aurait porté qu'une entrée.
+Cette raison **ne tient plus** : Make My Day!, son hors-série et The Criterion
+Collection en font trois. À rouvrir.
+
+`numero_collection` n'est renseigné que par Make My Day!, de 1 à 98. Le spine
+number de Criterion n'est publié par aucune de nos sources, et Le Chat qui
+fume numérote son `sku` de 013 à 271 en y mêlant la revue *Nitrate* et les
 badges : c'est une référence de boutique, pas un rang de collection.
 
 **`date_parution` (date), ajoutée le 31 juillet 2026.** Migration
@@ -354,25 +365,38 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 4 939 (4 217 films, 720 séries, 2 coffrets) |
-| Éditions | 8 925 |
+| Films | 5 477 (4 753 films, 722 séries, 2 coffrets) |
+| Éditions | 9 862 |
 | Codes-barres | 5 383 |
-| Éditions rattachées | 8 325 (93,3 %) |
-| Éditions sans film | 600 |
-| Éditions avec visuel | 8 893 (99,6 %) |
+| Éditions rattachées | 9 076 (92,0 %) |
+| Éditions sans film | 786 |
+| Éditions avec visuel | 9 830 (99,7 %) |
 | URL au sitemap | 5 446 |
 
-**Trois sources sont entrées le 1er août 2026**, +454 éditions et +377 films :
+**Six sources sont entrées le 1er août 2026**, +1 391 éditions et +932 films :
 
 | source | éditions | rattachées | visuels sur R2 |
 |---|---|---|---|
 | Le Chat qui fume | 212 | 197 (93 %) | 473 |
-| Make My Day! (Metaluna) | 94 | 86 (91 %) | 97 |
+| Rimini Editions (Metaluna) | 191 | 174 (89 %) | 197 |
+| ESC Editions (Metaluna) | 177 | 145 (81 %) | 181 |
+| Criterion (Metaluna) | 338 | 269 (80 %) | 340 |
+| Carlotta Films (Metaluna) | 231 | 172 (72 %) | 250 |
 | Artus Films (Metaluna) | 148 | 114 (77 %) | 155 |
+| Make My Day! (Metaluna) | 94 | 86 (91 %) | 97 |
 
-Artus est nettement plus bas, et la raison est mesurée : **TMDB ne publie pas
-de `runtime` sur ce bis italien et espagnol**, donc le contrôle par durée,
-le plus rentable ailleurs, n'a rien à mordre. Le réalisateur a pris le relais.
+**Le taux suit la qualité de la fiche, pas celle de la source.** Rimini est à
+89 % et Carlotta à 72 % chez le même revendeur, avec le même parseur : là où
+TMDB publie un `runtime`, le contrôle par durée tranche ; sur le bis italien
+et espagnol d'Artus ou les coffrets d'auteur de Carlotta, il n'a rien à
+mordre, et seul le réalisateur reste.
+
+**Aucune édition Metaluna ne porte d'EAN**, leur `sku` valant `FILM` partout.
+La déduplication contre les autres sources se fait donc sur le **titre**,
+replié sur son vocabulaire d'édition et restreint au même éditeur :
+`Le Conseiller / Napoli spara!` de blu-ray.com et `Le Conseiller + Napoli
+spara!` de Metaluna sont le même disque. 11 doublons écartés à l'écriture ;
+7 autres, écrits avant que le garde-fou existe, restent à fusionner.
 
 `editions.film_id` est `null` sur 858 lignes, ce qui ne veut plus rien dire :
 la colonne est un vestige, le rattachement vit dans `edition_films`. Compter
@@ -556,7 +580,7 @@ Cinq produits n'ont aucune image et aucune fiche : ce sont des titres à
 paraître. `enum_chat.py` **fusionne** au lieu d'écraser, une repasse les
 récupérera.
 
-### metalunastore.fr, 242 éditions, 1er août 2026
+### metalunastore.fr, 1 179 éditions, 1er août 2026
 
 Revendeur, pas éditeur, et c'est ce qui le rend utile : **il liste des
 catalogues d'éditeurs entiers** que ces éditeurs ne vendent pas eux-mêmes.
@@ -566,12 +590,20 @@ Shopify, donc le même endpoint que Le Chat qui fume, plus
 `/collections.json?limit=250` qui énumère les **154 collections**. Leur
 `robots.txt` ne vise nommément aucun agent.
 
-| collection | produits | état |
+| collection | fiches | état |
 |---|---|---|
-| Make My Day! | 94 | importée |
+| Criterion | 338 | importée, marché US assumé, région A |
+| Carlotta Films | 231 | importée |
+| Rimini Editions | 191 | importée |
+| ESC Editions | 177 | importée |
 | Artus Films | 148 | importée |
-| Criterion | 338 | marché US, région A |
-| Carlotta, ESC, Rimini, Elephant, Sidonis, Potemkine, Extralucid | 1 284 | déclarées, jamais collectées |
+| Make My Day! | 94 | importée |
+| Elephant, Sidonis, Potemkine, Extralucid | ~515 | déclarées, non collectées |
+
+**Le compteur de collection ment sur le volume réel.** `collections.json`
+annonce 370 fiches pour Criterion et 272 pour ESC ; le listing paginé en rend
+338 et 178. L'écart est fait d'épuisés que la collection compte encore mais
+que `products.json` ne sert plus. C'est le listing qui fait foi.
 
 **`store.potemkine.fr` a été écarté** pour le même besoin : leur `robots.txt`
 met `ClaudeBot` en `Disallow: /`, comme blu-ray.com et dvdfr.
@@ -611,6 +643,17 @@ Le nom du produit prime donc sur celui de la description.
 
 Le **spine number** de Criterion, imprimé sur la tranche depuis 1984, n'est
 pas publié par Metaluna : relevé sur 60 fiches, aucune ne le porte.
+`numero_collection` reste donc vide pour eux, et il faudra une autre source.
+
+**Criterion est du marché américain, région A, et c'est une entorse assumée**
+au périmètre du §1 : les collectionneurs français importent ces disques et les
+ont dans leur collection, ce qui est la raison de les référencer.
+
+**Interroger TMDB en français ne suffit pas sur un catalogue anglophone.** La
+langue de la requête change les résultats et pas seulement leur libellé :
+`Stray Dog` ne rend le Kurosawa de 1949 qu'en `en-US`, `Caught by the Tides`
+n'existe en `fr-FR` que sous `Les Feux sauvages`. La recherche interroge donc
+les deux langues.
 
 ### TMDB
 Métadonnées films et séries. Rattachement par titre **et année**.
@@ -666,7 +709,11 @@ retournée (cf. §10).
 | `tri_metaluna.py` | Relit le gabarit de fiche, mesure la couverture |
 | `resoudre_metaluna.py` | TMDB **et contrôle**, en une seule passe |
 | `miroir_metaluna.py` | Jaquettes vers `metaluna/<collection>/` sur R2 |
-| `ecrire_metaluna.py` | Films, éditions et liens (`--apply`) |
+| `ecrire_metaluna.py` | Films, éditions et liens (`--apply`), dédup par titre |
+
+Collections importées le 1er août 2026 : `criterion`, `carlotta`, `rimini`,
+`esc`, `artus-films`, `make-my-day`. Restent déclarées dans `collectes.py` et
+non collectées : `elephant`, `sidonis`, `potemkine`, `extralucid`.
 
 **Une seule passe de résolution, contrôle compris**, là où Le Chat qui fume en
 a demandé deux : la source donne réalisateur et durée dès la première
@@ -2052,6 +2099,16 @@ Documentés parce qu'ils se reproduiront.
   **saison**. `Rent-A-Girlfriend - Saison 2` annonce 2022 alors que la série
   commence en 2020, et le rattachement était juste. C'est la règle déjà notée
   plus haut, l'année d'un bandeau est un plafond pour une série, pas un filtre.
+- **Sans EAN, la déduplication inter-sources ne peut se faire que sur le
+  titre, et elle doit se replier.** Le même disque s'annonce `Le Conseiller /
+  Napoli spara!` chez blu-ray.com et `Le Conseiller + Napoli spara!` chez
+  Metaluna, ou gagne un « – DigiPack » d'un seul côté. Retirer le vocabulaire
+  d'édition et la ponctuation les rapproche ; restreindre au **même éditeur**
+  empêche de confondre deux disques sans rapport. 11 doublons écartés ainsi.
+- **Le compteur d'une collection Shopify ment sur le volume réel.**
+  `collections.json` annonce 370 fiches pour Criterion, le listing paginé en
+  rend 338 : l'écart est fait d'épuisés que la collection compte encore mais
+  que `products.json` ne sert plus. C'est le listing qui fait foi.
 - **Un contrôle par réalisateur ne vaut que sur un titre exact.** Sur un
   rapprochement approchant, il valide n'importe quel film d'un réalisateur
   prolifique : `Navajeros` (1980) s'est rattaché à `El diputado` (1978), tous
