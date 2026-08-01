@@ -236,38 +236,6 @@ export interface EditionWithFilm extends Edition {
 /* ---- Films ---- */
 
 /**
- * Filtre de recherche : sur le titre **et** sur le slug.
- *
- * Chercher « Mission impossible » ne rendait rien, alors que le catalogue
- * porte neuf films de la saga : ils s'appellent `Mission : Impossible`, avec
- * deux-points et espaces, et un `ilike` sur la chaîne saisie ne peut pas
- * l'atteindre. Même mur sur `Star Wars : L'Ascension de Skywalker` ou
- * `S.O.S. Fantômes`, c'est-à-dire sur toute la ponctuation interne.
- *
- * Le slug est déjà la forme normalisée du titre, accents repliés et
- * ponctuation ramenée au tiret : `mission-impossible-1996`. Slugifier ce que
- * l'utilisateur tape le rapproche donc sans rien ajouter en base.
- *
- * Les deux critères sont gardés, pas un seul : 16 films à titre non latin
- * (japonais, chinois, hébreu, coréen) n'ont pas de slug du tout, et seul le
- * titre permet de les trouver.
- */
-function filtreRecherche(terme: string): string {
-  // La valeur passe dans une liste séparée par des virgules : une virgule ou
-  // une parenthèse dans la saisie casserait la syntaxe du filtre. Les
-  // guillemets la protègent, et les guillemets internes sont retirés.
-  const litteral = `"%${terme.replace(/"/g, "")}%"`;
-  const slug = terme
-    .normalize("NFD").replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  const criteres = [`titre.ilike.${litteral}`];
-  if (slug) criteres.push(`slug.ilike."%${slug}%"`);
-  return criteres.join(",");
-}
-
-/**
  * En dessous de quatre caractères, une saisie n'est pas une faute de frappe,
  * c'est un début de mot. `war` doit continuer de rendre tout ce qui contient
  * « war », et surtout pas les titres qui lui ressemblent de loin.
@@ -288,7 +256,8 @@ const LONGUEUR_MINIMALE_APPROCHANTE = 4;
  * substituer un message rouge transformerait une amélioration en panne.
  *
  * cf. `supabase/migrations/20260801_recherche_approchante.sql` pour le seuil
- * retenu et pourquoi c'est `word_similarity` et non `similarity`.
+ * retenu et pourquoi c'est `word_similarity` et non `similarity`, et
+ * `20260801_recherche_classee.sql` pour la normalisation partagée.
  */
 async function rechercheApprochante(terme: string): Promise<Film[]> {
   if (terme.length < LONGUEUR_MINIMALE_APPROCHANTE) return [];
@@ -324,8 +293,15 @@ export interface ResultatRecherche {
  * popularité nulle, et PostgreSQL classe les nuls en premier sur un tri
  * descendant, la page se serait ouverte sur les fiches les moins renseignées.
  *
- * Une recherche explicite, elle, reste alphabétique : on cherche un titre
- * connu, l'ordre attendu est celui du dictionnaire.
+ * **La recherche explicite n'est plus alphabétique.** Elle l'a été, au motif
+ * qu'on cherche un titre connu ; mais « Star » ouvrait alors sur *A Star for
+ * Two* et *Star Crystal*, et le plafond de 50 lignes tombait avant *Star Wars*.
+ * Le classement par pertinence vit en base (`recherche_films`), parce que la
+ * limite s'applique **avant** le tri : reclasser côté client ne ferait pas
+ * revenir ce qui n'a jamais été chargé.
+ *
+ * C'est aussi ce qui fait entrer le réalisateur dans la recherche : « Kubrick »
+ * rend ses films, au dernier rang, donc sans jamais passer devant un titre.
  *
  * **Deux étages, jamais un seul.** L'exact d'abord, l'approchant en repli. Une
  * recherche par trigrammes menée d'emblée classerait par proximité un lot que
@@ -335,15 +311,22 @@ export interface ResultatRecherche {
  */
 export async function searchFilms(query: string): Promise<ResultatRecherche> {
   const terme = query.trim();
-  let req = supabase.from("films").select("*").limit(50);
-  req = terme
-    ? req.or(filtreRecherche(terme)).order("titre", { ascending: true })
-    : req.order("popularite", { ascending: false, nullsFirst: false });
-  const { data, error } = await req;
+
+  if (!terme) {
+    const { data, error } = await supabase
+      .from("films")
+      .select("*")
+      .limit(50)
+      .order("popularite", { ascending: false, nullsFirst: false });
+    if (error) throw new Error(`Erreur lors du chargement du catalogue: ${error.message}`);
+    return { films: (data ?? []) as Film[], approchante: false };
+  }
+
+  const { data, error } = await supabase.rpc("recherche_films", { terme, limite: 50 });
   if (error) throw new Error(`Erreur lors de la recherche de films: ${error.message}`);
 
   const exacts = (data ?? []) as Film[];
-  if (!terme || exacts.length > 0) return { films: exacts, approchante: false };
+  if (exacts.length > 0) return { films: exacts, approchante: false };
 
   const proches = await rechercheApprochante(terme);
   return { films: proches, approchante: proches.length > 0 };
