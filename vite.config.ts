@@ -58,6 +58,11 @@ export default defineConfig(({ command }) => ({
     },
   },
 
+  // Vite ne lit pas `PORT` de lui-même. Sans cette ligne, deux sessions de
+  // travail dans le même dépôt se disputent le 5173 et la seconde ne démarre
+  // pas. Le port par défaut ne change pas quand la variable est absente.
+  server: process.env.PORT ? { port: Number(process.env.PORT) } : undefined,
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 }))

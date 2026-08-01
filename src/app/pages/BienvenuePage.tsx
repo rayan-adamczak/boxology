@@ -65,7 +65,7 @@ const nb = (n: number) => n.toLocaleString("fr-FR");
  */
 const EX_COLLECTION = { edition: 20008, film: 263 }; // Blade Runner 2049, steelbook édition limitée
 /** Trois éditions du même film : c'est le propos de l'étape, pas trois films. */
-const EX_COMPARER = [9470, 6685, 9439];
+const EX_COMPARER = [9470, 6685, 9439, 9438];
 /** Le coffret Petrol Tank et les films qu'il contient. */
 const EX_COFFRET = 24420;
 const EX_COFFRET_FILMS = [12955, 13719, 1001, 507]; // Mad Max, Mad Max 2, Fury Road, Furiosa
@@ -187,7 +187,16 @@ function Etape({
   return (
     <section
       id={id}
-      className="grid scroll-mt-28 items-center gap-10 lg:grid-cols-2 lg:gap-20"
+      /* `grid-cols-1` explicite : sans lui, la colonne implicite se dimensionne
+         sur son contenu, et les vignettes prenaient chacune une largeur
+         différente sur téléphone. */
+      /* La colonne de la vignette se dimensionne sur la vignette (`auto`), le
+         texte prend le reste. Avec deux colonnes égales, la vignette restait
+         plaquée au bord et l'écart au texte variait de 66 à 166 px selon sa
+         largeur ; ici il vaut la gouttière de la grille, la même partout. */
+      className={`grid scroll-mt-28 grid-cols-1 items-center gap-8 lg:gap-12 ${
+        inverse ? "lg:grid-cols-[auto_minmax(0,1fr)]" : "lg:grid-cols-[minmax(0,1fr)_auto]"
+      }`}
     >
       <div className={inverse ? "lg:order-2" : undefined}>
         <span
@@ -221,16 +230,41 @@ function Etape({
         </div>
       </div>
 
-      <div className={inverse ? "lg:order-1" : undefined}>{visuel}</div>
+      {/* La vignette déborde un peu de la colonne, du côté opposé au texte, pour
+          que la page respire autrement qu'en grille sage. À partir de `xl`
+          seulement : en dessous, la gouttière du conteneur fait moins de 64 px
+          et le débordement sortirait de l'écran. */}
+      {/* La vignette est plaquée du côté qui déborde : sa largeur lui est propre,
+          donc sans cet alignement elle flotterait au milieu de sa colonne. */}
+      <div
+        className={
+          inverse ? "flex justify-start lg:order-1 xl:-ml-20" : "flex justify-end xl:-mr-20"
+        }
+      >
+        {visuel}
+      </div>
     </section>
   );
 }
 
-/** Cadre commun des vignettes : une surface, un filet, du rembourrage. */
+/**
+ * Cadre commun des vignettes : une surface, un filet, du rembourrage.
+ *
+ * **Hauteur commune, largeur libre.** Les six vignettes montrent des choses de
+ * formats très différents — une jaquette, une liste de trois lignes, un tableau
+ * de six — et les forcer à la même largeur en étirait certaines dans le vide.
+ * La hauteur, elle, doit être la même : c'est elle qui donne le rythme quand on
+ * descend la page, une étape plus haute que la précédente se lit comme un
+ * déséquilibre. Chaque vignette passe donc sa largeur, et le contenu est centré
+ * dans la hauteur imposée.
+ *
+ * En dessous de `lg` la hauteur est libre : sur un téléphone la colonne est
+ * étroite, et un cadre à hauteur fixe rognerait son contenu.
+ */
 function Cadre({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`overflow-hidden rounded-[16px] p-5 sm:p-6 ${className ?? ""}`}
+      className={`flex w-full max-w-full flex-col justify-center overflow-hidden rounded-[16px] p-5 sm:p-6 lg:h-[360px] ${className ?? ""}`}
       style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
     >
       {children}
@@ -253,34 +287,34 @@ function Jaquette({ src, className }: { src?: string | null; className?: string 
 /** Étape 1, les deux boutons d'une fiche, dans leur état posé. */
 function VisuelPosseder({ edition, film }: { edition?: EditionWithFilm; film?: Film }) {
   return (
-    <Cadre>
-      <div className="flex gap-4">
-        <div className="w-[104px] shrink-0 sm:w-[120px]">
+    <Cadre className="lg:w-[520px] xl:w-[600px]">
+      <div className="flex items-center gap-5">
+        <div className="w-[132px] shrink-0 sm:w-[192px]">
           <Jaquette src={edition?.image_url ?? film?.affiche_url} />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
-          <span style={{ fontSize: "17px", fontWeight: 600, color: "var(--reel-text)" }}>
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <span style={{ fontSize: "18px", fontWeight: 600, color: "var(--reel-text)" }}>
             {film?.titre ?? "Blade Runner 2049"}
             <span className="block pt-1" style={{ fontSize: "13px", fontWeight: 400, color: "var(--reel-muted)" }}>
               {nomEdition(edition?.titre ?? null, film?.titre) || "Steelbook 4K"}
             </span>
           </span>
           <span
-            className="inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5"
+            className="inline-flex w-fit items-center gap-2 rounded-full px-4 py-2"
             style={{ backgroundColor: "var(--reel-accent)", color: "#fff", fontSize: "14px", fontWeight: 600 }}
           >
-            <Check size={14} /> Dans ma collection
+            <Check size={15} /> Dans ma collection
           </span>
           <span
-            className="inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5"
+            className="inline-flex w-fit items-center gap-2 rounded-full px-4 py-2"
             style={{
               border: "1px solid var(--reel-border)",
               color: "var(--reel-muted)",
-              fontSize: "13px",
+              fontSize: "14px",
               fontWeight: 600,
             }}
           >
-            <Bookmark size={14} /> Ajouter aux envies
+            <Bookmark size={15} /> Ajouter aux envies
           </span>
         </div>
       </div>
@@ -297,8 +331,8 @@ function VisuelPosseder({ edition, film }: { edition?: EditionWithFilm; film?: F
  */
 function VisuelEnvies({ lignes }: { lignes: LigneVitrine[] }) {
   return (
-    <Cadre>
-      <div className="flex items-center gap-2 pb-3" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
+    <Cadre className="lg:w-[460px] xl:w-[540px]">
+      <div className="flex items-center gap-2 pb-2" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
         <Bookmark size={15} color="var(--reel-accent-clair)" />
         Mes envies · {lignes.length || 3} éditions
       </div>
@@ -306,10 +340,10 @@ function VisuelEnvies({ lignes }: { lignes: LigneVitrine[] }) {
         {lignes.map(({ film, edition }, i) => (
           <li
             key={film.id}
-            className="flex items-center gap-3 py-3"
+            className="flex items-center gap-4 py-3"
             style={{ borderTop: i === 0 ? "none" : "1px solid var(--reel-border)" }}
           >
-            <span className="w-[38px] shrink-0">
+            <span className="w-[46px] shrink-0">
               <Jaquette src={edition?.image_url ?? film.affiche_url} />
             </span>
             <span className="min-w-0 flex-1">
@@ -341,23 +375,27 @@ function VisuelEnvies({ lignes }: { lignes: LigneVitrine[] }) {
  */
 function VisuelComparer({ editions, film }: { editions: EditionWithFilm[]; film?: Film }) {
   return (
-    <Cadre>
-      <div className="flex items-center gap-2 pb-4" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
+    <Cadre className="lg:w-[540px] xl:w-[640px]">
+      <div className="flex items-center gap-2 pb-5" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
         <Layers size={14} color="var(--reel-accent-clair)" />
-        {film?.titre ?? "Blade Runner 2049"} · 3 éditions
+        {film?.titre ?? "Blade Runner 2049"} · 4 éditions
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      {/* Quatre colonnes, alignées à gauche du cadre : centrée, la rangée
+          flottait au milieu d'une surface vide. Quatre jaquettes plutôt que
+          trois occupent aussi la largeur gagnée sans grandir en hauteur.
+
+          Pas de ligne de formats sous les jaquettes : elle répétait souvent ce
+          que le nom de l'édition dit déjà (« steelbook 4K »), et trois niveaux
+          de texte sous une vignette de 124 px, c'est un de trop. */}
+      <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-5">
         {editions.map((ed) => (
           <div key={ed.id}>
             <Jaquette src={ed.image_url ?? film?.affiche_url} />
             <span
               className="mt-2 line-clamp-2 block"
-              style={{ fontSize: "13px", fontWeight: 600, color: "var(--reel-text)" }}
+              style={{ fontSize: "12px", lineHeight: "16px", fontWeight: 600, color: "var(--reel-text)" }}
             >
               {nomEdition(ed.titre, film?.titre)}
-            </span>
-            <span className="block truncate" style={{ fontSize: "12px", color: "var(--reel-muted)" }}>
-              {splitList(ed.formats_extraits).join(" · ")}
             </span>
           </div>
         ))}
@@ -377,7 +415,7 @@ function VisuelSpecs() {
     ["Éditeur", "Warner Bros."],
   ];
   return (
-    <Cadre>
+    <Cadre className="lg:w-[440px] xl:w-[500px]">
       <div className="flex items-center gap-2 pb-2" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
         <Disc3 size={14} color="var(--reel-accent-clair)" />
         Image et son
@@ -408,16 +446,23 @@ function VisuelSpecs() {
 /** Étape 5, un coffret et les films qu'il contient. */
 function VisuelCoffret({ coffret, films }: { coffret?: EditionWithFilm; films: Film[] }) {
   return (
-    <Cadre>
-      <div className="flex gap-4">
-        <div className="w-[92px] shrink-0">
+    <Cadre className="lg:w-[560px] xl:w-[660px]">
+      {/* Le nom du coffret est en tête, sur une ligne tronquée, et non sous sa
+          jaquette : « Mad Max Saga - Coffret Ultra Collector Petrol Tank » tenait
+          sur quatre lignes dans une colonne de 92 px, et ces quatre lignes
+          pesaient plus que le visuel qu'elles légendent. */}
+      <span
+        className="block truncate pb-4"
+        style={{ fontSize: "14px", fontWeight: 600, color: "var(--reel-text)" }}
+      >
+        {coffret?.titre ?? "Coffret Mad Max"}
+      </span>
+      {/* Le coffret domine, les films qu'il contient sont des vignettes : c'est
+          le sens de l'étape, un boîtier qui se range dans plusieurs fiches. À
+          taille égale, l'œil lisait cinq objets de même rang. */}
+      <div className="flex items-center gap-6">
+        <div className="w-[168px] shrink-0">
           <Jaquette src={coffret?.image_url} />
-          <span
-            className="mt-2 line-clamp-3 block"
-            style={{ fontSize: "12px", fontWeight: 600, color: "var(--reel-text)" }}
-          >
-            {coffret?.titre ?? "Coffret Mad Max"}
-          </span>
         </div>
         <div className="min-w-0 flex-1">
           <span className="block pb-3" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
@@ -429,7 +474,7 @@ function VisuelCoffret({ coffret, films }: { coffret?: EditionWithFilm; films: F
                 <Jaquette src={f.affiche_url} />
                 <span
                   className="mt-1.5 line-clamp-2 block"
-                  style={{ fontSize: "11px", color: "var(--reel-muted)" }}
+                  style={{ fontSize: "11px", lineHeight: "15px", color: "var(--reel-muted)" }}
                 >
                   {f.titre}
                 </span>
@@ -451,12 +496,12 @@ function VisuelCompte() {
     [<Check key="e" size={14} />, "Suppression du compte et des listes en deux clics"],
   ];
   return (
-    <Cadre>
-      <ul className="flex flex-col gap-3">
+    <Cadre className="lg:w-[440px] xl:w-[520px]">
+      <ul className="flex flex-col gap-5">
         {points.map(([icone, texte], i) => (
           <li key={i} className="flex items-center gap-3">
             <span
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
               style={{ backgroundColor: "var(--reel-accent-soft)", color: "var(--reel-accent-clair)" }}
             >
               {icone}
