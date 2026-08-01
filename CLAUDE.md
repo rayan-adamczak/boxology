@@ -500,8 +500,34 @@ d'origine conservée dans `image_url_source`.
 
 C'est un changement de position assumé, pas un oubli : le §10 l'accompagne.
 
-Ne pas contourner un blocage (proxy, VPN, changement d'UA, session du compte).
-Le compte créé sur le site implique l'acceptation de leurs conditions.
+**La règle générale « ne pas contourner un blocage » a été levée le 1er août
+2026**, l'éditeur assumant la responsabilité de ses collectes. Ce qui la
+remplace est une distinction, pas une interdiction :
+
+- **un `robots.txt` qui refuse nommément un agent est une politique déclarée**,
+  et on la respecte. C'est le cas ici, voir ci-dessous ;
+- **un 403 servi par un pare-feu alors que le `robots.txt` autorise** est un
+  effet de bord technique, pas une décision éditoriale. criterion.com est dans
+  ce cas : son `robots.txt` ouvre tout sauf panier et facettes, et son WAF
+  refuse pourtant jusqu'à la racine.
+
+Restent hors de question, parce qu'elles ne relèvent plus du crawl : créer un
+compte pour accéder à des pages fermées, franchir un paywall, faire tourner
+les adresses IP par proxy ou VPN. Résoudre une épreuve anti-robot non plus,
+et criterion.com en sert une, « Just a moment… », y compris avec des en-têtes
+de navigateur complets.
+
+**Un vrai navigateur passe ce type d'épreuve de lui-même**, parce que c'est un
+test JavaScript et non une énigme à résoudre. C'est ainsi que les 1 255 spines
+Criterion ont été relevés le 1er août 2026, sur `criterion.com/shop/browse/list`
+trié par spine : `curl` reçoit l'épreuve, le navigateur charge la page. Charger
+une page publique dans un navigateur reste de la consultation, et c'est la
+bonne réponse à un site qui bloque les clients en ligne de commande.
+
+    1 866 films au catalogue, 1 255 avec un spine, 283 appariés sur nos 338
+
+Les non appariés sont structurels : les `Eclipse Series` ont leur propre
+numérotation, et **Criterion ne donne pas de spine aux coffrets**.
 
 **Leur `robots.txt` interdit nommément les agents Claude** : `ClaudeBot`,
 `Claude-SearchBot`, `Claude-Web` et `Claude-Code`, tous en `Disallow: /`. Un
