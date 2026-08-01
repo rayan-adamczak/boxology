@@ -542,7 +542,7 @@ export function FilmDetailPage() {
 
           `pt-[88px]` reste : c'est ce qui dégage l'en-tête fixe.
         */}
-        <div className="relative mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 pt-[88px]">
+        <div className="reel-gouttiere relative pt-[88px]">
           <Link
             to="/"
             className="inline-flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] rounded-full"
@@ -566,7 +566,7 @@ export function FilmDetailPage() {
           Sur écran large l'ordre d'origine tient, synopsis puis boutons, et
           l'affiche court sur les trois rangées.
         */}
-        <div className="relative mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 pb-8 sm:pb-12 pt-4 sm:pt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-4 sm:gap-x-6 sm:grid-rows-[auto_auto_auto_1fr] items-start">
+        <div className="reel-gouttiere relative pb-8 sm:pb-12 pt-4 sm:pt-6 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-4 sm:gap-x-6 sm:grid-rows-[auto_auto_auto_1fr] items-start">
           {/* Affiche, agrandissable. Le bouton n'existe que s'il y a une image
               à montrer : un cadre vide qui s'ouvre sur rien serait une panne. */}
           <button
@@ -843,7 +843,7 @@ export function FilmDetailPage() {
         className="sticky top-[64px] z-10"
         style={{ backgroundColor: "var(--reel-bg)", borderBottom: "1px solid var(--reel-border)" }}
       >
-        <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 flex gap-1">
+        <div className="reel-gouttiere flex gap-1">
           {TABS.map((tab) => (
             <button
               key={tab}
@@ -869,7 +869,7 @@ export function FilmDetailPage() {
       </div>
 
       {/* Tab content */}
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 py-6 pb-24">
+      <div className="reel-gouttiere py-6 pb-24">
 
         {activeTab === "Editions" && (
           <div className="flex flex-col gap-4">

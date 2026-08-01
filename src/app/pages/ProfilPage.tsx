@@ -223,7 +223,7 @@ function VueProfil({
     <>
       <Banniere />
 
-      <div className="mx-auto w-full max-w-[1440px] px-4 md:px-8 lg:px-16">
+      <div className="reel-gouttiere">
         {/* L'en-tête chevauche la bannière, comme dans la maquette. */}
         <header className="-mt-12 flex flex-wrap items-end gap-3">
           {connecte && (
@@ -460,7 +460,7 @@ function Affiche({ entree }: { entree: Entree }) {
 }
 
 function Cadre({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto w-full max-w-[1440px] px-4 pt-[88px] md:px-8 lg:px-16">{children}</div>;
+  return <div className="reel-gouttiere pt-[88px]">{children}</div>;
 }
 
 /**

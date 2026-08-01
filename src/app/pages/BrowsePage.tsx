@@ -131,7 +131,7 @@ export function BrowsePage() {
       <section className="relative overflow-hidden">
         <MosaiqueAffiches editions={dernieres} />
 
-        <div className="relative mx-auto max-w-[1440px] px-4 pb-16 pt-[124px] sm:px-6 sm:pb-24 sm:pt-[152px] lg:px-10">
+        <div className="reel-gouttiere relative pb-16 pt-[124px] sm:pb-24 sm:pt-[152px]">
           <h1
             className="max-w-[720px]"
             style={{
@@ -180,7 +180,7 @@ export function BrowsePage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10">
+      <div className="reel-gouttiere">
         {/*
           Pendant une recherche, tout le reste s'efface : quelqu'un qui tape un
           titre veut son résultat, pas une page d'accueil autour.

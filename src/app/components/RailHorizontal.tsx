@@ -100,11 +100,19 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
     boxShadow: "0 6px 18px rgba(0,0,0,0.45)",
   };
 
+  /*
+    La marge négative annule la gouttière pour que le rail défile d'un bord à
+    l'autre, et la remet en rembourrage à l'intérieur pour que la première carte
+    s'aligne quand même sur le texte. Les deux valeurs doivent donc rester le
+    miroir exact de `.reel-gouttiere` : à partir de `lg` celle-ci pilote la
+    proportion par sa largeur et n'a plus de rembourrage, d'où le retour à zéro.
+    Sans ça le rail dépassait de 40 px dans la marge.
+  */
   return (
-    <div className="relative -mx-4 sm:-mx-6 lg:-mx-10">
+    <div className="relative -mx-4 sm:-mx-6 lg:mx-0">
       <div
         ref={rail}
-        className="flex gap-4 overflow-x-auto px-4 pt-4 pb-2 sm:px-6 lg:px-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex gap-4 overflow-x-auto px-4 pt-4 pb-2 sm:px-6 lg:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {children}
       </div>

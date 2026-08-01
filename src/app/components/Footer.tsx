@@ -33,10 +33,10 @@ function LienInterne({ to, children }: { to: string; children: ReactNode }) {
 export function Footer() {
   return (
     <footer
-      className="mt-16 px-6 py-12 pb-24 lg:pb-12"
+      className="mt-16 py-12 pb-24 lg:pb-12"
       style={{ borderTop: "1px solid var(--reel-border)" }}
     >
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-10 lg:flex-row lg:justify-between">
+      <div className="reel-gouttiere flex flex-col gap-10 lg:flex-row lg:justify-between">
         {/* Identité */}
         <div className="flex max-w-[320px] flex-col gap-3">
           <Link to="/" className="flex items-center gap-2" aria-label="Accueil jaquette.app">
@@ -103,7 +103,7 @@ export function Footer() {
       </div>
 
       <p
-        className="mx-auto max-w-[1440px] pt-10"
+        className="reel-gouttiere pt-10"
         style={{ fontSize: "12px", lineHeight: "18px", color: "var(--reel-muted)" }}
       >
         Métadonnées et affiches fournies par{" "}

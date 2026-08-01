@@ -17,7 +17,7 @@ export function TopBar() {
         borderBottom: "1px solid var(--reel-border)",
       }}
     >
-      <div className="mx-auto flex w-full max-w-[1440px] items-center gap-4 px-4 md:px-8 lg:px-16">
+      <div className="reel-gouttiere flex items-center gap-4">
         {/* Logo */}
         <Link
           to="/"

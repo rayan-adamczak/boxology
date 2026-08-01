@@ -236,3 +236,53 @@
     line-height: 1.5;
   }
 }
+
+/*
+  Gouttière commune à toutes les pages.
+
+  Elle remplace une douzaine de `max-w-[1440px] px-4 sm:px-6 lg:px-10` recopiés
+  page par page, qui avaient deux défauts.
+
+  Le premier est un décalage : le bandeau montait à `lg:px-16` là où le contenu
+  restait à `lg:px-10`, donc le mot-symbole ne tombait pas sur la même verticale
+  que le titre de la page juste dessous.
+
+  Le second est que la marge ne suivait pas la largeur de l'écran. Un plafond en
+  pixels plus une marge fixe donne une marge généreuse sur un grand écran, où le
+  plafond mord, et presque rien juste en dessous : à 1 440 px de fenêtre il
+  restait 40 px de chaque côté, soit 2,8 % de la largeur, et la page touchait les
+  bords. La proportion est donc pilotée directement.
+
+  `clamp(880px, 68%, 1760px)` tient les trois régimes :
+
+    68 %      la proportion voulue, 16 % de marge de chaque côté
+    880 px    plancher, sous 1 294 px de fenêtre la proportion serrerait trop
+              le contenu (à 1 024 px elle ne laisserait que 696 px)
+    1760 px   plafond, au-delà de 2 588 px une ligne de texte deviendrait
+              illisible
+
+  En pourcentage et non en `vw` : `vw` compte la barre de défilement, donc
+  déborderait de quelques pixels à droite.
+
+  Sous `lg` la gouttière reste en pixels : sur un téléphone la proportion
+  mangerait la moitié de l'écran.
+*/
+.reel-gouttiere {
+  margin-inline: auto;
+  width: 100%;
+  padding-inline: 16px;
+}
+
+@media (min-width: 640px) {
+  .reel-gouttiere {
+    padding-inline: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .reel-gouttiere {
+    width: clamp(880px, 68%, 1760px);
+    max-width: none;
+    padding-inline: 0;
+  }
+}
