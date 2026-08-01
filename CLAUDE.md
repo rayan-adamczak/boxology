@@ -1136,8 +1136,13 @@ validation, pas la détection.
 
 ### Page de bienvenue, en ligne le 31 juillet 2026
 
-`/bienvenue`, `src/app/pages/BienvenuePage.tsx`, chargée en `lazy()` (23 Ko,
-6,6 Ko compressé, bundle initial inchangé). Liée du pied de page et du sitemap.
+`/bienvenue`, `src/app/pages/BienvenuePage.tsx`, **embarquée dans le bundle
+initial** (6,6 Ko compressés). Liée du pied de page et du sitemap.
+
+Elle a d'abord été posée en `lazy()`, et elle est tombée sur le piège du §9 comme
+les pages de regroupement avant elle : un écran vide chez qui avait demandé son
+morceau pendant la propagation. C'est une porte d'entrée, donc un chemin de
+consultation, donc pas d'`import()` sur son chemin.
 
 **Le catalogue reste l'accueil.** C'est lui qui s'indexe, et on entre sur le
 site par une fiche film. `/bienvenue` est l'autre porte : celle qu'on donne en

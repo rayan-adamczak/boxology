@@ -26,14 +26,19 @@ import { FilmDetailPage } from "./pages/FilmDetailPage";
 import { RegroupementPage } from "./pages/RegroupementPage";
 import { IndexRegroupementsPage } from "./pages/IndexRegroupementsPage";
 import { IntrouvablePage } from "./pages/IntrouvablePage";
+/*
+ * `/bienvenue` suit la même règle, et pour la même raison : c'est la page qu'on
+ * donne en lien quand on présente le site, donc une porte d'entrée, donc un
+ * chemin de consultation. En `lazy()` elle rendait un écran vide chez qui avait
+ * demandé son morceau pendant la propagation.
+ */
+import { BienvenuePage } from "./pages/BienvenuePage";
 
 /*
  * Pages chargées à la demande : rarement visitées, les embarquer dans le bundle
  * initial faisait payer leur poids à chaque visiteur d'une fiche film, qui est
  * le chemin d'entrée réel du site.
  */
-const BienvenuePage = lazy(() =>
-  import("./pages/BienvenuePage").then((m) => ({ default: m.BienvenuePage })));
 const AProposPage = lazy(() =>
   import("./pages/AProposPage").then((m) => ({ default: m.AProposPage })));
 const MentionsLegalesPage = lazy(() =>
