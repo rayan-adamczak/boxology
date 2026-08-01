@@ -163,31 +163,56 @@ export function AProposPage() {
  * portable : à six sections ça ne déborde pas, mais une septième le ferait, et
  * un sommaire collant qui dépasse l'écran ne se referme jamais.
  *
- * La section courante est suivie à l'`IntersectionObserver` : sur une page de
- * cette longueur, un sommaire qui ne dit pas où l'on se trouve ne sert qu'à
- * partir, pas à se repérer.
+ * La section courante est suivie **à l'écoute du défilement**, et non à
+ * l'`IntersectionObserver`, qui était le premier réflexe. Deux raisons, dans
+ * cet ordre :
+ *
+ *   - la règle « la dernière section dont le titre est passé sous le bandeau »
+ *     se lit en une ligne, là où l'observateur demandait un `rootMargin`
+ *     négatif en bas pour que plusieurs sections visibles à la fois ne fassent
+ *     pas gagner la mauvaise ;
+ *   - elle se vérifie. Le panneau d'aperçu n'exécute aucun rappel
+ *     d'`IntersectionObserver`, y compris pour un observateur trivial : la
+ *     mise en surbrillance était donc invérifiable, et une fonction qu'on ne
+ *     peut pas éprouver est un passif.
+ *
+ * Sur une page de cette longueur, un sommaire qui ne dit pas où l'on se trouve
+ * ne sert qu'à partir, pas à se repérer.
  */
 function Sommaire() {
   const { hash } = useLocation();
   const [visible, setVisible] = useState<string>(FAQ[0].ancre);
 
   useEffect(() => {
-    const cibles = FAQ.map((s) => document.getElementById(s.ancre)).filter(Boolean) as Element[];
-    if (cibles.length === 0) return;
+    let frame = 0;
 
-    /* `rootMargin` remonte la ligne de détection sous le bandeau et referme la
-       fenêtre bien avant le bas de l'écran. Sans ça, plusieurs sections sont
-       visibles à la fois et la dernière l'emporterait : le sommaire aurait en
-       permanence un cran d'avance sur la lecture. */
-    const observateur = new IntersectionObserver(
-      (entrees) => {
-        const dedans = entrees.filter((e) => e.isIntersecting);
-        if (dedans.length > 0) setVisible(dedans[0].target.id);
-      },
-      { rootMargin: "-104px 0px -70% 0px", threshold: 0 },
-    );
-    cibles.forEach((c) => observateur.observe(c));
-    return () => observateur.disconnect();
+    /* La dernière section dont le titre est passé sous le bandeau. Le repli sur
+       la première couvre le haut de page, où aucune ne l'a encore franchi. */
+    const relire = () => {
+      frame = 0;
+      const ligne = 140;
+      let courante = FAQ[0].ancre;
+      for (const section of FAQ) {
+        const el = document.getElementById(section.ancre);
+        if (el && el.getBoundingClientRect().top <= ligne) courante = section.ancre;
+      }
+      setVisible(courante);
+    };
+
+    // Une frame d'écart suffit : on ne suit pas le pixel, seulement la section.
+    const auDefilement = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(relire);
+    };
+
+    relire();
+    window.addEventListener("scroll", auDefilement, { passive: true });
+    window.addEventListener("resize", auDefilement);
+    return () => {
+      window.removeEventListener("scroll", auDefilement);
+      window.removeEventListener("resize", auDefilement);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
 
   /* Une ancre dans l'URL l'emporte sur l'observation : au clic, la surbrillance
