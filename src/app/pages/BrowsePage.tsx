@@ -229,7 +229,7 @@ export function BrowsePage() {
             {CATALOGUE.codesBarres} codes-barres.
           </p>
 
-          <label className="relative mt-9 block w-full max-w-[560px]">
+          <label className="relative mt-9 block w-full max-w-[680px]">
             <span className="sr-only">Rechercher un film par titre</span>
             <Search
               size={22}
