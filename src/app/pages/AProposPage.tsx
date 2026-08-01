@@ -184,12 +184,17 @@ function Sommaire() {
   const [visible, setVisible] = useState<string>(FAQ[0].ancre);
 
   useEffect(() => {
-    let frame = 0;
-
     /* La dernière section dont le titre est passé sous le bandeau. Le repli sur
-       la première couvre le haut de page, où aucune ne l'a encore franchi. */
+       la première couvre le haut de page, où aucune ne l'a encore franchi.
+
+       **Pas d'étranglement par `requestAnimationFrame`**, qui était la première
+       version. Six `getBoundingClientRect` par événement ne coûtent rien, et
+       l'étranglement rendait la surbrillance invérifiable : `rAF` est suspendu
+       dans un onglet masqué, donc dans le panneau d'aperçu, et la règle ne
+       s'exécutait jamais après le montage. Mesuré, `rAF` n'y émet aucune frame.
+       React ne re-rend pas quand la valeur ne change pas, donc appeler ceci à
+       chaque événement ne provoque pas de rendu inutile. */
     const relire = () => {
-      frame = 0;
       const ligne = 140;
       let courante = FAQ[0].ancre;
       for (const section of FAQ) {
@@ -199,19 +204,12 @@ function Sommaire() {
       setVisible(courante);
     };
 
-    // Une frame d'écart suffit : on ne suit pas le pixel, seulement la section.
-    const auDefilement = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(relire);
-    };
-
     relire();
-    window.addEventListener("scroll", auDefilement, { passive: true });
-    window.addEventListener("resize", auDefilement);
+    window.addEventListener("scroll", relire, { passive: true });
+    window.addEventListener("resize", relire);
     return () => {
-      window.removeEventListener("scroll", auDefilement);
-      window.removeEventListener("resize", auDefilement);
-      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", relire);
+      window.removeEventListener("resize", relire);
     };
   }, []);
 
