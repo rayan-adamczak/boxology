@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { splitList, type Film } from "../lib/reelio-db";
 import {
+  getEditionsParCollection,
   getEditionsParEditeur,
   getEditionsParFormat,
   getFilmsParGenre,
@@ -57,6 +58,11 @@ const TEXTES: Record<NomAxe, { intro: (l: string, total: number) => string; vide
       `${total} films de genre ${libelle.toLowerCase()} disponibles en édition physique : Blu-ray, 4K, steelbooks et coffrets.`,
     vide: "Aucun film de ce genre n'a d'édition recensée.",
   },
+  collections: {
+    intro: (libelle, total) =>
+      `${total} éditions de la collection ${libelle}, dans l'ordre de la série quand le numéro est connu.`,
+    vide: "Aucune édition recensée dans cette collection.",
+  },
 };
 
 export function RegroupementPage({ axe }: { axe: NomAxe }) {
@@ -94,7 +100,12 @@ export function RegroupementPage({ axe }: { axe: NomAxe }) {
           setEditions([]);
           setTotal(resultat.total);
         } else {
-          const lire = axe === "formats" ? getEditionsParFormat : getEditionsParEditeur;
+          const lire =
+            axe === "formats"
+              ? getEditionsParFormat
+              : axe === "collections"
+              ? getEditionsParCollection
+              : getEditionsParEditeur;
           const resultat = await lire(libelle, page);
           if (annule) return;
           setEditions(resultat.lignes);
@@ -200,7 +211,11 @@ export function RegroupementPage({ axe }: { axe: NomAxe }) {
       ) : axe === "genres" ? (
         <GrilleFilms films={films} />
       ) : (
-        <GrilleEditions editions={editions} montrerEditeur={axe !== "publishers"} />
+        <GrilleEditions
+          editions={editions}
+          montrerEditeur={axe !== "publishers"}
+          montrerNumero={axe === "collections"}
+        />
       )}
 
       {!chargement && !erreur && pages > 1 && (
@@ -258,9 +273,12 @@ function GrilleFilms({ films }: { films: Film[] }) {
 function GrilleEditions({
   editions,
   montrerEditeur,
+  montrerNumero,
 }: {
   editions: LigneEdition[];
   montrerEditeur: boolean;
+  /** Affiche le rang dans la série : vrai sur une page de collection seule. */
+  montrerNumero: boolean;
 }) {
   return (
     <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
@@ -286,7 +304,18 @@ function GrilleEditions({
               {edition.film?.titre ?? edition.titre}
             </span>
             <span className="block" style={{ fontSize: "12px", color: "var(--reel-muted)" }}>
-              {[montrerEditeur ? edition.editeur : null, ...formats].filter(Boolean).join(" · ")}
+              {[
+                /* Le numéro de tranche passe devant sur une page de
+                   collection : c'est ce qu'on y cherche, et il ne veut rien
+                   dire ailleurs. */
+                montrerNumero && edition.numero_collection
+                  ? `N°${edition.numero_collection}`
+                  : null,
+                montrerEditeur ? edition.editeur : null,
+                ...formats,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </span>
           </>
         );

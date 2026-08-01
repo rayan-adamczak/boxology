@@ -20,6 +20,8 @@ const INTROS: Record<NomAxe, string> = {
   publishers:
     "Les éditeurs vidéo présents au catalogue. L'information vient de la fiche technique du disque, elle qualifie donc l'objet et non l'œuvre.",
   genres: "Les genres des films du catalogue, tels que TMDB les renseigne.",
+  collections:
+    "Les séries numérotées d'éditeur : Criterion, Make My Day!. Une collection n'est pas un éditeur, elle en est une ligne.",
 };
 
 export function IndexRegroupementsPage({ axe }: { axe: NomAxe }) {

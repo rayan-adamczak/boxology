@@ -110,6 +110,18 @@ export const GENRES: Regroupement[] = [
 ];
 
 /**
+ * `collection_editeur` des éditions : les séries numérotées d'éditeur.
+ *
+ * Ce n'est pas `EDITEURS` sous un autre nom. `editeur` dit qui presse le
+ * disque, `collection_editeur` dans quelle série il rentre : Studiocanal
+ * édite « Make My Day! » **et** cent titres hors collection.
+ */
+export const COLLECTIONS: Regroupement[] = [
+  { slug: "the-criterion-collection", libelle: "The Criterion Collection", compte: 338 },
+  { slug: "make-my-day", libelle: "Make My Day!", compte: 91 },
+];
+
+/**
  * La clé est le premier segment de l'URL, `base` en est la forme complète : les
  * deux doivent rester en accord, `axeDeChemin` du middleware fait correspondre
  * le segment à la clé.
@@ -122,6 +134,7 @@ export const AXES = {
   formats: { titre: "Formats", tables: FORMATS, base: "/formats" },
   publishers: { titre: "Éditeurs", tables: EDITEURS, base: "/publishers" },
   genres: { titre: "Genres", tables: GENRES, base: "/genres" },
+  collections: { titre: "Collections", tables: COLLECTIONS, base: "/collections" },
 } as const;
 
 export type NomAxe = keyof typeof AXES;

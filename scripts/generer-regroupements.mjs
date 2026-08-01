@@ -115,12 +115,13 @@ function table(compte, axe) {
   return [...vus.values()];
 }
 
-const editions = await lireTout("editions", "id,editeur,formats_extraits");
+const editions = await lireTout("editions", "id,editeur,formats_extraits,collection_editeur");
 const films = await lireTout("films", "id,genres");
 
 const formats = table(compter(editions, "formats_extraits"), "format");
 const editeurs = table(compter(editions, "editeur"), "editeur");
 const genres = table(compter(films, "genres"), "genre");
+const collections = table(compter(editions, "collection_editeur"), "collection");
 
 if (formats.length === 0 || genres.length === 0) {
   throw new Error("aucun format ou genre au-dessus du seuil, table non générée");
@@ -170,6 +171,17 @@ ${rendre(genres)}
 ];
 
 /**
+ * \`collection_editeur\` des éditions : les séries numérotées d'éditeur.
+ *
+ * Ce n'est pas \`EDITEURS\` sous un autre nom. \`editeur\` dit qui presse le
+ * disque, \`collection_editeur\` dans quelle série il rentre : Studiocanal
+ * édite « Make My Day! » **et** cent titres hors collection.
+ */
+export const COLLECTIONS: Regroupement[] = [
+${rendre(collections)}
+];
+
+/**
  * La clé est le premier segment de l'URL, \`base\` en est la forme complète : les
  * deux doivent rester en accord, \`axeDeChemin\` du middleware fait correspondre
  * le segment à la clé.
@@ -182,6 +194,7 @@ export const AXES = {
   formats: { titre: "Formats", tables: FORMATS, base: "/formats" },
   publishers: { titre: "Éditeurs", tables: EDITEURS, base: "/publishers" },
   genres: { titre: "Genres", tables: GENRES, base: "/genres" },
+  collections: { titre: "Collections", tables: COLLECTIONS, base: "/collections" },
 } as const;
 
 export type NomAxe = keyof typeof AXES;
@@ -195,5 +208,6 @@ export function trouver(axe: NomAxe, slug: string): Regroupement | null {
 writeFileSync(resolve(RACINE, "src/app/lib/regroupements.ts"), sortie);
 console.log(
   `regroupements.ts : ${formats.length} formats, ${editeurs.length} éditeurs, ` +
-    `${genres.length} genres, soit ${formats.length + editeurs.length + genres.length} pages`,
+    `${genres.length} genres, ${collections.length} collections, soit ` +
+    `${formats.length + editeurs.length + genres.length + collections.length} pages`,
 );

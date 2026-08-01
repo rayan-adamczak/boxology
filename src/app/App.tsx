@@ -208,6 +208,9 @@ export default function App() {
           <Route path="/genres" element={<IndexRegroupementsPage axe="genres" />} />
           <Route path="/genres/:slug" element={<RegroupementPage axe="genres" />} />
           <Route path="/genres/:slug/:page" element={<RegroupementPage axe="genres" />} />
+          <Route path="/collections" element={<IndexRegroupementsPage axe="collections" />} />
+          <Route path="/collections/:slug" element={<RegroupementPage axe="collections" />} />
+          <Route path="/collections/:slug/:page" element={<RegroupementPage axe="collections" />} />
 
           <Route path="/welcome" element={<BienvenuePage />} />
           <Route path="/about" element={<AProposPage />} />

@@ -143,6 +143,8 @@ async function effectif(axe, libelle) {
       ? `${API}/films?genres=cs.${filtre}&select=id,edition_films!inner(edition_id)`
       : axe === "formats"
       ? `${API}/editions?formats_extraits=cs.${filtre}&select=id`
+      : axe === "collections"
+      ? `${API}/editions?collection_editeur=eq.${encodeURIComponent(libelle)}&select=id`
       : `${API}/editions?editeur=eq.${encodeURIComponent(libelle)}&select=id`;
   const reponse = await fetch(url, {
     headers: { ...entetes, Prefer: "count=exact", Range: "0-0" },
@@ -155,6 +157,7 @@ const AXES_SITEMAP = [
   ["formats", "/formats", slugsDe("FORMATS"), libellesDe("FORMATS")],
   ["editeurs", "/publishers", slugsDe("EDITEURS"), libellesDe("EDITEURS")],
   ["genres", "/genres", slugsDe("GENRES"), libellesDe("GENRES")],
+  ["collections", "/collections", slugsDe("COLLECTIONS"), libellesDe("COLLECTIONS")],
 ];
 
 const urlsRegroupements = [];

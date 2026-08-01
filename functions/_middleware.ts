@@ -488,10 +488,18 @@ async function lireListe(
     const critere =
       axe === "formats"
         ? `formats_extraits=cs.${filtre}&order=image_url.asc.nullslast,id.desc`
+        : axe === "collections"
+        ? /* Une série s'ordonne par son numéro de tranche, pas par date : c'est
+             le rang imprimé sur le boîtier qui compte, et un collectionneur
+             cherche le numéro qui lui manque. Les éditions sans numéro
+             ferment la liste, ce qui est le cas de tout Criterion, dont
+             aucune de nos sources ne publie le spine number. */
+          `collection_editeur=eq.${encodeURIComponent(libelle)}` +
+          `&order=numero_collection.asc.nullslast,date_parution.desc.nullslast,id.desc`
         : `editeur=eq.${encodeURIComponent(libelle)}&order=date_parution.desc.nullslast,id.desc`;
     url =
       `${base}/editions?${critere}` +
-      `&select=id,titre,editeur,formats_extraits,date_parution,ean,` +
+      `&select=id,titre,editeur,formats_extraits,date_parution,ean,numero_collection,` +
       `edition_films(film:films(id,titre,slug,annee))${tranche}`;
   }
 
@@ -531,7 +539,10 @@ async function lireListe(
     return {
       libelle: e.titre ?? film?.titre ?? "Édition",
       details: [
-        axe === "formats" ? e.editeur : null,
+        /* Le rang dans la série ouvre la ligne sur une page de collection :
+           c'est ce qu'on y cherche, et il ne veut rien dire ailleurs. */
+        axe === "collections" && e.numero_collection ? `N°${e.numero_collection}` : null,
+        axe !== "publishers" ? e.editeur : null,
         (e.formats_extraits ?? []).join(", ") || null,
         e.date_parution,
         e.ean ? `EAN ${e.ean}` : null,
@@ -561,16 +572,25 @@ function metaRegroupement(axe: NomAxe, libelle: string | null, total: number, pa
       description:
         axe === "formats"
           ? "Blu-ray, 4K, steelbook, digipack, coffret. Le format est relevé sur la fiche de l'édition, jamais déduit du titre."
-          : axe === "editeurs"
+          : /* `publishers` et non `editeurs` : la clé d'axe a été renommée
+               avec les URL le 1er août 2026, et cette branche testait encore
+               l'ancienne. Elle ne s'exécutait donc jamais, et les 44 pages
+               d'éditeur servaient la description des genres, « 283 films de
+               genre carlotta films ». */
+          axe === "publishers"
           ? "Les éditeurs vidéo présents au catalogue. L'information vient de la fiche technique du disque, elle qualifie donc l'objet et non l'œuvre."
+          : axe === "collections"
+          ? "Les séries numérotées d'éditeur : Criterion, Make My Day!. Une collection n'est pas un éditeur, elle en est une ligne."
           : "Les genres des films du catalogue, tels que TMDB les renseigne.",
     };
   }
   const description =
     axe === "formats"
       ? `${total} éditions ${libelle} recensées au catalogue, avec leur film, leur éditeur et leur code-barres quand il est connu.`
-      : axe === "editeurs"
+      : axe === "publishers"
       ? `${total} éditions publiées par ${libelle} : formats, dates de parution et codes-barres.`
+      : axe === "collections"
+      ? `${total} éditions de la collection ${libelle}, dans l'ordre de la série quand le numéro est connu.`
       : `${total} films de genre ${libelle.toLowerCase()} disponibles en édition physique : Blu-ray, 4K, steelbooks et coffrets.`;
   const suffixe = page > 1 ? `, page ${page} sur ${pages}` : "";
   return { titre: `${libelle}, ${nom.toLowerCase()}${suffixe} | ${SITE_NOM}`, description };

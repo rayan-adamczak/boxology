@@ -68,6 +68,7 @@ export function Footer() {
             <LienInterne to="/formats">Formats</LienInterne>
             <LienInterne to="/publishers">Éditeurs</LienInterne>
             <LienInterne to="/genres">Genres</LienInterne>
+            <LienInterne to="/collections">Collections</LienInterne>
           </Colonne>
 
           {/* Aucun compte de réseau social ouvert pour l'instant : de simples

@@ -28,11 +28,13 @@ export interface LigneEdition {
   editeur: string | null;
   date_parution: string | null;
   ean: string | null;
+  /** Rang dans la série de l'éditeur, le numéro imprimé sur la tranche. */
+  numero_collection: number | null;
   film: Pick<Film, "id" | "titre" | "slug" | "affiche_url" | "annee"> | null;
 }
 
 const CHAMPS_EDITION =
-  "id,titre,image_url,formats_extraits,editeur,date_parution,ean," +
+  "id,titre,image_url,formats_extraits,editeur,date_parution,ean,numero_collection," +
   "edition_films(film:films(id,titre,slug,affiche_url,annee))";
 
 /** Bornes PostgREST d'une page, `page` comptant à partir de 1. */
@@ -96,6 +98,32 @@ export async function getEditionsParEditeur(
     .order("id", { ascending: false })
     .range(debut, fin);
   if (error) throw new Error(`Erreur lors du chargement de l'éditeur ${editeur}: ${error.message}`);
+  return { lignes: aplatir(data as any[]), total: count ?? 0 };
+}
+
+/**
+ * Éditions d'une collection numérotée d'éditeur.
+ *
+ * Triées par **numéro de collection** et non par date : c'est le rang imprimé
+ * sur la tranche qui ordonne une série, et un collectionneur cherche le
+ * numéro manquant. `nullsFirst: false` renvoie en fin de liste les éditions
+ * dont le numéro n'est pas connu, ce qui est le cas de tout Criterion, dont
+ * aucune de nos sources ne publie le spine number.
+ */
+export async function getEditionsParCollection(
+  collection: string,
+  page = 1,
+): Promise<Page<LigneEdition>> {
+  const [debut, fin] = bornes(page);
+  const { data, count, error } = await supabase
+    .from("editions")
+    .select(CHAMPS_EDITION, { count: "exact" })
+    .eq("collection_editeur", collection)
+    .order("numero_collection", { ascending: true, nullsFirst: false })
+    .order("date_parution", { ascending: false, nullsFirst: false })
+    .order("id", { ascending: false })
+    .range(debut, fin);
+  if (error) throw new Error(`Erreur lors du chargement de la collection ${collection}: ${error.message}`);
   return { lignes: aplatir(data as any[]), total: count ?? 0 };
 }
 
