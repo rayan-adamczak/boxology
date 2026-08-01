@@ -944,7 +944,7 @@ sur un catalogue de milliers de fiches.
 Elle fait quatre choses, et **seulement sur `/films/`**. Tout le reste ressort
 par `next()` au premier test :
 
-1. l'adresse canonique d'une fiche est `/films/<slug>/<id>` ; toute autre forme
+1. l'adresse canonique d'une fiche est `/movies/<slug>/<id>` ; toute autre forme
    part en **301** vers elle, chaîne de recherche conservée ;
 2. un id inexistant répond un **vrai 404**, là où la réécriture SPA répondait
    200 sur une page vide, soit un « soft 404 » aux yeux de Google ;
@@ -1007,7 +1007,7 @@ déploiement, c'est là qu'il faut regarder, et non du côté du rendu.
 C'est la seule façon d'éprouver ce fichier : le serveur Vite ne le voit pas, et
 `tsconfig.json` ne couvre pas ce dossier, donc `tsc` ne le relit pas non plus.
 
-### URL des fiches : `/films/<slug>/<id>`
+### URL des fiches : `/movies/<slug>/<id>`
 
 Format repris de SensCritique. **Le slug est décoratif, l'id fait autorité.**
 C'est ce qui règle trois choses d'un coup :
@@ -1277,7 +1277,7 @@ sont chez editioncollector et les specs chez blu-ray.com sans recouvrement (§3)
 donc sans ce tri `/formats/steelbook` s'ouvrait sur soixante lignes de texte nu.
 Les pages d'éditeur étaient entièrement blu-ray.com, donc sans image, la
 vignette retombant sur l'affiche du film. **Ce n'est plus vrai depuis le
-1er août 2026** : `/editeurs/le-chat-qui-fume` porte 188 éditions, toutes
+1er août 2026** : `/publishers/le-chat-qui-fume` porte 188 éditions, toutes
 illustrées, et c'est la première page d'éditeur à montrer des boîtiers.
 
 #### Pagination, en place le 31 juillet 2026
@@ -1291,7 +1291,7 @@ que `collection_editeur` venait d'être remplie. Il n'aurait porté qu'une seule
 entrée, or chaque page de regroupement doit lister les autres entrées de son
 axe pour n'être pas une impasse, et le sommaire aurait tenu en un lien.
 `editeur` faisait déjà le travail : remplir la colonne a suffi à créer
-`/editeurs/le-chat-qui-fume` et `/editeurs/intersections` au build suivant,
+`/publishers/le-chat-qui-fume` et `/publishers/intersections` au build suivant,
 sans une ligne de front. **Rouvrir le jour où une deuxième collection numérotée
 entre au catalogue**, Criterion ou Make My Day!.
 
@@ -1329,6 +1329,78 @@ d'en recopier une version qui dériverait sans que ça se voie.
 Limite restante : le sitemap enferme les effectifs au moment du build, donc une
 page suivante peut disparaître entre deux déploiements et rendre 404 le temps
 qu'il soit régénéré.
+
+### Adresses en anglais, le 1er août 2026
+
+    /films/<slug>/<id>   ->  /movies/<slug>/<id>
+    /editeurs            ->  /publishers
+    /bienvenue           ->  /welcome
+    /a-propos            ->  /about
+    /mentions-legales    ->  /legal
+    /confidentialite     ->  /privacy
+    /profil              ->  /profile
+    /compte              ->  /account
+
+`/formats` et `/genres` ne bougent pas, les mots sont les mêmes dans les deux
+langues. **Choix de forme, pas de référencement** : le mot-clé dans l'URL est un
+facteur de classement quasi nul, et ce qui compte, la structure et le maillage,
+ne change pas.
+
+`src/app/lib/chemins.ts` porte la table, **sans aucune dépendance**, pour que le
+middleware serve les 301 et que l'application route les anciennes adresses
+depuis la même source. Une seconde table produirait des redirections vers des
+pages inexistantes.
+
+**Le 301 passe avant tout le reste dans le middleware.** `/films/…` et
+`/editeurs/…` ne doivent jamais atteindre les gestionnaires, qui ne connaissent
+plus que les formes neuves : ils tomberaient sur la réécriture SPA, donc un 200
+sur une page que React redirigerait ensuite côté client, et Google verrait deux
+adresses pour le même contenu au lieu d'une redirection franche.
+
+**Un seul saut pour ce qui était indexé.** `/films/<slug>/<id>` va directement à
+`/movies/<slug>/<id>`. Seule la forme nue `/films/560` en fait deux, et elle n'a
+jamais figuré au sitemap.
+
+**La clé d'axe suit sa base.** `axeDeChemin` fait correspondre le premier segment
+de l'URL à la clé de `AXES`, donc renommer `/editeurs` en `/publishers` imposait
+de renommer la clé aussi, sous peine que la page ne résolve plus. Les libellés
+restent en français : c'est l'URL qui change, pas la langue du site.
+
+Coût assumé : Google avait découvert les 4 581 fiches le matin même, il doit
+suivre les 301 et réattribuer. Deux à quatre semaines de plus.
+
+### `/about`, en questions fréquentes, le 1er août 2026
+
+Structure reprise de la FAQ de Letterboxd : sommaire en tête, sections à ancre,
+une question par bloc. **Leur page en compte cent quinze, celle-ci vingt-neuf**,
+et c'est délibéré : un site d'un mois qui écrirait cent questions les
+inventerait, et cent réponses creuses sont exactement le contenu mince écarté
+des pages éditions.
+
+Le contenu vit dans `src/app/lib/faq.ts`, **sans aucune dépendance**, et le
+middleware l'importe pour écrire le corps servi. C'est le piège du corps injecté
+qui dérive du composant, fermé pour de bon : ici il n'y a qu'une source. La
+fiche film, elle, reste exposée, ses deux versions étant écrites séparément.
+
+Les questions portent un `h3` sous un `h2` de section, là où Letterboxd met un
+`h1` par question. Un seul `h1` par page.
+
+**Pas de balisage `FAQPage`** : Google a restreint ce résultat enrichi aux sites
+gouvernementaux et de santé en août 2023, le déclarer ne produirait rien.
+
+Deux défauts corrigés au passage, tous deux invisibles au diff :
+
+- **le bandeau est en `fixed`, donc il ne réserve aucune place dans le flux.**
+  Avec `pt-6`, le lien de retour de toutes les pages statiques disparaissait
+  derrière lui et le titre était rogné. Corrigé dans `PageStatique`, donc pour
+  `/legal` et `/privacy` aussi ;
+- **les ancres ne défilaient pas.** Le navigateur lit le fragment avant que
+  React ait rendu la cible, et `GestionDefilement` remet en haut à chaque
+  navigation. `src/app/lib/ancre.ts` réessaie en `requestAnimationFrame` jusqu'à
+  une seconde. `BienvenuePage` porte encore sa propre copie, à y remonter.
+
+Restent `/legal` et `/privacy`, qui servent 48 octets. Elles n'ont pas vocation
+à être trouvées par une recherche, donc ce n'est pas prioritaire.
 
 ### Pages éditions : écarté, et pourquoi
 
