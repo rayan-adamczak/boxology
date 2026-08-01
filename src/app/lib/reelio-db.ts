@@ -268,6 +268,49 @@ function filtreRecherche(terme: string): string {
 }
 
 /**
+ * En dessous de quatre caractères, une saisie n'est pas une faute de frappe,
+ * c'est un début de mot. `war` doit continuer de rendre tout ce qui contient
+ * « war », et surtout pas les titres qui lui ressemblent de loin.
+ */
+const LONGUEUR_MINIMALE_APPROCHANTE = 4;
+
+/**
+ * Repli tolérant aux fautes de frappe, par trigrammes.
+ *
+ * Il ne se substitue jamais à la recherche exacte, il la prolonge quand elle ne
+ * rend rien : « Intrestellar » n'atteint *Interstellar* par aucun `ilike`, deux
+ * lettres interverties suffisant à casser la sous-chaîne. Le classement revient
+ * ici à la proximité mesurée, pas à l'alphabet : le meilleur candidat doit
+ * ouvrir la liste.
+ *
+ * L'échec est avalé. La recherche exacte a déjà rendu zéro résultat, donc une
+ * liste vide est exactement ce que l'utilisateur aurait vu sans ce repli ; y
+ * substituer un message rouge transformerait une amélioration en panne.
+ *
+ * cf. `supabase/migrations/20260801_recherche_approchante.sql` pour le seuil
+ * retenu et pourquoi c'est `word_similarity` et non `similarity`.
+ */
+async function rechercheApprochante(terme: string): Promise<Film[]> {
+  if (terme.length < LONGUEUR_MINIMALE_APPROCHANTE) return [];
+  const { data, error } = await supabase.rpc("recherche_films_approchante", {
+    terme,
+    limite: 50,
+  });
+  if (error) {
+    console.warn("Recherche approchante indisponible:", error.message);
+    return [];
+  }
+  return (data ?? []) as Film[];
+}
+
+/** Résultats, et la façon dont ils ont été trouvés. */
+export interface ResultatRecherche {
+  films: Film[];
+  /** Vrai quand la recherche exacte n'a rien rendu et que le repli approchant a pris le relais. */
+  approchante: boolean;
+}
+
+/**
  * Recherche par titre, ou catalogue par défaut quand la requête est vide.
  *
  * **Le classement par défaut est la popularité TMDB, pas l'ordre alphabétique.**
@@ -283,8 +326,14 @@ function filtreRecherche(terme: string): string {
  *
  * Une recherche explicite, elle, reste alphabétique : on cherche un titre
  * connu, l'ordre attendu est celui du dictionnaire.
+ *
+ * **Deux étages, jamais un seul.** L'exact d'abord, l'approchant en repli. Une
+ * recherche par trigrammes menée d'emblée classerait par proximité un lot que
+ * l'utilisateur a désigné sans se tromper, et ferait passer *Matrix Reloaded*
+ * devant *Matrix* sur une saisie parfaite. Le repli ne coûte rien tant que la
+ * frappe est juste : il n'est appelé que sur zéro résultat.
  */
-export async function searchFilms(query: string): Promise<Film[]> {
+export async function searchFilms(query: string): Promise<ResultatRecherche> {
   const terme = query.trim();
   let req = supabase.from("films").select("*").limit(50);
   req = terme
@@ -292,7 +341,12 @@ export async function searchFilms(query: string): Promise<Film[]> {
     : req.order("popularite", { ascending: false, nullsFirst: false });
   const { data, error } = await req;
   if (error) throw new Error(`Erreur lors de la recherche de films: ${error.message}`);
-  return (data ?? []) as Film[];
+
+  const exacts = (data ?? []) as Film[];
+  if (!terme || exacts.length > 0) return { films: exacts, approchante: false };
+
+  const proches = await rechercheApprochante(terme);
+  return { films: proches, approchante: proches.length > 0 };
 }
 
 /**

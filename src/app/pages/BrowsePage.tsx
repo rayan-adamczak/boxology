@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Search, Loader2, Library, Bookmark, Disc3, ScanBarcode } from "lucide-react";
+import { Search, Loader2, Library, Bookmark, Disc3 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { RailHorizontal } from "../components/RailHorizontal";
 import { ModaleConnexion } from "../components/ModaleConnexion";
@@ -48,7 +48,7 @@ const CATALOGUE = { films: "4 500", editions: "8 400", codesBarres: "5 300" };
  * lui elles se referment et le mot devient un bloc.
  */
 const LIBELLE_SECTION = {
-  fontSize: "13px",
+  fontSize: "15px",
   fontWeight: 600,
   letterSpacing: "0.08em",
   textTransform: "uppercase",
@@ -85,6 +85,10 @@ export function BrowsePage() {
 
   const [query, setQuery] = useState(qUrl);
   const [films, setFilms] = useState<Film[]>([]);
+  // Les résultats viennent du repli par trigrammes, la frappe ne correspondait à
+  // aucun titre. Il faut le dire : sans un mot, « Intrestellar » rendrait
+  // *Interstellar* sans que l'utilisateur sache que sa saisie était fautive.
+  const [approchante, setApprochante] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dernieres, setDernieres] = useState<EditionWithFilm[]>([]);
@@ -147,8 +151,11 @@ export function BrowsePage() {
         avaitUneRecherche.current = query !== "";
       }
       try {
-        const results = await searchFilms(query);
-        if (!cancelled) setFilms(results);
+        const resultat = await searchFilms(query);
+        if (!cancelled) {
+          setFilms(resultat.films);
+          setApprochante(resultat.approchante);
+        }
       } catch (e) {
         console.error(e);
         if (!cancelled) setError(e instanceof Error ? e.message : "Erreur inconnue");
@@ -225,8 +232,8 @@ export function BrowsePage() {
           <label className="relative mt-9 block w-full max-w-[560px]">
             <span className="sr-only">Rechercher un film par titre</span>
             <Search
-              size={18}
-              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2"
+              size={22}
+              className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2"
               color="var(--reel-muted)"
             />
             <input
@@ -234,12 +241,12 @@ export function BrowsePage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Rechercher un film…"
-              className="w-full rounded-full py-3 pl-11 pr-4 outline-none transition focus:ring-2 focus:ring-[var(--reel-accent)]"
+              className="w-full rounded-full py-4 pl-14 pr-5 outline-none transition focus:ring-2 focus:ring-[var(--reel-accent)]"
               style={{
                 backgroundColor: "var(--reel-surface)",
                 border: "1px solid var(--reel-border)",
                 color: "var(--reel-text)",
-                fontSize: "15px",
+                fontSize: "17px",
               }}
             />
           </label>
@@ -284,7 +291,7 @@ export function BrowsePage() {
                       border: "1px solid var(--reel-border)",
                     }}
                   >
-                    <Icone size={20} color="var(--reel-accent-clair)" strokeWidth={2} />
+                    <Icone size={26} color="var(--reel-accent-clair)" strokeWidth={2} />
                     <h3
                       className="mt-3"
                       style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)" }}
@@ -312,6 +319,18 @@ export function BrowsePage() {
           {error && (
             <p className="mt-4" style={{ fontSize: "14px", color: "#ff6b6b" }}>
               {error}
+            </p>
+          )}
+
+          {/*
+            Le repli approchant se dit, il ne se devine pas. Rendre *Interstellar*
+            sur « Intrestellar » sans un mot laisse croire que le titre s'écrit
+            ainsi, et l'utilisateur refera la faute la fois suivante.
+          */}
+          {!loading && approchante && films.length > 0 && (
+            <p className="mt-4" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
+              Aucun titre ne correspond exactement à «&nbsp;{query.trim()}&nbsp;». Voici les plus
+              proches.
             </p>
           )}
 
@@ -510,9 +529,6 @@ function EncartInscription({ onSInscrire }: { onSInscrire: () => void }) {
           >
             Créer mon compte
           </button>
-          <span className="flex items-center gap-1.5" style={{ fontSize: "13px", color: "rgba(255,255,255,0.75)" }}>
-            <ScanBarcode size={14} /> Consultation libre, sans compte
-          </span>
         </div>
       </div>
     </section>

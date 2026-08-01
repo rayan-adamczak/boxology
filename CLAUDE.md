@@ -1102,6 +1102,57 @@ ferme, on remplace tant qu'on l'affine. Empiler à chaque frappe rendrait le
 bouton retour inutilisable ; toujours remplacer ferait quitter le site depuis
 une recherche.
 
+### Tolérance aux fautes de frappe, en place le 1er août 2026
+
+« Intrestellar » rendait une page vide. Deux lettres interverties suffisent à
+casser une sous-chaîne, et un `ilike` n'a aucun moyen de les rattraper, ni sur
+le titre ni sur le slug.
+
+`pg_trgm` et `unaccent` sont installés dans `extensions`, deux index GIN sur
+`sans_accents(titre)` et `sans_accents(titre_original)`, et une fonction
+`public.recherche_films_approchante(terme, limite)` exposée en RPC.
+Migration `20260801_recherche_approchante.sql`.
+
+**`word_similarity`, pas `similarity`.** La seconde compare les deux chaînes
+entières, donc s'effondre dès que le titre est plus long que la saisie :
+
+| saisie | titre | word | globale |
+|---|---|---|---|
+| seigneur des aneaux | Le Seigneur des Anneaux : La Communauté… | 0,864 | 0,463 |
+| amelie | Le Fabuleux Destin d'Amélie Poulain | 1,000 | 0,206 |
+| Intrestellar | Interstellar | 0,529 | 0,529 |
+
+**Seuil à 0,5, et le défaut de 0,6 ne convenait pas** : il laissait justement
+« Intrestellar », à 0,529, hors du filet. Le bruit mesuré reste loin dessous,
+« inception » contre *Interstellar* vaut 0,200.
+
+**Deux étages, l'exact d'abord, l'approchant en repli sur zéro résultat.** Une
+recherche par trigrammes menée d'emblée reclasserait par proximité un lot que
+l'utilisateur a désigné sans se tromper, et ferait passer *Matrix Reloaded*
+devant *Matrix* sur une saisie parfaite. Le repli ne coûte donc rien tant que
+la frappe est juste.
+
+**Passer par l'opérateur `<%` et non par `word_similarity(...) >= 0.5`** : seul
+l'opérateur emprunte l'index GIN. Mesuré sur les 4 939 films, la comparaison
+explicite balaie la table en **145 ms**, l'opérateur rend la même ligne en
+**20 ms**.
+
+Deux pièges de déclaration, tous deux rencontrés :
+
+- **`set pg_trgm.word_similarity_threshold` dans un `create function` échoue en
+  `42501 permission denied to set parameter`** tant que la bibliothèque n'est
+  pas chargée dans la session : le paramètre n'est alors qu'un préfixe inconnu,
+  et poser un paramètre personnalisé demande le superutilisateur. Un
+  `select extensions.show_trgm('amorce')` en tête de migration la charge.
+- **`search_path` vide vaut aussi pour les opérateurs.** D'où
+  `operator(extensions.<%)` en toutes lettres, sans quoi rien ne résout `<%`.
+
+Le repli **se dit à l'écran**, « Aucun titre ne correspond exactement à… » :
+rendre *Interstellar* sans un mot laisse croire que le titre s'écrit ainsi.
+
+En dessous de **quatre caractères**, le repli ne se déclenche pas : une saisie
+si courte n'est pas une faute, c'est un début de mot.
+
 ### Pages de regroupement, en place le 31 juillet 2026
 
 78 pages : `/formats`, `/editeurs`, `/genres` et leurs 75 entrées.
