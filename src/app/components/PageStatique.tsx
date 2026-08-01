@@ -20,7 +20,7 @@ export function PageStatique({ titre, titreSeo, sousTitre, description, noindex,
   useSeo({ titre: titreSeo ?? titre, description: description ?? sousTitre ?? titre, noindex });
 
   return (
-    <div className="mx-auto max-w-[760px] px-6 pb-24 pt-6">
+    <div className="mx-auto max-w-[760px] px-6 pb-24 pt-[120px]">
       <Link
         to="/"
         className="inline-flex items-center gap-2 pb-6 transition"
