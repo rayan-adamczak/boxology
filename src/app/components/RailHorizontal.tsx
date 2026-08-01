@@ -4,12 +4,29 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 /** Flèches posées sur la rangée, 12 px après chaque bord de la colonne. */
 const DECALAGE_FLECHE = 12;
 
+/*
+  Voile aux deux bouts, à l'intérieur de la colonne.
+
+  Le rail étant tranché net sur la verticale du titre, une jaquette coupée en
+  plein milieu de son image se lit comme un défaut d'affichage. Le voile lui
+  rend une fin : la carte s'efface au lieu d'être sectionnée.
+
+  Il reste court, 88 px, et son plateau opaque ne fait que 32 px. Étendu, il
+  laissait une carte fantôme à mi-teinte au milieu du cadre, ce qui est pire que
+  la coupe qu'il corrige. Ce qu'il faut voiler, c'est la tranche, pas la carte.
+
+  Il n'a pas à servir de fond à la flèche : celle-ci porte son propre fond
+  plein, sa bordure et son ombre.
+*/
+const LARGEUR_VOILE = 88;
+const FIN_PLATEAU = "32px";
+
 
 /**
- * Distance de défilement sur laquelle la flèche monte de 0 à 1.
+ * Distance de défilement sur laquelle voile et flèche montent de 0 à 1.
  *
- * Elle apparaissait d'un coup, sur un simple `scrollLeft > 1` : un pixel de
- * défilement faisait surgir un disque de 44 px. La course la fait monter avec
+ * Ils apparaissaient d'un coup, sur un simple `scrollLeft > 1` : un pixel de
+ * défilement faisait surgir un disque de 44 px. La course les fait monter avec
  * le geste.
  *
  * 40 px se lisait comme un déclic, un cran de molette faisant tout le trajet en
@@ -41,11 +58,11 @@ const adoucir = (t: number) => 1 - (1 - t) ** 2;
  * lui-même posait le problème inverse dès qu'il mordait vers l'intérieur, en
  * laissant une carte fantôme au milieu du cadre.
  *
- * Il n'y a donc plus de voile du tout. La flèche porte son propre fond plein,
- * sa bordure et son ombre, elle n'a jamais eu besoin d'autre chose pour se
- * détacher d'une jaquette imprimée.
+ * Un voile court reste aux deux bouts, à l'intérieur de la colonne : il donne
+ * une fin à la carte que la coupe sectionne. Il ne sert pas de fond à la
+ * flèche, qui porte le sien.
  *
- * **Flèche et opacité montent avec le défilement**, de 0 à 1 sur
+ * **Voile et flèche montent avec le défilement**, de 0 à 1 sur
  * `COURSE_APPARITION` et non d'un coup au premier pixel. Elles ne paraissent
  * donc que du côté où il reste quelque chose, et à la mesure de ce qui reste.
  * Une flèche qui ne fait rien est pire que pas de flèche.
@@ -145,6 +162,25 @@ export function RailHorizontal({ children, ariaLabel }: { children: React.ReactN
         {children}
       </div>
 
+
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 transition-opacity duration-200 ease-out"
+        style={{
+          opacity: aGauche,
+          width: LARGEUR_VOILE,
+          background: `linear-gradient(to right, var(--reel-bg) 0, var(--reel-bg) ${FIN_PLATEAU}, transparent 100%)`,
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 right-0 transition-opacity duration-200 ease-out"
+        style={{
+          opacity: aDroite,
+          width: LARGEUR_VOILE,
+          background: `linear-gradient(to left, var(--reel-bg) 0, var(--reel-bg) ${FIN_PLATEAU}, transparent 100%)`,
+        }}
+      />
 
       {aGauche > 0.01 && (
         <button
