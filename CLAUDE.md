@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 4 556 lignes
+### `films`, 4 570 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -220,7 +220,7 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films`, 10 764 liens
+### `edition_films`, 10 843 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
@@ -228,7 +228,7 @@ Répartition : `bluray_page` 2 838, `film_id` 2 619, `bluray_tmdb` 2 484,
 `bluray_page_partiel` 1 678, `corrige_manuel` 657, `probable` 221,
 `collection_tmdb` 199, `corrige_annee` 68.
 
-10 764 liens pour **7 899 éditions rattachées** : l'écart, ce sont les coffrets,
+10 843 liens pour **7 939 éditions rattachées** : l'écart, ce sont les coffrets,
 qui portent un lien par film.
 
 **`probable` marque les rattachements écrits sans relecture**, le 30 juillet
@@ -318,11 +318,11 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 4 556 (3 846 films, 708 séries, 2 coffrets) |
+| Films | 4 570 (3 851 films, 717 séries, 2 coffrets) |
 | Éditions | 8 471 |
 | Codes-barres | 4 930 |
-| Éditions rattachées | 7 899 (93,2 %) |
-| Éditions sans film | 572 |
+| Éditions rattachées | 7 939 (93,7 %) |
+| Éditions sans film | 532 |
 | Éditions avec visuel | 8 443 (99,7 %) |
 | URL au sitemap | 3 349 |
 
@@ -1492,6 +1492,11 @@ Documentés parce qu'ils se reproduiront.
   tête ne vaut que si la queue retirée nomme un lot d'épisodes : sans cette
   condition, `Puccini: Tosca` devient *Puccini* (1973) et
   `The Fantastic Four: First Steps` la série animée de 1994.
+- **Un candidat qui n'est que du vocabulaire d'édition n'est pas un titre.**
+  La parenthèse de `The Da Vinci Code: Extended Version (Édition Limitée)` a
+  trouvé une fiche TMDB nommée « Edition Limitée », popularité 0,13, synopsis
+  vide, dont le vrai titre est `Geheimzeichen LB 17` (1938). Même famille que
+  le morceau réduit à « DVD » : ce qui décrit le boîtier ne se cherche pas.
 - **Un morceau de titre découpé peut n'être qu'un support.**
   `Evolution + Innocence – DigiPack` se découpait en cinq, dont « DVD », qui a
   trouvé un *Where is my DVD?* (2013).
@@ -1770,7 +1775,13 @@ Ce qui a évité le plus d'erreurs :
    ressemble à un scan négatif.
 4. **Relire un échantillon avant d'écrire.** Chaque passe de relecture a
    révélé une famille de faux positifs que la précédente ne voyait pas.
-5. **Écrire par lots successifs plutôt qu'en une fois.** Six passes, trois
+5. **Un fichier d'extraction se périme dès qu'on écrit en base.** Les 42
+   éditions dites « sans extrait » n'étaient pas un défaut de parseur : le
+   fichier datait d'avant la suppression des 51 liens faux, donc ne connaissait
+   pas les orphelines qu'elle venait de créer. Régénéré, il a rendu 40
+   rattachements, dont ceux-là mêmes que les liens faux occupaient. Régénérer
+   avant de conclure qu'une source est muette.
+6. **Écrire par lots successifs plutôt qu'en une fois.** Six passes, trois
    écritures : chaque lot écrit a servi de mesure au suivant, et les passes
    tardives n'ont eu à traiter que ce qui restait vraiment.
 
