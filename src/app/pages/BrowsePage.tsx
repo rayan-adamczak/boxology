@@ -14,6 +14,7 @@ import {
 } from "../lib/reelio-db";
 import { useSeo } from "../lib/seo";
 import { lienFilm } from "../lib/liens";
+import { suggestionsPour } from "../lib/suggestions";
 
 /**
  * Chiffres du catalogue, écrits en dur et arrondis vers le bas.
@@ -187,6 +188,14 @@ export function BrowsePage() {
   }, []);
 
   const recherche = query.trim().length > 0;
+
+  /*
+    Éditeurs, formats et genres ne sont pas des films : ils ne peuvent pas
+    sortir de la même requête. Ils sont lus dans la table générée au build, donc
+    sans requête du tout, et se calculent à chaque frappe sans temporisation,
+    contrairement aux résultats. C'est ce qui les fait apparaître avant eux.
+  */
+  const suggestions = recherche ? suggestionsPour(query) : [];
   // `undefined` = session en cours de résolution. On n'affiche l'invitation
   // qu'une fois la réponse connue, sinon elle apparaît puis disparaît sous les
   // yeux d'un visiteur déjà connecté.
@@ -309,6 +318,40 @@ export function BrowsePage() {
               </div>
             </section>
           </>
+        )}
+
+        {/*
+          Raccourcis vers les pages de regroupement. Au-dessus des films et non
+          à leur place : « Warner » nomme un éditeur *et* apparaît dans des
+          titres, et rien ne dit laquelle des deux intentions est la bonne.
+
+          La capsule est ici dans son emploi d'origine, une valeur discrète qui
+          se clique. Elle porte donc l'état de survol que les badges d'édition
+          n'ont pas (cf. la règle du §8).
+        */}
+        {suggestions.length > 0 && (
+          <section className="pt-12">
+            <h2 style={LIBELLE_SECTION}>Parcourir</h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {suggestions.map((s) => (
+                <Link
+                  key={s.href}
+                  to={s.href}
+                  className="rounded-full px-3.5 py-2 transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] focus-visible:outline-none"
+                  style={{
+                    backgroundColor: "var(--reel-surface-2)",
+                    border: "1px solid var(--reel-border)",
+                    fontSize: "13px",
+                    color: "var(--reel-text)",
+                  }}
+                >
+                  <span style={{ color: "var(--reel-muted)" }}>{s.intitule}</span>
+                  {" · "}
+                  {s.libelle}
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
 
         <section className="pt-12">

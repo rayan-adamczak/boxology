@@ -1155,10 +1155,12 @@ une recherche.
 casser une sous-chaîne, et un `ilike` n'a aucun moyen de les rattraper, ni sur
 le titre ni sur le slug.
 
-`pg_trgm` et `unaccent` sont installés dans `extensions`, deux index GIN sur
-`sans_accents(titre)` et `sans_accents(titre_original)`, et une fonction
-`public.recherche_films_approchante(terme, limite)` exposée en RPC.
+`pg_trgm` et `unaccent` sont installés dans `extensions`, et une fonction
+`public.recherche_films_approchante(terme, limite)` est exposée en RPC.
 Migration `20260801_recherche_approchante.sql`.
+
+`sans_accents` a été **remplacée le lendemain par `public.mots_recherche`**
+(cf. la section suivante) : les index GIN portent désormais sur elle.
 
 **`word_similarity`, pas `similarity`.** La seconde compare les deux chaînes
 entières, donc s'effondre dès que le titre est plus long que la saisie :
@@ -1199,6 +1201,78 @@ rendre *Interstellar* sans un mot laisse croire que le titre s'écrit ainsi.
 
 En dessous de **quatre caractères**, le repli ne se déclenche pas : une saisie
 si courte n'est pas une faute, c'est un début de mot.
+
+**Le réalisateur est hors de ce repli**, alors qu'il entre dans la recherche
+exacte. Aucun seuil ne sépare la faute de frappe du nom d'un tiers :
+
+    tarentino  ->  Quentin Tarantino   0,571   vraie faute
+    carlotta   ->  Carlos Saldanha     0,556   deux personnes différentes
+
+Quinze millièmes, et du mauvais côté : « carlotta », qui désigne un éditeur,
+ouvrait sur *Rio* et *L'Âge de glace*. Un nom propre est court et partage ses
+trigrammes avec tous ses homographes, la mesure n'y discrimine rien.
+
+### Classement par pertinence, en place le 1er août 2026
+
+`public.recherche_films(terme, limite)`, migration
+`20260801_recherche_classee.sql`. La recherche exacte passe du tri
+alphabétique à un classement, et gagne le réalisateur.
+
+**« Star » ouvrait sur *A Star for Two* et *Star Crystal*.** Le tri était
+alphabétique, au motif qu'on cherche un titre connu, et le plafond de 50 lignes
+tombait bien avant *Star Wars*. Trier par popularité seule ne vaut pas mieux :
+un film très consulté qui ne porte le mot qu'au milieu de son titre passerait
+devant celui qui commence par lui.
+
+**Deux étages, la popularité ne départageant que les ex æquo** :
+
+| rang | correspondance |
+|---|---|
+| 0 | titre entier |
+| 1 | début du titre |
+| 2 | titre original entier |
+| 3 | début d'un mot du titre |
+| 4-5 | n'importe où dans le titre, puis dans le titre original |
+| 6 | réalisateur seul |
+
+**Le classement vit en base, il ne peut pas vivre côté client** : la limite
+s'applique **avant** le tri, donc reclasser 50 lignes tirées alphabétiquement
+ne ferait pas revenir ce qui n'a jamais été chargé.
+
+**`public.mots_recherche` normalise tout ce qui se cherche** : accents repliés,
+et toute suite de caractères non alphanumériques ramenée à une espace. C'est ce
+qui aligne d'un coup les deux-points de *Mission : Impossible*, l'apostrophe
+typographique et les points de *S.O.S. Fantômes*, là où il fallait auparavant
+interroger le slug en plus du titre. Effet de bord voulu : `%` et `_`
+disparaissent de la saisie, aucune chaîne utilisateur ne pilote un `like`.
+
+`gin_trgm_ops` sert les deux usages, `like '%…%'` autant que les opérateurs de
+proximité : les trois index de `mots_recherche(titre)`,
+`mots_recherche(titre_original)` et `mots_recherche(realisateur)` portent la
+recherche exacte **et** son repli. « star » sort en 45 ms.
+
+**Le réalisateur est au dernier rang, jamais devant un titre.** « Kubrick »
+rend *Shining*, *2001*, *Eyes Wide Shut* ; un film qui porterait « kubrick »
+dans son titre passerait avant.
+
+#### Éditeurs, formats et genres : des raccourcis, pas des résultats
+
+`src/app/lib/suggestions.ts`. « Carlotta » ne pouvait rien rendre, l'éditeur
+étant une colonne des **éditions** quand la recherche porte sur les **films**.
+La réponse existait pourtant : `/publishers/carlotta-films`.
+
+**Aucune requête.** `regroupements.ts` est généré au build et porte déjà les
+75 entrées avec leur slug, donc la correspondance est une comparaison de
+chaînes. Les puces apparaissent avant les résultats, qui sont temporisés.
+
+**Au-dessus des films, jamais à leur place** : « Warner » nomme un éditeur *et*
+apparaît dans des titres, et rien ne dit laquelle des deux intentions est la
+bonne. `compte` sert à ordonner les puces, il n'est pas affiché : c'est un
+instantané de génération, et la page de destination montre son propre décompte.
+
+Trois caractères minimum, quatre puces au plus : en dessous « bl » remonterait
+la moitié des formats, au-delà la rangée se lit comme une seconde liste de
+résultats.
 
 ### Pages de regroupement, en place le 31 juillet 2026
 
