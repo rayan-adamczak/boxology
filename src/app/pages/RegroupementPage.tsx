@@ -18,7 +18,7 @@ import { useSeo, type Seo } from "../lib/seo";
 import { IntrouvablePage } from "./IntrouvablePage";
 
 /**
- * Page de regroupement : `/formats/steelbook`, `/editeurs/carlotta-films`,
+ * Page de regroupement : `/formats/steelbook`, `/publishers/carlotta-films`,
  * `/genres/horreur`.
  *
  * Elles existent pour deux raisons distinctes, et la seconde est la plus
@@ -47,7 +47,7 @@ const TEXTES: Record<NomAxe, { intro: (l: string, total: number) => string; vide
       `${total} éditions ${libelle} recensées au catalogue, avec leur film, leur éditeur et leur code-barres quand il est connu.`,
     vide: "Aucune édition recensée dans ce format.",
   },
-  editeurs: {
+  publishers: {
     intro: (libelle, total) =>
       `${total} éditions publiées par ${libelle} : formats, dates de parution et codes-barres.`,
     vide: "Aucune édition recensée pour cet éditeur.",
@@ -200,7 +200,7 @@ export function RegroupementPage({ axe }: { axe: NomAxe }) {
       ) : axe === "genres" ? (
         <GrilleFilms films={films} />
       ) : (
-        <GrilleEditions editions={editions} montrerEditeur={axe !== "editeurs"} />
+        <GrilleEditions editions={editions} montrerEditeur={axe !== "publishers"} />
       )}
 
       {!chargement && !erreur && pages > 1 && (

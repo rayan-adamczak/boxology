@@ -245,7 +245,7 @@ function VueProfil({
           {!connecte && (
             <button
               type="button"
-              onClick={() => { void connexionGoogle("/profil"); }}
+              onClick={() => { void connexionGoogle("/profile"); }}
               className="mb-1 ml-auto rounded-full px-4 py-2 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
               style={{
                 fontSize: "14px",
@@ -481,7 +481,7 @@ function Invitation() {
         </p>
         <button
           type="button"
-          onClick={() => { void connexionGoogle("/profil"); }}
+          onClick={() => { void connexionGoogle("/profile"); }}
           className="mt-6 rounded-full px-4 py-2.5 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
           style={{
             fontSize: "15px",

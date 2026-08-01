@@ -99,16 +99,16 @@ export function TopBar() {
                     </p>
                     <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>{session.user.email}</p>
                   </div>
-                  <MenuItem icon={<UserIcon size={16} />} to="/profil">Mon profil</MenuItem>
-                  <MenuItem icon={<Library size={16} />} to="/profil">Ma collection</MenuItem>
-                  <MenuItem icon={<Bookmark size={16} />} to="/profil?liste=envies">Mes envies</MenuItem>
+                  <MenuItem icon={<UserIcon size={16} />} to="/profile">Mon profil</MenuItem>
+                  <MenuItem icon={<Library size={16} />} to="/profile">Ma collection</MenuItem>
+                  <MenuItem icon={<Bookmark size={16} />} to="/profile?liste=envies">Mes envies</MenuItem>
                   {/*
                     Vers `/compte`, qui porte la suppression du compte. La
                     politique de confidentialité annonce que l'effacement est
                     accessible dans les réglages : sans ce lien, la page n'était
                     atteignable que depuis cette politique.
                   */}
-                  <MenuItem icon={<Settings size={16} />} to="/compte">Mon compte</MenuItem>
+                  <MenuItem icon={<Settings size={16} />} to="/account">Mon compte</MenuItem>
                   <MenuItem
                     icon={<LogOut size={16} />}
                     onClick={() => { setMenuOpen(false); void deconnexion(); }}

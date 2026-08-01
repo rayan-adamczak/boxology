@@ -39,7 +39,7 @@ export function ComptePage() {
             autres services Google.
           </p>
           <div className="pt-1">
-            <Bouton onClick={() => { void connexionGoogle("/compte"); }}>
+            <Bouton onClick={() => { void connexionGoogle("/account"); }}>
               Se connecter avec Google
             </Bouton>
           </div>

@@ -92,8 +92,8 @@ export function AProposPage() {
 
       <Section titre="En savoir plus">
         <p className="flex flex-wrap gap-4">
-          <Link to="/mentions-legales" style={{ color: "var(--reel-accent)" }}>Mentions légales</Link>
-          <Link to="/confidentialite" style={{ color: "var(--reel-accent)" }}>Politique de confidentialité</Link>
+          <Link to="/legal" style={{ color: "var(--reel-accent)" }}>Mentions légales</Link>
+          <Link to="/privacy" style={{ color: "var(--reel-accent)" }}>Politique de confidentialité</Link>
         </p>
       </Section>
     </PageStatique>

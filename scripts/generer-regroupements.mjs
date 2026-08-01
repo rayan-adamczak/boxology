@@ -169,9 +169,18 @@ export const GENRES: Regroupement[] = [
 ${rendre(genres)}
 ];
 
+/**
+ * La clé est le premier segment de l'URL, \`base\` en est la forme complète : les
+ * deux doivent rester en accord, \`axeDeChemin\` du middleware fait correspondre
+ * le segment à la clé.
+ *
+ * Les adresses sont en anglais depuis le 1er août 2026, les libellés restent en
+ * français : c'est l'URL qui change, pas la langue du site. \`formats\` et
+ * \`genres\` ne bougent pas, les mots sont les mêmes dans les deux langues.
+ */
 export const AXES = {
   formats: { titre: "Formats", tables: FORMATS, base: "/formats" },
-  editeurs: { titre: "Éditeurs", tables: EDITEURS, base: "/editeurs" },
+  publishers: { titre: "Éditeurs", tables: EDITEURS, base: "/publishers" },
   genres: { titre: "Genres", tables: GENRES, base: "/genres" },
 } as const;
 

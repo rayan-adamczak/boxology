@@ -1,7 +1,9 @@
+import { BASE_FILMS } from "./chemins";
+
 /**
  * Construction des URL internes.
  *
- * L'adresse canonique d'une fiche film est `/films/<slug>/<id>`, sur le modèle
+ * L'adresse canonique d'une fiche film est `/movies/<slug>/<id>`, sur le modèle
  * de SensCritique. Le slug est décoratif, l'id fait autorité, ce qui règle
  * trois choses d'un coup :
  *
@@ -24,8 +26,8 @@ export interface CibleFilm {
   slug?: string | null;
 }
 
-/** `/films/la-la-land-2016/11913569`, ou `/films/11913569` à défaut de slug. */
+/** `/movies/la-la-land-2016/11913569`, ou `/movies/11913569` à défaut de slug. */
 export function lienFilm(film: CibleFilm | null | undefined): string | null {
   if (!film || typeof film.id !== "number") return null;
-  return film.slug ? `/films/${film.slug}/${film.id}` : `/films/${film.id}`;
+  return film.slug ? `${BASE_FILMS}/${film.slug}/${film.id}` : `${BASE_FILMS}/${film.id}`;
 }

@@ -30,9 +30,9 @@ export function Layout() {
    */
   const CHEMINS: Record<MobileTab, string> = {
     home: "/",
-    collection: "/profil",
-    wishlist: "/profil?liste=envies",
-    profile: "/profil",
+    collection: "/profile",
+    wishlist: "/profile?liste=envies",
+    profile: "/profile",
   };
 
   const onMobileTab = (tab: MobileTab) => {
@@ -42,7 +42,7 @@ export function Layout() {
 
   // L'onglet actif se déduit de l'URL : arriver sur /profil par un lien du menu
   // doit allumer le bon onglet, pas celui du dernier appui.
-  const activeTab: MobileTab = location.pathname.startsWith("/profil")
+  const activeTab: MobileTab = location.pathname.startsWith("/profile")
     ? location.search.includes("liste=envies")
       ? "wishlist"
       : mobileTab === "collection" || mobileTab === "profile"

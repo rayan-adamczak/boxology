@@ -54,10 +54,10 @@ export function Footer() {
         <div className="flex flex-wrap gap-x-16 gap-y-10">
           <Colonne titre="Sections">
             <LienInterne to="/">Catalogue</LienInterne>
-            <LienInterne to="/bienvenue">Comment ça marche</LienInterne>
-            <LienInterne to="/profil">Ma collection</LienInterne>
-            <LienInterne to="/profil?liste=envies">Mes envies</LienInterne>
-            <LienInterne to="/a-propos">À propos</LienInterne>
+            <LienInterne to="/welcome">Comment ça marche</LienInterne>
+            <LienInterne to="/profile">Ma collection</LienInterne>
+            <LienInterne to="/profile?liste=envies">Mes envies</LienInterne>
+            <LienInterne to="/about">À propos</LienInterne>
           </Colonne>
 
           {/* Les trois sommaires de regroupement. Ils sont ici et non dans une
@@ -66,7 +66,7 @@ export function Footer() {
               n'importe quelle fiche. */}
           <Colonne titre="Parcourir">
             <LienInterne to="/formats">Formats</LienInterne>
-            <LienInterne to="/editeurs">Éditeurs</LienInterne>
+            <LienInterne to="/publishers">Éditeurs</LienInterne>
             <LienInterne to="/genres">Genres</LienInterne>
           </Colonne>
 
@@ -81,8 +81,8 @@ export function Footer() {
           </Colonne>
 
           <Colonne titre="Légal">
-            <LienInterne to="/mentions-legales">Mentions légales</LienInterne>
-            <LienInterne to="/confidentialite">Confidentialité</LienInterne>
+            <LienInterne to="/legal">Mentions légales</LienInterne>
+            <LienInterne to="/privacy">Confidentialité</LienInterne>
           </Colonne>
 
           <a

@@ -117,7 +117,7 @@ export function ConfidentialitePage() {
         </p>
         <p>
           La suppression du compte est accessible depuis la page{" "}
-          <Link to="/compte" style={{ color: "var(--reel-accent)" }}>
+          <Link to="/account" style={{ color: "var(--reel-accent)" }}>
             Mon compte
           </Link>{" "}
           et n’exige aucune démarche auprès de nous.

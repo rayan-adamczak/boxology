@@ -26,6 +26,7 @@ import { FilmDetailPage } from "./pages/FilmDetailPage";
 import { RegroupementPage } from "./pages/RegroupementPage";
 import { IndexRegroupementsPage } from "./pages/IndexRegroupementsPage";
 import { IntrouvablePage } from "./pages/IntrouvablePage";
+import { redirectionDe } from "./lib/chemins";
 /*
  * `/bienvenue` suit la même règle, et pour la même raison : c'est la page qu'on
  * donne en lien quand on présente le site, donc une porte d'entrée, donc un
@@ -161,6 +162,19 @@ function GestionDefilement() {
   return null;
 }
 
+/**
+ * Renvoie une ancienne adresse française vers sa forme anglaise.
+ *
+ * `replace` et non un empilement : l'ancienne adresse ne doit pas rester dans
+ * l'historique, sinon le bouton retour y ramène et la redirection rejoue en
+ * boucle.
+ */
+function RedirectionAncienne() {
+  const { pathname, search } = useLocation();
+  const cible = redirectionDe(pathname);
+  return <Navigate to={`${cible ?? "/"}${search}`} replace />;
+}
+
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
@@ -174,10 +188,10 @@ export default function App() {
               301, mais elle ne tourne qu'en production : les deux routes
               doivent fonctionner ici aussi. Le slug n'est jamais lu, seul l'id
               compte (cf. `lib/liens.ts`). */}
-          <Route path="/films/:slug/:id" element={<FilmDetailPage />} />
-          <Route path="/films/:id" element={<FilmDetailPage />} />
-          <Route path="/profil" element={<ProfilPage />} />
-          <Route path="/compte" element={<ComptePage />} />
+          <Route path="/movies/:slug/:id" element={<FilmDetailPage />} />
+          <Route path="/movies/:id" element={<FilmDetailPage />} />
+          <Route path="/profile" element={<ProfilPage />} />
+          <Route path="/account" element={<ComptePage />} />
 
           {/* Pages de regroupement. Elles captent la requête de navigation
               (« steelbooks 4K », « éditions Carlotta ») et, surtout, donnent
@@ -188,25 +202,40 @@ export default function App() {
           <Route path="/formats" element={<IndexRegroupementsPage axe="formats" />} />
           <Route path="/formats/:slug" element={<RegroupementPage axe="formats" />} />
           <Route path="/formats/:slug/:page" element={<RegroupementPage axe="formats" />} />
-          <Route path="/editeurs" element={<IndexRegroupementsPage axe="editeurs" />} />
-          <Route path="/editeurs/:slug" element={<RegroupementPage axe="editeurs" />} />
-          <Route path="/editeurs/:slug/:page" element={<RegroupementPage axe="editeurs" />} />
+          <Route path="/publishers" element={<IndexRegroupementsPage axe="publishers" />} />
+          <Route path="/publishers/:slug" element={<RegroupementPage axe="publishers" />} />
+          <Route path="/publishers/:slug/:page" element={<RegroupementPage axe="publishers" />} />
           <Route path="/genres" element={<IndexRegroupementsPage axe="genres" />} />
           <Route path="/genres/:slug" element={<RegroupementPage axe="genres" />} />
           <Route path="/genres/:slug/:page" element={<RegroupementPage axe="genres" />} />
 
-          <Route path="/bienvenue" element={<BienvenuePage />} />
-          <Route path="/a-propos" element={<AProposPage />} />
-          <Route path="/mentions-legales" element={<MentionsLegalesPage />} />
-          <Route path="/confidentialite" element={<ConfidentialitePage />} />
+          <Route path="/welcome" element={<BienvenuePage />} />
+          <Route path="/about" element={<AProposPage />} />
+          <Route path="/legal" element={<MentionsLegalesPage />} />
+          <Route path="/privacy" element={<ConfidentialitePage />} />
 
           {/* « Ma collection » et « Mes envies » ont fusionné dans le profil,
               qui montre les mêmes listes groupées par film. Redirections plutôt
               que suppression sèche : ces adresses ont été en ligne, et le pied
               de page comme la barre mobile y menaient. */}
-          <Route path="/ma-collection" element={<Navigate to="/profil" replace />} />
-          <Route path="/mes-envies" element={<Navigate to="/profil?liste=envies" replace />} />
-          <Route path="/wishlist" element={<Navigate to="/profil?liste=envies" replace />} />
+          <Route path="/ma-collection" element={<Navigate to="/profile" replace />} />
+          <Route path="/mes-envies" element={<Navigate to="/profile?liste=envies" replace />} />
+          <Route path="/wishlist" element={<Navigate to="/profile?liste=envies" replace />} />
+
+          {/* Anciennes adresses françaises. La Pages Function les redirige en
+              301, mais elle ne tourne qu'en production : sans ces routes, un
+              lien collé dans le serveur de développement tomberait sur l'écran
+              introuvable. `RedirectionAncienne` reconstruit la suite du chemin
+              pour les préfixes à segments, `/films/<slug>/<id>`. */}
+          <Route path="/films/*" element={<RedirectionAncienne />} />
+          <Route path="/editeurs/*" element={<RedirectionAncienne />} />
+          <Route path="/editeurs" element={<RedirectionAncienne />} />
+          <Route path="/bienvenue" element={<RedirectionAncienne />} />
+          <Route path="/a-propos" element={<RedirectionAncienne />} />
+          <Route path="/mentions-legales" element={<RedirectionAncienne />} />
+          <Route path="/confidentialite" element={<RedirectionAncienne />} />
+          <Route path="/profil" element={<RedirectionAncienne />} />
+          <Route path="/compte" element={<RedirectionAncienne />} />
 
           <Route path="*" element={<IntrouvablePage />} />
         </Route>

@@ -697,7 +697,7 @@ export function BienvenuePage() {
                 <BoutonSecondaire to="/">
                   Parcourir le catalogue <ArrowRight size={16} />
                 </BoutonSecondaire>
-                <BoutonSecondaire to="/profil">Voir ma collection</BoutonSecondaire>
+                <BoutonSecondaire to="/profile">Voir ma collection</BoutonSecondaire>
               </>
             ) : (
               <>
@@ -855,7 +855,7 @@ export function BienvenuePage() {
             </p>
             <p>
               Aucun mot de passe à choisir, aucun traceur, aucune publicité. La page{" "}
-              <Link to="/compte" style={{ color: "var(--reel-accent-clair)" }}>
+              <Link to="/account" style={{ color: "var(--reel-accent-clair)" }}>
                 Mon compte
               </Link>{" "}
               permet de tout supprimer, listes comprises.
@@ -880,7 +880,7 @@ export function BienvenuePage() {
             Le film, sa distribution, ses éditions françaises et la fiche technique des disques.
             Ouvrez n’importe quelle jaquette du catalogue pour y arriver.
           </CarteSection>
-          <CarteSection to="/profil" icone={<User size={22} />} titre="Profil">
+          <CarteSection to="/profile" icone={<User size={22} />} titre="Profil">
             Votre collection et vos envies, groupées par film. Privées, et hors des moteurs de
             recherche.
           </CarteSection>
@@ -1010,7 +1010,7 @@ export function BienvenuePage() {
             contact@jaquette.app
           </a>
           . Pour le détail du projet et des sources, voir{" "}
-          <Link to="/a-propos" style={{ color: "var(--reel-accent-clair)" }}>
+          <Link to="/about" style={{ color: "var(--reel-accent-clair)" }}>
             À propos
           </Link>
           .

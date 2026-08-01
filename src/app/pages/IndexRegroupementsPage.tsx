@@ -3,7 +3,7 @@ import { AXES, type NomAxe } from "../lib/regroupements";
 import { useSeo } from "../lib/seo";
 
 /**
- * Sommaire d'un axe : `/formats`, `/editeurs`, `/genres`.
+ * Sommaire d'un axe : `/formats`, `/publishers`, `/genres`.
  *
  * Trois pages qui ne coûtent rien et qui font beaucoup : elles donnent au
  * crawler une porte unique vers les 72 regroupements, et au visiteur la vue
@@ -17,7 +17,7 @@ import { useSeo } from "../lib/seo";
 const INTROS: Record<NomAxe, string> = {
   formats:
     "Blu-ray, 4K, steelbook, digipack, coffret. Le format est relevé sur la fiche de l'édition, jamais déduit du titre.",
-  editeurs:
+  publishers:
     "Les éditeurs vidéo présents au catalogue. L'information vient de la fiche technique du disque, elle qualifie donc l'objet et non l'œuvre.",
   genres: "Les genres des films du catalogue, tels que TMDB les renseigne.",
 };
