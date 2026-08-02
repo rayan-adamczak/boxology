@@ -41,10 +41,19 @@ Cloudflare Pages sert `public/_redirects` (`/* /index.html 200`), donc
 `DEPLOY_TARGET=github` désormais morte, sous-chemin `/jaquette/` et copie
 `404.html`. À supprimer un jour.
 
-`public/_headers` marque `/assets/*` en `immutable` : Cloudflare revalidait à
-chaque visite (`cf-cache-status: REVALIDATED` au lieu de `HIT`), soit un
-aller-retour avant le premier octet. `index.html` reste volontairement hors de
-la règle, sinon un déploiement ne serait pas vu des visiteurs déjà venus.
+`public/_headers` met `/assets/*` en cache un jour, avec
+`stale-while-revalidate` : Cloudflare revalidait à chaque visite
+(`cf-cache-status: REVALIDATED` au lieu de `HIT`), soit un aller-retour avant le
+premier octet. **Jamais `immutable`**, et le fichier dit pourquoi en toutes
+lettres : une entrée empoisonnée par la réécriture SPA doit pouvoir se réparer.
+`index.html` reste volontairement hors de la règle, sinon un déploiement ne
+serait pas vu des visiteurs déjà venus.
+
+Le même fichier porte les en-têtes de sécurité depuis le 2 août 2026, CSP
+comprise (§3). **HSTS et « Toujours utiliser HTTPS » n'y sont pas** : ces deux-là
+se règlent dans le tableau de bord Cloudflare, SSL/TLS puis Certificats de
+périphérie, et rien dans le dépôt n'en garde trace. Voir le §3 pour les valeurs
+et l'ordre à respecter pour revenir en arrière.
 
 DNS géré par Cloudflare, domaine acheté chez Spaceship (nameservers
 `anna`/`lloyd.ns.cloudflare.com`). Un enregistrement `TXT` valide la propriété
@@ -429,9 +438,42 @@ que le navigateur n'exécute pas. Éprouvé sous `wrangler pages dev dist`, seul
 façon de servir `_headers` et `functions/` ensemble : fiche film, accueil et
 `/about` rendus sans une violation en console, morceau `lazy()` chargé en 200.
 
-**HSTS reste à activer**, depuis Cloudflare, SSL/TLS puis Edge Certificates. Il
-n'est pas dans `_headers` exprès : l'engagement se défait mal une fois le
-`max-age` servi.
+**HSTS activé le 2 août 2026**, et **« Toujours utiliser HTTPS » avec lui**.
+Les deux se règlent dans Cloudflare, SSL/TLS puis Certificats de périphérie, et
+non dans `_headers` : le tableau de bord est la seule source de ces deux-là.
+
+    strict-transport-security: max-age=15552000; includeSubDomains
+
+180 jours, sous-domaines compris, **sans préchargement**. Vérifié sur l'apex,
+sur `www`, sur une fiche film et sur `img.jaquette.app`.
+
+**Ce que HSTS gagne n'est pas de la sécurité seule, c'est aussi un aller-retour.**
+Le 301 de `http://` vers `https://` voyage en clair et arrive trop tard pour
+empêcher quoi que ce soit ; une fois l'en-tête vu, le navigateur réécrit
+l'adresse chez lui, avant d'ouvrir la moindre connexion. Le visiteur qui arrive
+déjà en `https://`, c'est-à-dire presque tout le monde puisqu'ils viennent de
+Google, ne paie rien : une cinquantaine d'octets d'en-tête, aucune requête.
+
+**Le préchargement reste à Off, et ce n'est pas un oubli.** Il inscrit le
+domaine dans une liste embarquée dans le code des navigateurs, appliquée dès la
+première visite ; en sortir prend des mois et une mise à jour de navigateur. À
+rouvrir quand les six mois auront tourné sans incident.
+
+**Ce qui se défait mal, c'est le retour en arrière**, pas le réglage : il faut
+d'abord couper HSTS, puis attendre l'expiration du `max-age` chez les visiteurs
+déjà venus, avant de pouvoir retirer HTTPS du domaine. Sans cet ordre, le site
+est injoignable le temps restant. Trois hôtes servent en HTTPS valide, apex,
+`www` et `img`, donc rien ne l'exige aujourd'hui.
+
+**« Toujours utiliser HTTPS » comblait un trou réel**, mesuré avant de le
+cocher : l'apex et `www` redirigeaient déjà, mais `img.jaquette.app` servait
+ses jaquettes **en clair, code 200, sans redirection**. La redirection Pages ne
+couvre pas le bucket R2 ; celle-ci, posée à la périphérie, couvre toute la zone.
+
+L'encadré Cloudflare avertit d'une boucle de redirection quand l'origine
+redirige elle aussi vers HTTPS. Vérifié après coup, il n'y en a pas : un saut
+sur l'apex, sur une fiche et sur une image, deux sur `www` qui passe par
+l'apex, 200 au bout à chaque fois, suivi jusqu'à cinq sauts.
 
 **Non vérifié** : `supprimer_mon_compte()` sous une vraie session. Elle est exposée dans
 l'OpenAPI et le DDL est passé, mais l'appeler pour confirmer son garde-fou
