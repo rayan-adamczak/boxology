@@ -752,10 +752,48 @@ export function FilmDetailPage() {
               sur quatre lignes, ce qui dépend de la largeur et de la police.
             */
             <div className="col-span-2 row-start-3 sm:col-span-1 sm:col-start-2 sm:row-start-2 sm:mb-2 max-w-[640px]">
+              {/*
+                Le texte s'éteint vers le bas quand il est coupé, du blanc de
+                lecture au gris des mentions, par un dégradé découpé sur les
+                glyphes (`background-clip: text`).
+
+                C'est ce qui dit que la phrase continue. Une coupe franche au
+                milieu d'une ligne se lit comme une fin, et « Voir plus » devient
+                alors le seul indice, ce qui est mince pour un bouton de 14 px.
+
+                **Conditionné à `synopsisDeborde`, pas seulement à l'état
+                fermé.** Un synopsis de deux lignes n'a rien à cacher : l'éteindre
+                laisserait croire à une suite qui n'existe pas, la même faute que
+                celle du bouton qui mentirait.
+
+                Le dégradé s'arrête à `var(--reel-muted)`, la couleur des
+                mentions du site, et non à `transparent` : la dernière ligne
+                resterait lisible mais deviendrait un texte à contraste presque
+                nul, alors qu'elle porte encore du sens.
+
+                Deux propriétés en même temps, `color` et
+                `-webkit-text-fill-color` : la seconde l'emporte sur la première
+                dans les moteurs WebKit, et sans elle le texte reste peint par
+                dessus le dégradé.
+              */}
               <p
                 ref={synopsisRef}
                 className={synopsisOuvert ? "" : "line-clamp-4"}
-                style={{ fontSize: "15px", color: "var(--reel-text)", lineHeight: "24px" }}
+                style={{
+                  fontSize: "15px",
+                  lineHeight: "24px",
+                  color: "var(--reel-text)",
+                  ...(synopsisDeborde && !synopsisOuvert
+                    ? {
+                        backgroundImage:
+                          "linear-gradient(to bottom, var(--reel-text) 0%, var(--reel-text) 45%, var(--reel-muted) 100%)",
+                        WebkitBackgroundClip: "text",
+                        backgroundClip: "text",
+                        color: "transparent",
+                        WebkitTextFillColor: "transparent",
+                      }
+                    : null),
+                }}
               >
                 {film.synopsis}
               </p>
