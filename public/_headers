@@ -87,6 +87,8 @@
 # `immutable`, et `stale-while-revalidate` pour que le remplacement se propage
 # sans faire attendre personne. Le navigateur ne redemande de toute façon une
 # icône qu'à l'ouverture d'un onglet.
+/favicon.ico
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
 /favicon.svg
   Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
 /favicon-96.png

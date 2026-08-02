@@ -20,7 +20,14 @@
         /favicon.ico, que la réécriture SPA servait en HTML avec un code 200,
         donc un onglet sans icône plutôt qu'un 404 franc.
 
-        Trois fichiers et pas un de plus :
+        Quatre fichiers :
+          favicon.ico          16, 32 et 48 px dans un seul conteneur, à charge
+                               utile PNG. Il n'est pas là pour les navigateurs,
+                               qui prennent le SVG, mais pour tout ce qui
+                               demande `/favicon.ico` en dur sans lire ce
+                               `<head>` : aperçus de lien, agrégateurs, vieux
+                               lecteurs. Sans lui, la réécriture SPA leur
+                               servait la page d'accueil en 200 ;
           favicon.svg          la source, un seul fichier pour toutes les
                                tailles, y compris les écrans à forte densité ;
           favicon-96.png       le repli des navigateurs qui ignorent le SVG ;
@@ -31,6 +38,7 @@
         Pas de `manifest.json` : il ne servirait qu'à l'installation en
         application, qui n'est pas un chantier ouvert.
       -->
+      <link rel="icon" href="/favicon.ico" sizes="32x32" />
       <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       <link rel="icon" href="/favicon-96.png" type="image/png" sizes="96x96" />
       <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

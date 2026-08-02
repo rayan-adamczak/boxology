@@ -27,16 +27,17 @@ export function TopBar() {
         >
           {/* Le mot-symbole reste visible à toute taille : c'est lui qui porte
               l'identité sur petit écran, où le nom écrit peut céder la place. */}
-          {/* 21 px, soit l'encre du « j » du mot mesurée à côté (20,06 px à
-              21 px de corps) : c'est la même lettre répétée, donc toute autre
-              hauteur se lit comme une faute d'échelle. À 26 px le mot-symbole
-              dépassait le mot de 30 %. */}
+          {/* Depuis que le « j » blanc est parti, le motif n'a plus de point :
+              il ne se cale donc plus sur l'encre entière du « j » du mot mais
+              sur sa hauteur de capitale plus descendante, 15,84 + 4,89 à 24 px
+              de corps, soit 20,7. Les fûts partent ainsi du même plafond que
+              les lettres et descendent aussi bas qu'elles. */}
           <Logo hauteur={21} />
           <span
-            /* 21 px et non 18 : à 18, la hauteur d'x du mot tombait bien sous
-               les 26 px du mot-symbole, qui prenait le dessus. Le pied de page
-               reste à 18, il n'a pas de bandeau à équilibrer. */
-            style={{ fontFamily: "var(--reel-font-titre)", fontSize: "21px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}
+            /* 24 px. Le couple a grossi deux fois : 18 puis 21 px de corps
+               paraissaient timides dans un bandeau de 72 px de haut, où le
+               mot-symbole est le seul élément de marque. */
+            style={{ fontFamily: "var(--reel-font-titre)", fontSize: "24px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}
           >
             jaquette.app
           </span>
