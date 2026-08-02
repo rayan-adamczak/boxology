@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { ChevronDown, Settings, LogOut, Bookmark, Library, User as UserIcon } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
+import { Logo } from "./Logo";
 import { connexionGoogle, deconnexion, nomAffiche, useSession } from "../lib/auth";
 
 export function TopBar() {
@@ -24,8 +25,9 @@ export function TopBar() {
           className="flex shrink-0 items-center gap-2"
           aria-label="Accueil jaquette.app"
         >
-          {/* Plus de `hidden sm:block` : la pastille portait l'identité sur
-              petit écran, sans elle le bandeau n'aurait plus rien affiché. */}
+          {/* Le mot-symbole reste visible à toute taille : c'est lui qui porte
+              l'identité sur petit écran, où le nom écrit peut céder la place. */}
+          <Logo hauteur={26} />
           <span
             style={{ fontFamily: "var(--reel-font-titre)", fontSize: "18px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}
           >

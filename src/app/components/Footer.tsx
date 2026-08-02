@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { ArrowUpRight } from "lucide-react";
+import { Logo } from "./Logo";
 
 const CONTACT = "contact@jaquette.app";
 
@@ -40,6 +41,7 @@ export function Footer() {
         {/* Identité */}
         <div className="flex max-w-[320px] flex-col gap-3">
           <Link to="/" className="flex items-center gap-2" aria-label="Accueil jaquette.app">
+            <Logo hauteur={26} />
             <span style={{ fontFamily: "var(--reel-font-titre)", fontSize: "18px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}>
               jaquette.app
             </span>

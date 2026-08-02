@@ -2995,8 +2995,47 @@ d'images, passe sans être touchée.
 **Note à deux décimales** partout. TMDB rend `7.901` ; trois décimales suggèrent
 une précision que la note n'a pas.
 
-Le mot-symbole est le seul élément de marque : la pastille bleue à icône de
-pellicule a été retirée, l'emplacement attend un vrai logo.
+### Logo, posé le 2 août 2026
+
+L'emplacement laissé vide par la pastille bleue à icône de pellicule est rempli :
+quatre « j » décalés, lus comme des tranches d'étagère, blanc devant puis cyan
+`#00BCED`, ambre `#FFB000`, rouge `#FB4412`. Dessiné dans Figma, exporté en
+tracés.
+
+**Trois copies des mêmes tracés, et c'est assumé** : `public/logo.svg` (fond
+transparent), `public/favicon.svg` (tuile `#14181c`, rayon 44) et
+`src/app/components/Logo.tsx`. Une retouche vaut pour les trois, plus le lockup
+recopié dans `scripts/og/og-jaquette.html`. La source unique supposerait un
+`<img>` à l'écran, donc une requête de plus sur le chemin de rendu du bandeau,
+pour un fichier non haché qui traverse le cache d'un déploiement à l'autre.
+
+**Les couleurs sont en dur, jamais en jetons du thème.** Un logo ne suit pas la
+couleur d'accent du site : les quatre teintes sont hors de la palette bleu nuit
+du §8, et c'est ce qui les fait tenir lieu de marque.
+
+**Le site ne déclarait aucune icône.** Le navigateur demandait `/favicon.ico`,
+que la réécriture SPA servait en HTML avec un code 200, donc un onglet muet
+plutôt qu'un 404 franc. Trois fichiers désormais : `favicon.svg`,
+`favicon-96.png` pour les navigateurs qui ignorent le SVG, et
+`apple-touch-icon.png` en 180 px, **carré et sans arrondi**, iOS masquant
+lui-même et un double arrondi se voyant. Cache de sept jours dans `_headers`,
+comme les polices et pour la même raison, leur nom ne porte pas de hachage.
+
+Les PNG sont rendus depuis le SVG par Chrome sans interface, jamais dessinés à
+la main :
+
+    chrome --headless --disable-gpu --default-background-color=00000000 \
+      --window-size=180,180 --screenshot=apple-touch-icon.png file://…
+
+**Le SVG doit être en ligne dans la page de rendu, pas en `<img src="file://">`**
+qui reste bloqué et sort une icône d'image cassée. Même piège pour les polices
+d'`og-jaquette.html` si on les sert par un serveur local : le pare-feu de la
+machine refuse la connexion, et la page rendue est l'écran d'erreur de Chrome.
+Le chemin relatif du fichier, lui, fonctionne tel quel.
+
+`og-jaquette.jpg` a été refaite avec le mot-symbole à gauche du nom, même
+lockup qu'au bandeau, et son décompte remis à 15 000 éditions, il annonçait
+encore 8 400.
 
 ### Awin
 4 programmes en attente : Fnac, E.Leclerc, Cultura, Zavvi, **tous avec flux

@@ -1,0 +1,44 @@
+/**
+ * Mot-symbole de jaquette.app.
+ *
+ * Quatre « j » décalés, lus comme les tranches d'une étagère : blanc devant,
+ * puis cyan, ambre, rouge. Dessiné dans Figma (node 54:145), tracés identiques
+ * à ceux de `public/logo.svg` et `public/favicon.svg`. Toute retouche vaut pour
+ * les trois : il n'y a pas de source unique, un `<img>` ne pouvant pas hériter
+ * de la taille de texte du bandeau aussi simplement.
+ *
+ * En SVG en ligne et non en `<img src="/logo.svg">` : le fichier n'est pas
+ * haché, donc il traverserait le cache d'un déploiement à l'autre, et une
+ * requête de plus sur le chemin de rendu du bandeau se voit au premier écran.
+ *
+ * Les couleurs sont en dur, jamais en jetons du thème : un logo ne suit pas la
+ * couleur d'accent du site, il la précède.
+ *
+ * `aria-hidden` par défaut : les deux appelants (bandeau, pied de page) sont des
+ * liens qui portent déjà `aria-label="Accueil jaquette.app"`, et le mot-symbole
+ * est écrit en toutes lettres juste à côté. Le nommer une troisième fois ferait
+ * répéter « jaquette.app » trois fois à un lecteur d'écran.
+ */
+export function Logo({ hauteur = 26, className }: { hauteur?: number; className?: string }) {
+  /* Une seule dimension pilotée, la hauteur ; la largeur suit le rapport natif,
+     120,921 × 145,583. Même règle que la visionneuse : c'est ce qui rend la
+     déformation impossible. */
+  const largeur = (hauteur * 120.921) / 145.583;
+
+  return (
+    <svg
+      viewBox="0 0 120.921 145.583"
+      width={largeur}
+      height={hauteur}
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+      style={{ display: "block", flexShrink: 0 }}
+    >
+      <path fill="#FB4412" d="M91.5269 145.583C90.9114 145.583 90.2445 145.531 89.5263 145.429C88.9107 145.429 88.2439 145.326 87.5257 145.121L85.679 126.192C90.3984 126.192 93.7327 125.423 95.682 123.884C97.7339 122.345 98.7599 119.267 98.7599 114.65V33.7028H120.92V115.266C120.92 120.601 120.254 125.166 118.92 128.962C117.689 132.861 115.842 135.99 113.38 138.35C110.917 140.812 107.84 142.607 104.146 143.736C100.555 144.967 96.3489 145.583 91.5269 145.583Z" />
+      <path fill="#FFB000" d="M62.9672 145.583C62.3517 145.583 61.6848 145.531 60.9666 145.429C60.3511 145.429 59.6842 145.326 58.966 145.121L57.1193 126.192C61.8387 126.192 65.173 125.423 67.1223 123.884C69.1742 122.345 70.2002 119.267 70.2002 114.65V33.7028H92.3607V115.266C92.3607 120.601 91.6938 125.166 90.3601 128.962C89.129 132.861 87.2823 135.99 84.82 138.35C82.3577 140.812 79.2798 142.607 75.5864 143.736C71.9956 144.967 67.7892 145.583 62.9672 145.583Z" />
+      <path fill="#00BCED" d="M34.4075 145.583C33.792 145.583 33.1251 145.531 32.4069 145.429C31.7914 145.429 31.1245 145.326 30.4063 145.121L28.5596 126.192C33.279 126.192 36.6133 125.423 38.5626 123.884C40.6145 122.345 41.6405 119.267 41.6405 114.65V33.7028H63.801V115.266C63.801 120.601 63.1342 125.166 61.8004 128.962C60.5693 132.861 58.7226 135.99 56.2603 138.35C53.798 140.812 50.7201 142.607 47.0267 143.736C43.4359 144.967 39.2295 145.583 34.4075 145.583Z" />
+      <path fill="#FFFFFF" d="M5.84792 145.582C5.23235 145.582 4.56548 145.531 3.84732 145.429C3.23175 145.429 2.56488 145.326 1.84671 145.121L0 126.192C4.71937 126.192 8.05371 125.422 10.003 123.884C12.0549 122.345 13.0809 119.267 13.0809 114.65V33.7025H35.2414V115.266C35.2414 120.601 34.5745 125.166 33.2408 128.962C32.0097 132.861 30.163 135.99 27.7007 138.349C25.2384 140.812 22.1605 142.607 18.4671 143.736C14.8763 144.967 10.6699 145.582 5.84792 145.582ZM24.1611 21.545C19.8521 21.545 16.5178 20.6729 14.1581 18.9288C11.901 17.0821 10.7725 14.4146 10.7725 10.9264C10.7725 7.33555 11.901 4.61678 14.1581 2.77007C16.5178 0.923356 19.8521 0 24.1611 0C28.5727 0 31.9071 0.923356 34.1642 2.77007C36.5239 4.61678 37.7037 7.33555 37.7037 10.9264C37.7037 14.312 36.5239 16.9282 34.1642 18.7749C31.9071 20.6216 28.5727 21.545 24.1611 21.545Z" />
+    </svg>
+  );
+}
