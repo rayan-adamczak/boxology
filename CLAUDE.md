@@ -1780,11 +1780,22 @@ suivre les 301 et réattribuer. Deux à quatre semaines de plus.
 
 ### `/about`, en questions fréquentes, le 1er août 2026
 
-Structure reprise de la FAQ de Letterboxd : sommaire en tête, sections à ancre,
-une question par bloc. **Leur page en compte cent quinze, celle-ci vingt-neuf**,
-et c'est délibéré : un site d'un mois qui écrirait cent questions les
-inventerait, et cent réponses creuses sont exactement le contenu mince écarté
-des pages éditions.
+Structure reprise de la FAQ de Letterboxd : sommaire, sections à ancre, une
+question par bloc. **Leur page en compte cent quinze, celle-ci vingt-neuf**, et
+c'est délibéré : un site d'un mois qui écrirait cent questions les inventerait,
+et cent réponses creuses sont exactement le contenu mince écarté des pages
+éditions.
+
+**Le sommaire est une colonne collante à gauche**, verrouillée à 104 px sous le
+bandeau, avec la section courante en surbrillance. Sur une page de vingt-neuf
+questions, arriver par une ancre est le cas normal, pas l'exception : un
+sommaire posé en tête ne sert qu'au premier écran. En dessous de `lg` il repasse
+en ligne au-dessus du texte, une colonne de 240 px prise sur 375 ne laisserait
+rien au contenu.
+
+**Les trente-cinq ancres sont en anglais**, comme les chemins : une ancre fait
+partie de l'adresse, `/about#delete-my-account` se copie et se partage comme
+`/movies/…`. Les libellés restent en français.
 
 Le contenu vit dans `src/app/lib/faq.ts`, **sans aucune dépendance**, et le
 middleware l'importe pour écrire le corps servi. C'est le piège du corps injecté
@@ -1810,6 +1821,35 @@ Deux défauts corrigés au passage, tous deux invisibles au diff :
 
 Restent `/legal` et `/privacy`, qui servent 48 octets. Elles n'ont pas vocation
 à être trouvées par une recherche, donc ce n'est pas prioritaire.
+
+#### Le panneau d'aperçu ne peut pas éprouver ce qui dépend du défilement
+
+Trois fausses pistes sur la seule surbrillance du sommaire, toutes dues à
+l'outil et non à la page. À connaître avant de conclure qu'un comportement au
+défilement est cassé :
+
+| ce qu'il ne fait pas | conséquence |
+|---|---|
+| aucun rappel d'`IntersectionObserver`, même trivial | tout suivi bâti dessus paraît mort |
+| `requestAnimationFrame` suspendu, l'onglet étant masqué | tout étranglement en `rAF` gèle après le montage |
+| `innerWidth` et `innerHeight` parfois à **0** | mise en page repliée en une colonne, sections de 12 000 px, mesures dénuées de sens |
+| `scrollTo` n'émet aucun événement `scroll` | les écouteurs ne se déclenchent jamais |
+
+Ce qui marche : **redimensionner l'onglet explicitement**, puis émettre
+`dispatchEvent(new Event("scroll"))` à la main après chaque `scrollTo`. Et
+vérifier `innerWidth` avant de croire une mesure, un viewport à zéro invalide
+tout ce qui suit.
+
+Les captures d'écran sont par ailleurs aléatoires après un défilement programmé,
+elles rendent souvent un écran vide alors que le DOM est correct. Naviguer
+directement sur l'ancre voulue donne une capture fiable.
+
+**Ce que l'épisode a changé dans le code** : la surbrillance suit désormais une
+règle lisible, « la dernière section dont le titre est passé sous le bandeau »,
+sur un écouteur de défilement sans étranglement. Six `getBoundingClientRect` par
+événement ne coûtent rien, et React ne re-rend pas quand la valeur ne change
+pas. **Une fonction qu'on ne peut pas éprouver est un passif**, même quand elle
+marche.
 
 ### Pages éditions : écarté, et pourquoi
 
