@@ -238,7 +238,9 @@ export function BrowsePage() {
             {CATALOGUE.codesBarres} codes-barres.
           </p>
 
-          <label className="relative mt-9 block w-full max-w-[680px]">
+          {/* `reel-anneau-logo` remplace le `focus:ring-2` bleu : au focus, le
+              champ prend les trois couleurs du mot-symbole (cf. theme.css). */}
+          <label className="reel-anneau-logo relative mt-9 block w-full max-w-[680px]">
             <span className="sr-only">Rechercher un film par titre</span>
             <Search
               size={22}
@@ -250,7 +252,7 @@ export function BrowsePage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Rechercher un film…"
-              className="w-full rounded-full py-4 pl-14 pr-5 outline-none transition focus:ring-2 focus:ring-[var(--reel-accent)]"
+              className="relative z-10 w-full rounded-full py-4 pl-14 pr-5 outline-none transition"
               style={{
                 backgroundColor: "var(--reel-surface)",
                 border: "1px solid var(--reel-border)",

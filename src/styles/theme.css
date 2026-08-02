@@ -21,6 +21,17 @@
   --reel-accent: #1f5fd0;      /* remplissage, blanc dessus 5,82:1 */
   --reel-accent-clair: #6ea8ff; /* texte, bordures, états actifs, 7,40:1 sur le fond */
   --reel-accent-soft: rgba(31, 95, 208, 0.18); /* fonds de pastille */
+
+  /* Les trois couleurs des tranches du mot-symbole. Elles ne servent pas de
+     couleurs d'interface : rien n'est coloré avec, et il n'y a pas de bouton
+     ambre. Elles existent pour les rares endroits qui citent le logo, à ce
+     jour l'anneau de focus du champ de recherche, et sont ici plutôt que
+     recopiées sur place pour qu'une retouche du dessin se propage.
+     Les tracés du logo, eux, gardent leurs valeurs en dur : un SVG servi comme
+     fichier ne voit pas les jetons du site. */
+  --reel-logo-cyan: #00bced;
+  --reel-logo-ambre: #ffb000;
+  --reel-logo-rouge: #fb4412;
   --reel-font: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   /* Titres et mot-symbole. Inter reste le corps de texte : une grotesque à fort
      caractère fatigue sur un synopsis de dix lignes. */
@@ -235,6 +246,64 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+}
+
+/*
+  Anneau de focus du champ de recherche, aux couleurs du mot-symbole.
+
+  Le champ est la seule chose que le site demande à quelqu'un qui arrive, donc
+  le seul endroit où citer le logo n'est pas décoratif : c'est là que la marque
+  a une raison de se rappeler. Partout ailleurs le focus reste bleu, un anneau
+  tricolore sur chaque bouton ferait sapin de Noël.
+
+  Un dégradé ne se met pas dans un `box-shadow`, donc pas dans un `ring-*` de
+  Tailwind. Il passe par une couche en `::after` remplie du dégradé et évidée
+  en son centre par deux masques composés : le premier couvre la zone de
+  contenu, le second toute la boîte, `exclude` ne laissant que la différence,
+  c'est-à-dire le cadre de 2 px.
+
+  `inset: -3px` place l'anneau **hors** du champ, comme le faisait
+  `focus:ring-2`, donc la boîte ne bouge pas d'un pixel à la prise de focus.
+  Un dégradé posé en bordure avec `background-clip` aurait, lui, demandé
+  d'épaissir la bordure au repos ou de la faire grossir au focus.
+
+  `focus-within` et non `focus` : la cible est le `<label>`, le focus arrive
+  sur l'`<input>` qu'il enveloppe.
+
+  Les deux préfixes `-webkit-` sont obligatoires, Safari ne connaît pas encore
+  `mask-composite` sans préfixe et sa valeur s'y appelle `xor`.
+*/
+.reel-anneau-logo {
+  position: relative;
+}
+
+.reel-anneau-logo::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  padding: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--reel-logo-cyan) 0%,
+    var(--reel-logo-ambre) 50%,
+    var(--reel-logo-rouge) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+  pointer-events: none;
+}
+
+.reel-anneau-logo:focus-within::after {
+  opacity: 1;
 }
 
 /*
