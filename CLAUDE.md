@@ -2113,6 +2113,29 @@ donc plus petits, 12 px contre 13, et sans état de survol. Si la confusion se
 voit à l'usage, c'est le filtre qu'il faudra changer, lui seul ayant un état
 actif à montrer.
 
+#### Ligne d'édition, arrêtée le 2 août 2026
+
+Vignette, titre, badges, année, code-barres, boutons. Le titre porte déjà le
+format, il vient de la source et n'est pas recomposé.
+
+**Deux colonnes portent l'année, et il faut les deux.** `date_parution` est la
+seule propre, mais elle n'existe que sur les lignes blu-ray.com, editioncollector
+ne datant rien : s'y tenir laisserait la moitié du catalogue sans année. On
+retombe sinon sur `date_sortie`, texte anglais, dont on n'extrait que le
+millésime, **borné** pour ne pas ramasser le 1920 de `1920x1080` (§9).
+
+**`editions.region` est inutilisable en badge tel quel.** C'est du texte libre
+qui décrit parfois deux disques à la fois, `4K Blu-ray: Region free 2K Blu-ray:
+Region B (A, C untested)`, soit soixante caractères. `zonesDe`, qui sert déjà à
+l'onglet Détails, est exporté et réutilisé plutôt que recopié ; il écarte au
+passage les zones entre parenthèses, marquées `untested` donc invérifiées. Seul
+ajout local : `Region free`, qui n'est pas une lettre et qu'il ne retenait pas.
+
+**Le code-barres est masqué sous `sm`.** À 375 px, treize chiffres à côté du
+titre et des deux boutons ne laissent plus rien au titre. Il est en
+`tabular-nums` : c'est une valeur qu'on lit chiffre à chiffre, et la chasse fixe
+aligne deux EAN empilés.
+
 **Typographie.** Bricolage Grotesque (`--reel-font-titre`) sur les titres et le
 mot-symbole, Inter pour le corps ; une grotesque à fort caractère fatigue sur un
 synopsis. Space Grotesk a été écartée : c'est devenue la police par défaut du
@@ -2171,6 +2194,25 @@ La distribution est en grille de portraits et non en liste : empilée, elle
 tenait dans une demi-colonne mais lisait comme un annuaire, et les visages se
 réduisaient à des pastilles d'initiales de 36 px. Le rapport 2/3 est imposé même
 sans photo, sinon les cartes sans image remontent et désalignent les noms.
+
+**Il ne suffit pas de fixer la largeur de l'enveloppe.** Un `<button>` se
+dimensionne sur son contenu, même passé en `flex`, et la vignette en `w-full`
+suivait donc cette largeur adaptée : une carte sans photo retombait sur les
+48 px de la pastille, plus étroite **et** plus courte que ses voisines. Le
+`w-[132px]` posé par le rail ne descendait pas jusqu'au bouton, il faut un
+`w-full` dessus.
+
+**Le contour de survol se dessine à l'intérieur de la vignette**, sur une couche
+posée par-dessus l'image, en `ring-inset`. Un `ring` se peint hors de la boîte ;
+depuis que le rail n'a plus de rembourrage horizontal, la première carte touche
+le bord du scrollport et `overflow-x: auto` rognait le contour du premier et du
+dernier acteur, coins coupés net. Le focus rejoint cette couche par
+`group-focus-visible` : posé sur le bouton, il dessinait un second contour
+autour de la carte entière, tronqué pour la même raison.
+
+Piège de mesure : `UserAvatar` porte lui aussi un `aria-hidden`, et il précède
+la couche dans le document. Un relevé qui cible `span[aria-hidden]` attrape le
+sien sur les cartes sans photo et conclut à tort que la couche manque.
 
 **Page d'accueil déconnectée, refaite le 31 juillet 2026.** Elle ouvrait sur
 « Parcourir les films » et une grille alphabétique : le premier écran d'un
