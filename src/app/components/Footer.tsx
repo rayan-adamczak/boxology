@@ -41,9 +41,9 @@ export function Footer() {
         {/* Identité */}
         <div className="flex max-w-[320px] flex-col gap-3">
           <Link to="/" className="flex items-center gap-2" aria-label="Accueil jaquette.app">
-            {/* 17 px pour un nom à 20 : capitale plus descendante, 13,20 + 4,08
-                à ce corps. Même règle qu'au bandeau, où le couple est 21 et 24. */}
-            <Logo hauteur={17} />
+            {/* 19 px pour un nom à 20, la griffe dépassant le calage
+                typographique comme au bandeau, où le couple est 24 et 27. */}
+            <Logo hauteur={19} />
             <span style={{ fontFamily: "var(--reel-font-titre)", fontSize: "20px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}>
               jaquette.app
             </span>

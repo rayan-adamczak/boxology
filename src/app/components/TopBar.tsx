@@ -27,12 +27,13 @@ export function TopBar() {
         >
           {/* Le mot-symbole reste visible à toute taille : c'est lui qui porte
               l'identité sur petit écran, où le nom écrit peut céder la place. */}
-          {/* Depuis que le « j » blanc est parti, le motif n'a plus de point :
-              il ne se cale donc plus sur l'encre entière du « j » du mot mais
-              sur sa hauteur de capitale plus descendante, 15,84 + 4,89 à 24 px
-              de corps, soit 20,7. Les fûts partent ainsi du même plafond que
-              les lettres et descendent aussi bas qu'elles. */}
-          <Logo hauteur={21} />
+          {/* 24 px. La griffe a d'abord été calée sur la capitale plus
+              descendante du nom, 20,7 px pour un corps de 24 ; le nom est passé
+              à 27 et la griffe est montée avec, à la main. Elle dépasse donc un
+              peu ce calage, à dessein : trois tranches lues comme un motif
+              tiennent une taille de plus qu'une lettre. Le favicon, lui, ne
+              suit pas, son cadrage est le sien. */}
+          <Logo hauteur={24} />
           <span
             /* 27 px. Le nom a grossi trois fois, 18 puis 21 puis 24, sans que
                la griffe suive au dernier cran : elle reste à 21 px, calée sur
