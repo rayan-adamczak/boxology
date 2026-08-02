@@ -315,14 +315,24 @@
   /* L'animation n'est déclarée qu'ici, pas sur la couche au repos : sinon elle
      tourne en permanence sous une opacité nulle, et le compositeur repeint un
      cadre de 686 px que personne ne voit. */
-  animation: reel-anneau-defile 5s linear infinite;
+  animation: reel-anneau-defile 7s linear infinite;
 }
 
 /* Le fond fait 200 % de large, donc le décaler de 200 % ramène exactement le
-   même motif : le tour boucle sans saut. */
+   même motif : le tour boucle sans saut.
+
+   De 200 % vers 0 et non l'inverse, et ce n'est pas de la coquetterie : quand
+   l'image est plus large que la boîte, un `background-position` **croissant**
+   la fait glisser vers la **gauche**, la valeur alignant le même pourcentage
+   de l'image et du conteneur. Aller de 200 % à 0 fait donc filer les couleurs
+   de gauche à droite, dans le sens de lecture et dans celui du dégradé du
+   logo, cyan puis ambre puis rouge. */
 @keyframes reel-anneau-defile {
-  to {
+  from {
     background-position: 200% 0;
+  }
+  to {
+    background-position: 0 0;
   }
 }
 
