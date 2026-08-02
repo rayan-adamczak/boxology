@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 5 780 lignes
+### `films`, 8 602 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -172,7 +172,7 @@ toujours. Au 31 juillet 2026 la tête de liste est *L'Odyssée* (1 167),
 indéfiniment les succès du jour de l'import, d'où la tâche hebdomadaire
 décrite au §6.
 
-### `editions`, 10 298 lignes
+### `editions`, 14 744 lignes
 `id` (identity **ajoutée en juillet 2026**, elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `formats_extraits` (text[]), `url_source`, `contenu_brut`, `image_url`,
@@ -180,8 +180,9 @@ applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `langues`, `nb_commentaires`, `nb_wishlist`, `prix_fnac_extrait`,
 `film_id` (film principal), **`source`**, **`source_id`**.
 
-`source` vaut `editioncollector.fr` (3 193), `bluray.com` (5 278) ou
-`lechatquifume.com` (212) ou `metalunastore.fr` (1 615).
+`source` vaut `bluray.com` (5 278), `zavvi.com` (4 446),
+`editioncollector.fr` (3 193), `metalunastore.fr` (1 615) ou
+`lechatquifume.com` (212).
 
 **`collection_editeur` et `numero_collection`, ajoutées le 1er août 2026.**
 Migration `20260801_collection_editeur.sql`, index sur le couple. La série
@@ -251,19 +252,25 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films`, 12 444 liens
+### `edition_films`, 16 890 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
-Répartition : `bluray_page` 2 891, `film_id` 2 619, `bluray_tmdb` 2 483,
-`bluray_page_partiel` 1 710, `corrige_manuel` 692, `metaluna_*` 1 322,
-`collection_tmdb` 199, `probable` 171, `chat_qui_fume` 134,
-`make_my_day` 86, `corrige_annee` 68, `chat_qui_fume_duree` 66,
-`metaluna_relecture` 76 et `metaluna_relecture_partiel` 2, `fusion_doublon` 3.
+Répartition : `zavvi` 4 446, `bluray_page` 2 891, `film_id` 2 619,
+`bluray_tmdb` 2 483, `bluray_page_partiel` 1 710, `corrige_manuel` 692,
+`metaluna_*` 1 322, `collection_tmdb` 199, `probable` 171,
+`chat_qui_fume` 134, `make_my_day` 86, `corrige_annee` 68,
+`chat_qui_fume_duree` 66, `metaluna_relecture` 76 et
+`metaluna_relecture_partiel` 2, `fusion_doublon` 3.
 
-12 444 liens pour **9 517 éditions rattachées** sur 10 298, soit 92,4 % :
+16 890 liens pour **13 963 éditions rattachées** sur 14 744, soit 94,7 % :
 l'écart entre liens et éditions, ce sont les coffrets, qui portent un lien par
 film.
+
+**Le taux a monté en absorbant 4 446 éditions**, ce qui paraît contre-intuitif
+et ne l'est pas : l'import Zavvi du 2 août 2026 n'a écrit **que des éditions
+rattachées**, les 7 049 orphelines qu'il aurait pu créer ayant été refusées à
+l'entrée. Ajouter du rattaché relève la moyenne.
 
 **La source d'un lien dit comment il a été obtenu, pas seulement d'où.** C'est
 ce qui rend chaque campagne isolable et annulable sans toucher aux autres :
@@ -373,13 +380,18 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 5 839 |
-| Éditions | 10 298 |
+| Films | 8 602 |
+| Éditions | 14 744 |
 | Codes-barres | 5 008, dont 13 codes de magasin sans valeur hors enseigne |
-| Éditions rattachées | 9 517 (92,4 %) |
+| Éditions rattachées | 13 963 (94,7 %) |
 | Éditions sans film | 781 |
-| Éditions avec visuel | 9 830 (99,7 %) |
-| URL au sitemap | 5 446 |
+| Éditions avec visuel | 14 701 (99,7 %) |
+| URL au sitemap | 9 441 |
+
+**Zavvi est entré le 2 août 2026**, +4 446 éditions et +2 822 films, le plus
+gros import du catalogue, et le premier à passer **entièrement par GitHub
+Actions** (§6). Le nombre de codes-barres n'a pas bougé d'une unité : Zavvi
+n'en publie aucun.
 
 **Dix catalogues d'éditeurs sont entrés le 1er août 2026**, +1 827 éditions et
 +1 235 films, soit une journée qui a fait grossir la base d'un cinquième :
@@ -706,6 +718,75 @@ langue de la requête change les résultats et pas seulement leur libellé :
 n'existe en `fr-FR` que sous `Les Feux sauvages`. La recherche interroge donc
 les deux langues.
 
+### zavvi.com, 4 446 éditions, 2 août 2026
+
+Boutique britannique, marché **région B**, et candidate Awin : c'est la seule
+source du catalogue dont l'affiliation est l'objectif déclaré. Entorse au §1
+du même ordre que Criterion, en moins gênante, la zone B se lisant sur un
+lecteur français.
+
+**Le sitemap est le point d'entrée**, `sitemapindex-product.xml.gz`, un seul
+fichier de 28 290 URL. Pas de pagination à deviner, et pas de compteur qui
+ment sur son volume comme celui de Metaluna. Piège : **les `.gz` ne sont pas
+gzippés**, le serveur les sert décompressés malgré l'extension, `gzip` lève
+`BadGzipFile`. Essayer les deux.
+
+Sur 28 290 produits, 12 665 sont des disques, repérés par le premier segment
+du chemin, `/p/{blu-ray,4k,dvd}/`. Le reste est du textile et de la figurine.
+Leur `robots.txt` bloque une centaine d'aspirateurs nommés et les chemins
+panier, recherche et tri, mais **ne vise aucun agent d'IA** et laisse le
+catalogue ouvert.
+
+**On ne garde pas la page**, contrairement à blu-ray.com. Chacune pèse 1,1 Mo,
+soit 13,9 Go pour le catalogue, ce qu'aucun artefact GitHub n'accepte. On
+extrait le JSON-LD et le bloc de specs, environ 5 Ko. La règle du §10
+« conserver les pages brutes » est donc tenue de justesse : on peut rejouer un
+parseur, on ne peut plus aller chercher un champ auquel on n'avait pas pensé.
+C'est la contrepartie assumée de collecter ailleurs que sur une machine à soi.
+
+Couverture réelle, mesurée sur les 12 661 fiches et non sur un échantillon,
+qui la surestimait de quinze points :
+
+| | échantillon de 50 | catalogue entier |
+|---|---|---|
+| Studio | 98 % | 93 % |
+| Number of Disks | 96 % | 94 % |
+| Director | 92 % | **75 %** |
+| Run Time | 78 % | **70 %** |
+| Region | 12 % | 10 % |
+| EAN | 0 % | **0 %** |
+
+**1 126 fiches (9 %) n'ont pas de nom**, le nœud `Product` du JSON-LD
+manquant, et elles sont irrécupérables sans recrawler puisque la page n'est
+pas conservée.
+
+**Trois manques structurels**, qui expliquent le taux de rattachement le plus
+bas du catalogue, **43,5 %** contre 94,9 % chez editioncollector :
+
+- **aucune date de parution**, donc le contrôle « un disque ne peut pas porter
+  une œuvre postérieure à sa sortie », le plus rentable écrit à ce jour, ne
+  s'applique pas ;
+- **aucun EAN**, ni `gtin13` ni « Barcode » ;
+- **aucune année**, ni dans les specs ni dans le JSON-LD.
+
+Ne restent que la durée et le réalisateur, présents à 70 % et 75 %.
+
+**`Cast List` n'est pas exploitable** : les noms y sont collés sans
+séparateur, `Vincent Price Peter Cushing Christopher Lee`, et une fiche sur
+quatre seulement met des virgules. Découper là-dessus fabriquerait des acteurs
+qui n'existent pas. Le champ est relevé, jamais employé.
+
+**`Studio` est bien l'éditeur du disque**, à l'inverse du `vendor` Shopify du
+Chat qui fume qui nommait l'ayant droit : `Radiance`, `88 Films`,
+`Nucleus Films`, `Dazzler`, `Paramount Home Entertainment`.
+
+**Le prix est en livres et n'est pas écrit.** `prix_editeur` se lit en euros
+partout dans l'application, et c'est de toute façon un prix de vente au
+détail, pas un prix conseillé.
+
+**4 446 éditions écrites sur 11 495 possibles**, et c'est un choix : voir
+`--rattachees-seules` au §6.
+
 ### TMDB
 Métadonnées films et séries. Rattachement par titre **et année**.
 
@@ -794,6 +875,103 @@ catalogue vide : 404 à **zéro octet**, signature d'un chemin qui n'existe pas.
 ---
 
 ## 6. Scripts (`~/Documents/jaquette-scraping/`)
+
+### Ils tournent sur GitHub Actions depuis le 2 août 2026
+
+Les scripts vivent dans **`github.com/rayan-adamczak/jaquette-scraping`,
+dépôt privé**, et c'est cette privauté qui lève l'objection du §6 d'origine :
+la clé Supabase dans les secrets d'un dépôt **public** aurait été exposée à
+quiconque obtiendrait un droit d'écriture. Ici elle ne l'est pas, et une
+seconde clé secrète, distincte de `import_scripts_2026_07`, permet de couper
+la CI sans arrêter les passes locales.
+
+Sept secrets : `SUPABASE_SERVICE_ROLE_KEY`, `TMDB_READ_TOKEN`, les quatre
+`R2_*`, et `CF_DEPLOY_HOOK`.
+
+| workflow | déclenchement | ce qu'il fait |
+|---|---|---|
+| `maj-shopify.yml` | **cron, mardi 8 h UTC** | 10 collections Metaluna + Le Chat qui fume |
+| `maj-zavvi.yml` | à la main | énumérer, crawler, résoudre, miroiter, écrire |
+| `publier.yml` | appelé par les deux | hook Cloudflare, puis vérifie le sitemap servi |
+
+**Aucun workflow pour blu-ray.com ni editioncollector**, les deux plus gros
+fonds. C'est le trou restant, et il est décrit au §8.
+
+**Résolution et écriture sont séparées jusque dans le graphe de jobs.** Le
+premier étage tourne en parallèle et ne fait que lire ; le second est seul sur
+sa machine et écrit, sous `concurrency: ecriture-base` partagé par tous les
+workflows. Dix jobs qui créent des films en même temps se heurteraient sur
+l'unicité `(tmdb_id, type)`.
+
+**Les catalogues fusionnés sont recommités par la CI.** `enum_*.py` fusionne
+avec `catalogue_*.json`, fichier suivi par git : sans le commit de retour, la
+passe suivante repartirait du fichier de la semaine d'avant et la fusion ne
+servirait à rien.
+
+**`run_crawl` et `run_resolutions` reprennent les artefacts d'un run
+antérieur** au lieu d'en refaire un. Sans elles, éprouver la chaîne Zavvi
+coûte deux crawls de deux heures quarante-cinq et deux résolutions de
+quarante minutes, pour un catalogue qui n'a pas bougé entre les deux.
+
+**Le coût est en minutes de runner, pas en stockage.** La journée du 2 août
+2026 a consommé **1 253 minutes**, à comparer aux 2 000 gratuites par mois
+d'un plan Free sur dépôt privé. Le stockage R2 est négligeable, l'egress
+gratuit. C'est le temps de transfert qui se paie, pas les octets.
+
+### Zavvi (`zavvi/`, 2026-08-02)
+
+    python3 enum_zavvi.py
+    python3 crawl_zavvi.py --tranche 0 --sur 4
+    python3 resoudre_zavvi.py --tranche 0 --sur 6
+    python3 miroir_zavvi.py --rattachees-seules --apply
+    python3 ecrire_zavvi.py --rattachees-seules --apply
+
+| Fichier | Rôle |
+|---|---|
+| `enum_zavvi.py` | Sitemap produit, isole les 12 665 disques |
+| `crawl_zavvi.py` | JSON-LD et specs, tranché, reprenable |
+| `resoudre_zavvi.py` | TMDB, tranché ; **adaptateur** sur `resoudre_metaluna` |
+| `controles.py` | Contrôle croisé, partagé par le miroir et l'écriture |
+| `miroir_zavvi.py` | Jaquettes vers `zavvi/<sku>/` sur R2 |
+| `ecrire_zavvi.py` | Films, éditions et liens (`--apply`) |
+
+**Le contrôle croisé est la leçon principale de cet import.** Un rattachement
+« sûr » ne repose que sur **une seule** mesure : la résolution teste la durée
+d'abord, et quand elle concorde elle ne consulte jamais le réalisateur. Sur
+les 5 021 liens sûrs, 3 153 tenaient par la durée seule, 1 868 par le
+réalisateur seul, **zéro par les deux**.
+
+Les confronter à la mesure inemployée donne :
+
+    3 293  65,6 %  confirmés par la seconde mesure
+    1 172  23,3 %  non vérifiables, la seconde mesure manque
+      556  11,1 %  contredits, écartés
+
+Une mesure absente n'est pas une contradiction. Les écartés sont le motif
+constant du §9, un titre exact tombant sur un homonyme : `Compulsion` de
+Fleischer (1959) rattaché à celui de Neil Marshall, `Kiss of Death` de
+Hathaway (1947) à celui de Schroeder.
+
+**Deux tolérances, trouvées en relisant les refus du contrôle** et non
+devinées, sans lesquelles il jetterait de bons liens : Zavvi colle les
+co-réalisateurs sans séparateur (`Walt Dohrn David P. Smith`), donc on cherche
+le nom TMDB n'importe où dans la chaîne ; et `Run Time` totalise parfois le
+boîtier (`Aeon Flux` annonce 186 minutes pour un film de 93), donc un multiple
+entier signale un total et non un désaccord.
+
+**`--rattachees-seules` refuse d'écrire une édition qu'aucun lien ne
+rattache.** Tout écrire aurait fait tomber le catalogue de 91,7 % à 66,3 % de
+rattachement pour 7 049 lignes sans œuvre. La doctrine « une orpheline se voit
+et se corrige » tient à huit cents, pas à sept mille : ces lignes-là ne sont
+pas au sitemap, n'apportent rien au référencement, et personne ne les
+reprendra jamais.
+
+**Le miroir porte le même drapeau, et il l'a appris cher.** Il ne dépendait
+d'abord que du crawl, exprès, pour tourner en parallèle de la résolution et
+gagner une heure. Mais un miroir qui part avant les résolutions ne sait pas
+quelles fiches seront retenues : il a recopié **11 498 images pour 3 154 Mo en
+quatre heures** quand 4 446 éditions seulement ont été écrites. Une heure
+gagnée d'un côté, deux heures et demie perdues de l'autre.
 
 ### Metaluna (`metaluna/`, 2026-08-01)
 
@@ -1445,12 +1623,27 @@ HD` à six lignes est un doublon de `Blu-ray 4K`, il tombe tout seul.
 texte libre anglais, `Figure/replica/props/memorabilia included`, et recoupe les
 formats ; le second n'a aucune intention de recherche derrière lui.
 
-**La table slug vers libellé est générée puis commitée**, pas calculée au rendu :
+**La table slug vers libellé est générée au build**, pas calculée au rendu :
 `scripts/generer-regroupements.mjs` écrit `src/app/lib/regroupements.ts`. Trois
 raisons : un slug d'URL doit être stable, la page d'index n'a alors aucune
 requête à faire avant de s'afficher, et PostgREST ne sait pas rendre un
-`distinct` sans vue dédiée. Elle se périme, c'est assumé et visible : un éditeur
-qui arrive au catalogue n'a pas de page tant que le script n'a pas tourné.
+`distinct` sans vue dédiée.
+
+**Elle était générée à la main puis commitée jusqu'au 2 août 2026**, sa
+péremption étant assumée et visible. Cette position ne tenait plus une fois la
+collecte automatisée : le « quelqu'un relance le script » n'existe plus, et un
+éditeur entrant au catalogue serait resté sans page indéfiniment. Le script est
+donc entré dans `npm run build`, et le fichier commité ne sert plus qu'à faire
+passer `tsc` sur un dépôt fraîchement cloné.
+
+**L'ordre dans le build n'est pas décoratif** : le script passe **avant**
+`vite build` et non après. `regroupements.ts` est importé par le bundle et par
+le middleware ; le régénérer ensuite laisserait partir la table périmée tout en
+donnant l'illusion du contraire. Le sitemap vient en dernier, il lit ce fichier
+en texte.
+
+    "build": "tsc --noEmit && node scripts/generer-regroupements.mjs
+              && vite build && node scripts/generer-sitemap.mjs"
 
 **Le middleware importe cette table**, il n'en recopie pas une seconde. Les
 Pages Functions passent par esbuild et `regroupements.ts` ne dépend de rien, ni
@@ -1656,6 +1849,28 @@ pas au crawler.
 ---
 
 ## 8. Chantiers ouverts
+
+### Automatiser les deux sources qui restent
+
+**C'est le chantier principal, et il est à moitié fait.** Les catalogues
+Shopify se rafraîchissent seuls (§6, cron du mardi), Zavvi se relance d'une
+commande, mais **blu-ray.com et editioncollector n'ont aucun workflow**, alors
+qu'ils portent 8 471 éditions à eux deux, soit plus de la moitié du catalogue.
+
+Ce qui manque n'est pas la chaîne, elle existe et a tourné, mais son portage :
+
+- **blu-ray.com** bute sur `crawl/pages/`, 346 Mo de pages gzippées qu'un
+  runner éphémère ne peut pas garder. Le §10 rappelle que trois corrections de
+  parseur ont été rejouées grâce à ce cache, sans une requête réseau. Le
+  reverser dans R2 est le préalable. Second risque, non mesuré : ils ont déjà
+  servi un 403 sur l'UA du robot, et une plage d'IP de datacenter se bloque
+  plus facilement qu'un résidentiel ;
+- **editioncollector** bute sur `ecrire_ec.py`, qui porte des décisions
+  manuelles en dur. Rien n'est planifiable tant qu'elles n'en sortent pas.
+
+Le reste est acquis : un `schedule:` de cinq champs dans le workflow suffit à
+faire tourner une chaîne sans personne, et `publier.yml` referme la boucle
+jusqu'au redéploiement.
 
 ### Décisions en attente sur les orphelines
 Il reste **751 éditions sans film** après le crawl complet du 31 juillet 2026 :
@@ -2512,6 +2727,39 @@ Documentés parce qu'ils se reproduiront.
   n'avait jamais été comparée.
 
 ### Infrastructure
+- **Dans GitHub Actions, `skipped` se propage de façon transitive**, et un run
+  qui n'a rien fait ressort **vert**. Rencontré deux fois le 2 août 2026 sur
+  la même chaîne. Avec `run_crawl`, le job `crawler` est sauté ; `miroir` s'en
+  relève par son `if`, mais tout job qui dépend d'un job ainsi relevé hérite
+  du saut faute de garde propre. Un `if` qui ne référence aucune fonction
+  d'état se voit ajouter `success()`, lequel remonte la chaîne.
+
+  La première fois, l'écriture a été sautée : quarante minutes de résolution
+  TMDB pour aucune simulation. La seconde, corrigée à moitié seulement, c'est
+  le **déploiement** qui a sauté après une écriture de 4 446 éditions, donc le
+  site est resté sur ses données de la veille sans que rien ne le signale.
+
+  La règle : **dans une chaîne où un job se relève par `if`, tous ceux qui le
+  suivent doivent porter le leur, jusqu'au dernier.** Et la garde s'écrit
+  `!= 'failure'` plutôt que `== 'success'`, seule forme qui tolère un amont
+  sauté sans avaler un amont tombé.
+
+      if: ${{ !cancelled() && needs.amont.result != 'failure' }}
+
+- **Un job parallélisé trop tôt travaille sur une question qui n'est pas encore
+  posée.** Le miroir Zavvi ne dépendait que du crawl, pour tourner pendant la
+  résolution TMDB et gagner une heure de mur. Mais il ne pouvait pas savoir
+  quelles fiches seraient retenues : 11 498 images recopiées pour 3 154 Mo en
+  quatre heures, quand 4 446 éditions ont été écrites. Une heure gagnée, deux
+  heures et demie perdues. **Le parallélisme n'est un gain que si l'étage
+  parallèle n'a pas besoin du résultat de l'autre.**
+- **Un rattachement validé par un seul contrôle n'est pas validé deux fois.**
+  Les fonctions de contrôle rendent à la première mesure qui concorde, donc
+  l'autre n'est jamais consultée. Sur Zavvi, 5 021 liens « sûrs » se
+  partageaient en 3 153 par la durée seule et 1 868 par le réalisateur seul,
+  zéro par les deux, et les confronter à la mesure inemployée en a démenti
+  **11,1 %**. Le niveau de confiance d'une passe dit ce qu'elle a vérifié, pas
+  ce qui est vrai.
 - **`npm run build` lance `tsc --noEmit` d'abord.** Sans lui, rien ne relisait le
   code : esbuild ne vérifie pas les types, et un identifiant JSX dont l'import a
   été retiré devient une référence globale résolue à l'exécution. Un `Search`
@@ -2678,6 +2926,13 @@ Ce qui a évité le plus d'erreurs :
 - Éditeur non professionnel (LCEN art. 6), **à compléter dès que le site
   devient commercial**
 - Attribution TMDB en pied de page (exigée par leur licence)
+- **Les visuels Zavvi sont repris depuis le 2 août 2026**, 11 498 packshots
+  miroités sur R2, dont 4 454 seulement correspondent à une édition écrite.
+  Même raisonnement que pour les trois sources ci-dessous : ce sont des
+  visuels d'éditeur que le revendeur diffuse, et l'usage vise l'affiliation,
+  donc commercial. Zavvi étant précisément un programme Awin en attente, la
+  question se réglera d'elle-même le jour où le flux produits sera accepté :
+  leurs images seront alors licenciées pour cet usage.
 - **Les visuels relevés chez Metaluna sont repris depuis le 1er août 2026**,
   252 jaquettes. Ce sont les visuels des éditeurs, Studiocanal, Artus Films,
   que Metaluna revend : le revendeur n'en est pas l'ayant droit, et `editeur`
