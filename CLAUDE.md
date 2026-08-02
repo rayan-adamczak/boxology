@@ -2749,6 +2749,28 @@ L'année est en graisse **300** et séparée du titre par deux espaces insécabl
 mot. Plus l'écart de graisse est net, moins elle se lit comme un morceau du
 titre.
 
+**Le synopsis est tronqué à quatre lignes, sur toutes les tailles**, avec « Voir
+plus » et « Voir moins ». La troncature a d'abord été réservée au mobile, au
+motif qu'un écran large avait la place. Il l'a, mais ce n'est pas la question :
+le héros doit tenir dans le premier écran, boutons compris, et **c'est la
+longueur du texte qui en décide, pas celle de l'écran**. Un synopsis TMDB fait
+jusqu'à huit lignes à 1 440 px et seize à 375, et il repoussait les boutons puis
+la barre d'onglets si bas qu'on ne soupçonnait plus leur existence.
+
+`line-clamp` et non une coupe de la chaîne : couper en JavaScript demanderait de
+deviner combien de signes tiennent sur quatre lignes, ce qui dépend de la
+largeur et de la police.
+
+**Le bouton n'apparaît que sur un débordement mesuré**, `scrollHeight >
+clientHeight`, jamais sur une longueur de chaîne : quatre lignes de 375 px et
+quatre lignes de 640 px n'accueillent pas le même nombre de signes, et sur un
+synopsis court le bouton mentirait. Remesuré au redimensionnement, une rotation
+d'écran faisant passer un texte de cinq lignes à trois.
+
+Piège en passant : le `sm:hidden` du bouton et le `sm:line-clamp-none` du texte
+allaient ensemble. N'en retirer qu'un laisse soit un texte tronqué sans moyen de
+l'ouvrir, soit un bouton qui ne commande rien.
+
 **Onglet Détails, arrêté le 30 juillet 2026.** Distribution en grille pleine
 largeur en tête, puis deux fiches côte à côte : « L'œuvre » à gauche,
 « Image et son » à droite.
