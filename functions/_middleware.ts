@@ -1130,7 +1130,40 @@ async function pageIntrouvable(next: () => Promise<Response>): Promise<Response>
     .transform(reponse);
 }
 
+/** Le seul hôte qui fait autorité. Tout le reste sert le même site. */
+const HOTE_CANONIQUE = "jaquette.app";
+
+/**
+ * Point d'entrée. Il ne fait qu'une chose de plus que `servir` : refuser
+ * l'indexation à tout hôte qui n'est pas `jaquette.app`.
+ *
+ * Cloudflare Pages publie chaque projet sur `<projet>.pages.dev` et chaque
+ * déploiement sur `<hachage>.<projet>.pages.dev`. Ces adresses servaient le
+ * site entier en 200, `robots.txt` compris, avec un `Allow: /` — et comme le
+ * canonical est calculé depuis l'URL courante (§7), une fiche vue là-bas se
+ * déclarait canonique **d'elle-même**. Soit 9 525 URL en double, indexables,
+ * en concurrence avec jaquette.app sur ses propres requêtes. Tout le §7
+ * s'emploie à écarter les doublons ; celui-ci passait par la porte d'à côté.
+ *
+ * **Un `noindex` et non une 301** : les déploiements de prévisualisation
+ * servent à vérifier une mise en ligne avant qu'elle n'atteigne le domaine, et
+ * une redirection les rendrait inutilisables, ce qui est précisément la façon
+ * dont ce fichier se teste.
+ *
+ * La production ne reçoit rien de plus : l'égalité est testée en premier et la
+ * réponse ressort telle quelle. Ailleurs, on reconstruit la réponse pour avoir
+ * des en-têtes modifiables, `Response.redirect` rendant les siens figés.
+ */
 export async function onRequest(context: Contexte): Promise<Response> {
+  const reponse = await servir(context);
+  if (new URL(context.request.url).hostname === HOTE_CANONIQUE) return reponse;
+
+  const marquee = new Response(reponse.body, reponse);
+  marquee.headers.set("X-Robots-Tag", "noindex");
+  return marquee;
+}
+
+async function servir(context: Contexte): Promise<Response> {
   const { request, next } = context;
 
   /* Chemin rapide. Le middleware voit passer tout le trafic, assets compris :

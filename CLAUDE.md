@@ -1512,6 +1512,32 @@ par `next()` au premier test :
    `useSeo` posera ensuite côté client, plus le JSON-LD ;
 4. **le corps est écrit dans `#root`**, depuis le 31 juillet 2026.
 
+**Cinquième chose depuis le 2 août 2026, et celle-là sur tout le trafic** : un
+`X-Robots-Tag: noindex` sur **tout hôte qui n'est pas `jaquette.app`**.
+
+Cloudflare Pages publie le projet sur `jaquette.pages.dev` et chaque
+déploiement sur `<hachage>.jaquette.pages.dev`. Ces adresses servaient le site
+entier en 200, `robots.txt` compris avec son `Allow: /`, et comme le canonical
+est calculé depuis l'URL courante, une fiche vue là-bas **se déclarait
+canonique d'elle-même** :
+
+    https://jaquette.pages.dev/movies/…/1
+    <link rel="canonical" href="https://jaquette.pages.dev/movies/…/1" />
+
+Soit 9 525 URL en double, indexables, concurrentes de jaquette.app sur ses
+propres requêtes. Toute cette section s'emploie à écarter les doublons, et
+celui-ci entrait par la porte d'à côté.
+
+**Un `noindex` et non une 301**, et c'est le point à ne pas inverser : les
+déploiements de prévisualisation servent à vérifier une mise en ligne avant
+qu'elle n'atteigne le domaine, et une redirection les rendrait inutilisables,
+alors que c'est exactement ainsi que ce fichier se teste.
+
+La production ne reçoit rien de plus, l'égalité d'hôte est testée en premier et
+la réponse ressort telle quelle. Ailleurs la réponse est reconstruite pour
+obtenir des en-têtes modifiables, `Response.redirect` rendant les siens figés.
+Vérifié sous `wrangler` que la 301 garde son `Location` en le traversant.
+
 **Le corps, parce que le `<head>` ne suffisait pas.** Le corps servi faisait
 48 octets, `<div id="root"></div>` et rien d'autre : un moteur qui n'exécute
 pas le JavaScript n'avait aucun texte à lire, et une fiche ne pouvait pas
