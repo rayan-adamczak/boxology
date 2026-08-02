@@ -883,6 +883,52 @@ rouvrir le sujet sans raison neuve, et se rappeler qu'opposer une extraction à
 IMDb, c'est la clause « Base de données » de nos propres mentions légales
 retournée (cf. §10).
 
+### BnF : écartée, et pourquoi
+
+Mesurée le 2 août 2026 pour combler le trou de source du §8. Le dépôt légal
+des vidéogrammes est une obligation, donc c'est la seule base française
+exhaustive par construction, son API SRU est publique, sans compte ni clé, et
+`catalogue.bnf.fr` ne sert aucun `robots.txt`. **Elle porte bien ce qui
+manque** : le Blu-ray Gaumont 2010 des *Yeux sans visage*,
+`ark:/12148/cb42322635g`, qu'aucune des cinq sources ne connaît, avec éditeur,
+distributeur, support, durée et zone.
+
+**Trois mesures l'écartent quand même :**
+
+| année de publication | part de Blu-ray | EAN dans la notice |
+|---|---|---|
+| 2014 | 0 % | 0 % |
+| 2018 | 10 % | 0 % |
+| 2022 | 16 % | 0 % |
+
+- **le fonds est massivement DVD et VHS.** 376 516 notices `doctype h`, le
+  dépôt courant depuis les années 80 : sur trente notices de 2022, cinq
+  Blu-ray ;
+- **l'EAN est quasi absent**, zéro sur les quatre-vingt-dix relevées. Il
+  existe, l'index `bib.ean` fonctionne et retrouve deux de nos codes, mais pas
+  systématiquement. L'appariement retomberait sur titre plus éditeur plus
+  année, **sans mesure indépendante**, la faiblesse même d'editioncollector ;
+- **aucun visuel, jamais.** Une bibliothèque catalogue, elle n'illustre pas
+  des produits.
+
+On échangerait donc un trou de source contre quelques milliers d'orphelines
+sans jaquette et de liens non contrôlés.
+
+**Ce qui resterait défendable** est un complément ciblé, une œuvre à la fois
+quand on en repère une manquante, pas un import de masse. Sonde conservée dans
+`jaquette-scraping/bnf/enum_bnf.py`, lecture seule.
+
+**Trois pièges relevés en sondant**, tous du même genre, un scan cassé qui se
+lit comme un scan négatif :
+
+- **`bib.doctype any "m"` rend zéro et `"v"` rend un spectacle** du
+  Grand-Guignol de 1962. Le code des images animées est **`h`**, mesuré et non
+  deviné ;
+- **`recordSchema=unimarcXchange` sort en « erreur de traitement »**, il faut
+  `unimarcxchange-anl` ;
+- **le Dublin Core ne rend pas l'EAN** alors que la notice le porte en `001`
+  ou `073`.
+
 ### dvdfr.com : écarté, et pourquoi
 
 Mesuré le 1er août 2026. Le site couvre pile notre marché et donnerait des
