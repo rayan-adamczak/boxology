@@ -2935,14 +2935,23 @@ marge généreuse sur grand écran, où le plafond mord, et presque rien juste e
 dessous : à 1 440 px de fenêtre il restait 40 px de chaque côté, soit 2,8 % de
 la largeur, et la page touchait les bords.
 
-    clamp(880px, 68%, 1760px)
+    clamp(800px, 58%, 1500px)     3 août 2026
+    clamp(880px, 68%, 1760px)     valeur d'origine
 
-16 % de marge de chaque côté. Le plancher de 880 px évite qu'à 1 024 la
-proportion ne laisse que 696 px de contenu, le plafond de 1 760 px évite la
-ligne illisible au-delà de 2 588 px. En pourcentage et **non en `vw`**, qui
+21 % de marge de chaque côté. Le plancher de 800 px évite qu'à 1 024 la
+proportion ne laisse que 594 px de contenu, le plafond de 1 500 px évite la
+ligne illisible au-delà de 2 586 px. En pourcentage et **non en `vw`**, qui
 compte la barre de défilement et déborderait de quelques pixels. Sous `lg` la
-gouttière reste en pixels : sur un téléphone la proportion mangerait la moitié
-de l'écran.
+gouttière reste en pixels, 20 puis 32 : sur un téléphone la proportion
+mangerait la moitié de l'écran, mais 16 px collaient le texte au bord.
+
+**Resserrée deux fois le 3 août 2026**, 68 → 62 → 58 %. À 1 512 px de fenêtre
+le contenu passe de 1 028 à 877 px et la marge de 242 à 317 de chaque côté.
+
+**Le plancher doit descendre à chaque cran**, et c'est le seul piège de ce
+réglage : à 58 % il mordrait jusqu'à 1 380 px de fenêtre au lieu de 1 294,
+donc précisément sur les tailles d'écran les plus courantes, et le
+resserrement ne se verrait nulle part où il compte.
 
 Elle remplace une douzaine de conteneurs recopiés page par page, qui avaient
 fini par diverger : le bandeau montait à `lg:px-16` là où le contenu restait à
@@ -3080,12 +3089,38 @@ d'images, passe sans être touchée.
 **Note à deux décimales** partout. TMDB rend `7.901` ; trois décimales suggèrent
 une précision que la note n'a pas.
 
-### Logo, posé le 2 août 2026
+### Logo, posé le 2 août 2026, redessiné le 3
 
 L'emplacement laissé vide par la pastille bleue à icône de pellicule est rempli :
-quatre « j » décalés, lus comme des tranches d'étagère, blanc devant puis cyan
-`#00BCED`, ambre `#FFB000`, rouge `#FB4412`. Dessiné dans Figma, exporté en
-tracés.
+des « j » décalés, lus comme des tranches d'étagère, cyan `#00BCED`, ambre
+`#FFB000`, rouge `#FB4412`. Dessiné dans Figma, exporté en tracés.
+
+**Le « j » blanc de tête a été retiré le 3 août 2026**, après comparaison des
+trois espacements rendus côte à côte en 16, 32 et 176 px. Il portait **le seul
+point du dessin**, donc la variante n'en a plus du tout, et deux reports en
+découlent, tous deux invisibles au diff :
+
+- le `viewBox` se recadre sur les fûts, `28.5596 33.7028 99.5604 111.8802` ;
+  le garder aurait laissé du vide à gauche et en haut, donc un motif décalé
+  dans sa boîte, ce qui se voit dès qu'on l'aligne sur du texte ;
+- la tuile du favicon **recentre et remet à l'échelle**, sans quoi le motif
+  occupe sa moitié droite.
+
+**Sans point, le motif ne se cale plus sur l'encre entière du « j » du nom**
+mais sur sa capitale plus descendante. Couple retenu : 21 px de griffe pour
+27 px de nom au bandeau, 17 pour 20 au pied de page. Le nom a grossi trois
+fois, la griffe une seule : à la fin c'est lui qui porte la marque.
+
+**Les trois tranches sont espacées par `transform`, pas en retouchant les
+tracés** : `translate(3,6)` sur l'ambre, `translate(7,2)` sur le rouge,
+gouttière entre fûts portée de 6,4 à 10 unités. Un seul nombre à changer pour
+resserrer, et les `d=` restent ceux de Figma.
+
+**Pourquoi cet espacement et pas un autre**, mesuré et non supposé : collées,
+les tranches font un pâté indistinct à 16 px, où l'on ne compte plus les
+disques ; écartées de 6, elles se lisent comme trois lettres alignées et
+l'empilement, qui est le sens du dessin, disparaît. À 3,6 les deux lectures
+tiennent.
 
 **Trois copies des mêmes tracés, et c'est assumé** : `public/logo.svg` (fond
 transparent), `public/favicon.svg` (tuile sur dégradé) et
@@ -3095,16 +3130,40 @@ recopié dans `scripts/og/og-jaquette.html`. La source unique supposerait un
 pour un fichier non haché qui traverse le cache d'un déploiement à l'autre.
 
 **Les couleurs sont en dur, jamais en jetons du thème.** Un logo ne suit pas la
-couleur d'accent du site : les quatre teintes sont hors de la palette bleu nuit
-du §8, et c'est ce qui les fait tenir lieu de marque.
+couleur d'accent du site : les trois teintes sont hors de la palette bleu nuit
+du §8, et c'est ce qui les fait tenir lieu de marque. Elles existent **aussi**
+en jetons (`--reel-logo-cyan`, `-ambre`, `-rouge`) pour le seul endroit de
+l'interface qui cite le logo, l'anneau de focus du champ de recherche ; un SVG
+servi comme fichier, lui, ne voit pas les variables du site.
 
 **Le site ne déclarait aucune icône.** Le navigateur demandait `/favicon.ico`,
 que la réécriture SPA servait en HTML avec un code 200, donc un onglet muet
-plutôt qu'un 404 franc. Trois fichiers désormais : `favicon.svg`,
-`favicon-96.png` pour les navigateurs qui ignorent le SVG, et
-`apple-touch-icon.png` en 180 px, **carré et sans arrondi**, iOS masquant
-lui-même et un double arrondi se voyant. Cache de sept jours dans `_headers`,
-comme les polices et pour la même raison, leur nom ne porte pas de hachage.
+plutôt qu'un 404 franc. Quatre fichiers désormais : `favicon.ico` (16, 32 et
+48 px dans un seul conteneur à charge utile PNG, fabriqué à la main faute
+d'ImageMagick sur la machine), `favicon.svg`, `favicon-96.png` pour les
+navigateurs qui ignorent le SVG, et `apple-touch-icon.png` en 180 px, **carré
+et sans arrondi**, iOS masquant lui-même et un double arrondi se voyant.
+
+**Le `.ico` n'est pas là pour les navigateurs**, qui prennent le SVG déclaré
+dans le `<head>` : il est là pour tout ce qui demande `/favicon.ico` en dur
+sans lire ce `<head>`, aperçus de lien, agrégateurs, vieux lecteurs. Mesuré
+avant de le poser : la réécriture SPA leur servait **5 588 octets de HTML** en
+200, annoncés comme une icône.
+
+**Le cache de ces fichiers est passé d'une semaine à une heure**, et l'épisode
+vaut d'être retenu. Après le redessin, le déploiement était en ligne et la
+feuille de style hachée à jour, mais les icônes sortaient dans leur ancienne
+version, `cf-cache-status: HIT` et `age: 7930`. `stale-while-revalidate` **ne
+rattrape pas ce cas**, il ne joue qu'une fois le `max-age` écoulé, donc
+l'ancien dessin serait resté à la périphérie jusqu'à sept jours. Deux réponses,
+les deux appliquées : `max-age=3600` pour borner la dérive à une heure, et une
+purge à la main des cinq URL, tableau de bord Cloudflare, *Caching*,
+*Personnaliser le vidage*, mode URL.
+
+**Un `Cache-Control: no-cache` côté client ne force rien**, testé : la réponse
+reste `HIT` avec son `age`. Seule la purge agit. Et le jeton OAuth de
+`wrangler`, présent sur la machine, ne peut pas la faire : ses portées
+s'arrêtent à `zone:read`, sans `cache_purge`.
 
 **Le fond de la tuile est un dégradé vertical, et il a d'abord été raté** : posé
 en aplat `#14181c` avec un arrondi de 44, quand le node n'a ni l'un ni l'autre.
@@ -3136,6 +3195,51 @@ fonctionne tel quel.
 `og-jaquette.jpg` a été refaite avec le mot-symbole à gauche du nom, même
 lockup qu'au bandeau, et son décompte remis à 15 000 éditions, il annonçait
 encore 8 400.
+
+**Les fiches films gardent l'affiche nue, sans logo**, décision du 3 août 2026.
+Le middleware **remplace** `og:image` par l'affiche TMDB au lieu de s'y ajouter
+(cf. §7), donc un partage de fiche montre le film et rien d'autre. Le logo n'y
+apparaît que sur l'accueil, les pages fixes et les pages de regroupement, qui
+servent `og-jaquette.jpg`. Composer une image par film, affiche plus bandeau,
+supposerait un rendu à la demande dans un Worker, son cache et un fichier par
+œuvre ; l'affiche seule est par ailleurs ce qui fait cliquer, et c'est le choix
+de Letterboxd comme de SensCritique. **Ne pas rouvrir sans raison neuve.**
+
+### Anneau de focus du champ de recherche, le 3 août 2026
+
+Le champ de la page d'accueil prend les trois couleurs du logo au focus, en
+dégradé qui défile de gauche à droite, sept secondes par tour
+(`.reel-anneau-logo` dans `theme.css`). Partout ailleurs le focus reste bleu :
+un anneau tricolore sur chaque bouton ferait sapin de Noël, et le champ est la
+seule chose que le site demande à quelqu'un qui arrive.
+
+**Un dégradé ne tient pas dans un `box-shadow`**, donc pas dans un `ring-*` de
+Tailwind. C'est une couche `::after` remplie du dégradé et évidée par deux
+masques composés en `exclude`, ce qui ne laisse que le cadre de 2 px. Elle est
+posée en `inset: -3px`, donc **hors** de la boîte comme l'était `focus:ring-2`,
+et rien ne bouge à la prise de focus.
+
+Trois détails qui ne se devinent pas :
+
+- **les trois couleurs sont écrites deux fois** sur un fond large de 200 %, et
+  l'animation pousse `background-position` de 200 % : c'est ce qui fait
+  retomber le motif sur lui-même, sans couture rouge/cyan à chaque tour ;
+- **de 200 % vers 0 et non l'inverse.** L'image étant plus large que la boîte,
+  un `background-position` croissant la fait glisser vers la **gauche** ;
+- **l'animation n'est déclarée que sur l'état focus**, sinon elle tourne en
+  permanence sous une opacité nulle. Elle tombe sous `prefers-reduced-motion`,
+  le cadre coloré restant : c'est lui qui porte l'information.
+
+**Ne pas poser de `z-index` sur l'input.** Un `relative z-10` y avait été
+ajouté avec l'anneau : l'input passait au-dessus de la loupe, qui est en
+`absolute` sans empilement propre, et son fond opaque l'effaçait. L'anneau
+étant hors de la boîte, il n'a besoin d'aucun empilement.
+
+**Piège de mesure, rencontré trois fois** : `getComputedStyle(el, '::after')`
+rend `opacity: 0` alors que la règle s'applique et que `:focus-within` matche.
+Seule la capture d'écran dit vrai. Et dans le panneau d'aperçu, `input.focus()`
+en JavaScript ne déclenche rien quand le panneau est masqué ; il faut un vrai
+clic.
 
 ### Awin
 4 programmes en attente : Fnac, E.Leclerc, Cultura, Zavvi, **tous avec flux
