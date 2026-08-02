@@ -1135,6 +1135,69 @@ Sondes conservées dans `jaquette-scraping/dvdfr/`, corps bruts compris :
 Le premier sondage a rendu **zéro partout**, et c'était un scan cassé, pas un
 catalogue vide : 404 à **zéro octet**, signature d'un chemin qui n'existe pas.
 
+### Les trois comparateurs de prix : écartés, et pourquoi
+
+Mesurés les 2 et 3 août 2026 pour combler le creux 2000-2014, à 65 % de
+couverture sur des collections réelles (§8). L'idée était bonne sur le papier :
+un comparateur porte l'EAN, le prix et le marché français, donc il réglait le
+trou de source **et** la valeur de collection sans attendre Awin. **Aucun des
+trois ne tient.** Sondes dans `jaquette-scraping/comparateurs/`.
+
+| | annoncé | ce qu'on obtient |
+|---|---|---|
+| **idealo.fr** | 542 348 Blu-ray | rien, Akamai refuse jusqu'à Chrome |
+| **dvdpascher.net** | 136 984 réf. | ~1 100 disques HD vivants |
+| **LeDénicheur** | 7 292 films | 4 518 titres, 8 de nos 78 manques |
+
+**idealo est fermé par un gestionnaire de robots, pas par un pare-feu.** 403 à
+l'octet près sous quatre agents, corps signé `reference ID 0.<hex>.<epoch>`,
+format Akamai, message « please make sure your browser is updated ». Chrome
+sans interface est refusé aussi ; seul un navigateur avec interface passe.
+Leur `robots.txt` ne nomme aucun agent d'IA mais met `/prechcat.html`, leur
+point de recherche, en `Disallow` : les 78 titres ne pouvaient de toute façon
+pas être interrogés un par un. **La distinction du §5 se précise ici** :
+déployer un Bot Manager est une décision sur l'accès automatisé, pas un effet
+de bord technique. Reste leur canal partenaire, même famille qu'Awin.
+
+**dvdpascher a les meilleures fiches du catalogue, et un fonds mort.** Leur
+`robots.txt` ouvre tout à `*` et ne nomme que des agents d'IA, dont
+`ClaudeBot`. L'index alphabétique `/index-films/films-<lettre>.html` énumère
+en 27 pages, sans pagination interne, **120 440 URL**. Une fiche vivante porte
+onze champs sur onze :
+
+    ean 100 %   annee 100 %   date 100 %   zone 100 %   format 100 %
+    duree 95 %  genre 95 %    distributeur 90 %  image 86 %  editeur 81 %
+
+C'est la seule source jamais mesurée à donner EAN, durée, éditeur,
+**distributeur**, date française et jaquette sur la même ligne, la jaquette
+dérivant de l'identifiant (`/image1/fiche/11/115744.jpg`), donc sans rien à
+parser. Deux mesures l'écartent quand même :
+
+- **le fonds est un fonds DVD.** Sur les 120 440 URL, 87,6 % de DVD, 12,2 % de
+  Blu-ray, 0,2 % de 4K ;
+- **et le Blu-ray est mort dans leur propre index.** 30 % de liens morts sur
+  un échantillon alphabétique surtout DVD, mais **88 à 92 % sur les fiches
+  Blu-ray tirées au hasard**. `diag_morts.py` a rejoué six de ces
+  identifiants sous cinq formes de slug, trente requêtes : **404 à zéro octet
+  partout**. Ce ne sont donc ni des URL fausses ni des slugs périmés, les
+  fiches ne sont plus servies.
+
+Il resterait environ 1 100 disques haute définition vivants, pour un crawl de
+120 000 pages. Le rapport ne se discute pas.
+
+**LeDénicheur est trop petit et sur le mauvais marché.** Énuméré en entier,
+166 pages par `offset`, seul chemin que leur `robots.txt` autorise : 4 518
+titres distincts, soit **moins que nos 15 483 éditions**. Sur nos 78 manques
+il en porte 15, dont quatre en édition britannique et trois faux positifs
+(`Freddy 2010` rendant le film de 1984, `La colline a des yeux 2006` celui de
+1977). Huit rattachements propres. C'est la façade française de Prisjakt, on y
+croise du `ej svensk text`.
+
+**Ce que ces trois mesures laissent debout**, et c'est inchangé : les flux
+produits Awin, et le signalement d'édition manquante par l'utilisateur branché
+sur l'enrichissement dvdfr par code-barres, qui ne dépend d'aucune
+autorisation extérieure.
+
 ---
 
 ## 6. Scripts (`~/jaquette-scraping/`)
@@ -3478,6 +3541,52 @@ Documentés parce qu'ils se reproduiront.
   le bucket R2 plutôt que par le réseau. `maj-bluray.yml` garde une entrée
   `collecter`, à faux par défaut : elle a servi à mesurer, elle n'a plus à
   servir.
+- **Quatre pièges d'outillage de sonde, tous rencontrés en une soirée sur les
+  comparateurs (§5), et tous de la même famille : l'instrument rend zéro et on
+  le lit comme une réponse.**
+
+  **`RobotFileParser.read()` fait sa propre requête, sous son propre agent, et
+  traite un 403 sur `robots.txt` comme un `Disallow: /` global.** dvdpascher
+  autorise pourtant tout à `User-agent: *` ; son pare-feu refusait simplement
+  `Python-urllib`. « Ils interdisent » et « je n'ai pas pu lire la règle » se
+  ressemblent trait pour trait et ne mènent pas au même endroit. Récupérer le
+  fichier soi-même, garder le statut, et ne procéder que sur un **404 franc**.
+
+  **`--virtual-time-budget` fait pendre Chrome 150 en `--headless=new`**, y
+  compris sur `example.com`. Un drapeau qui casse une page témoin ne se
+  diagnostique jamais sur la page qu'on soupçonne.
+
+  **`chrome --dump-dom` imprime un DOM complet puis ne rend jamais la main.**
+  Le dépassement de délai est le fonctionnement normal ; traité comme une
+  panne, il jette précisément ce qu'on venait chercher. Tuer le processus et
+  **garder ce qui a été écrit**, la balise fermante faisant foi plutôt que la
+  taille.
+
+  **`timeout` n'existe pas sur macOS**, c'est `gtimeout`. Un harnais de
+  diagnostic bâti dessus rend `exit=127` et zéro octet, soit exactement
+  l'allure d'un site qui ne répond pas.
+- **Un 404 à zéro octet a deux causes, et une seule les sépare.** La fiche a
+  disparu, ou l'index pointe un slug que le site a renommé. Rejouer le **même
+  identifiant sous plusieurs formes de slug** tranche : un seul 200 prouve que
+  le catalogue est intact et que c'est l'index qui ment. `diag_morts.py` le
+  fait, et c'est ce qui a définitivement écarté dvdpascher, trente requêtes
+  sans une seule réponse.
+- **Les entités HTML non déséchappées font passer une source riche pour une
+  source vide.** Première mesure de dvdpascher : éditeur, date, zone, prix et
+  image à **0 %**, alors que la page porte les cinq. `&euro;` et `&eacute;`
+  cassaient les motifs. Retirer les balises **puis** déséchapper, jamais
+  l'inverse, sous peine de fabriquer des balises à partir du contenu.
+- **Un libellé cherché sans ancre se fait attraper dans le menu.**
+  `[EÉ]diteur` trouvait « Portail **Editeur**s DVD » et rendait `s DVD` comme
+  éditeur sur les 21 fiches du lot. **Une valeur constante sur tout un
+  échantillon signale qu'on lit le gabarit et non la donnée**, et c'est le
+  seul symptôme : le taux de couverture, lui, affichait un impeccable 100 %.
+- **Deux URL peuvent servir la même ressource, et un compteur ne le voit
+  pas.** dvdpascher sert `films-a.html` et `films-A.html`, 1 162 836 octets
+  des deux côtés : la sonde rechargeait la lettre A et annonçait « 0 fiches
+  neuves », ce qui se lit comme une fin de listing. Dédoublonner sur
+  l'**empreinte du corps** et non sur l'URL, comparer les URL sans la casse
+  étant un pari que deux chemins ne diffèrent jamais que par là.
 - **Un agent launchd ne peut pas lire `~/Documents`.** Les deux agents
   échouaient en 127, `/bin/zsh: can't open input file`, et la passe de
   popularité affichait `runs = 0` depuis son installation : elle n'avait
