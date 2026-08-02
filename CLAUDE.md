@@ -2455,6 +2455,26 @@ si une source neuve comble le trou ou grossit le catalogue à côté.
   `auth-js` seul et chargé à la demande, +0,75 Ko compressé au bundle initial,
   le reste dans un morceau séparé de 24,5 Ko. Parcours exercé de bout en bout en
   production : connexion, écriture, cloisonnement entre comptes, suppression.
+- **« Google uniquement » n'était vrai que de l'interface jusqu'au 2 août
+  2026.** Le fournisseur Email restait actif côté projet, et
+  `GET /auth/v1/settings`, qui est public, l'annonçait :
+
+      "email": true, "disable_signup": false
+
+  N'importe qui pouvait donc créer un compte par `POST /auth/v1/signup` sans
+  passer par le site. Rien n'avait été abusé, mesuré avant de corriger : un
+  seul compte, par Google, aucun mot de passe, aucun non confirmé. Le risque
+  était la création en masse, qui aurait rempli `auth.users` et brûlé le quota
+  du SMTP par défaut, celui-là même qui a fait écarter la connexion par
+  courriel. Fournisseur désactivé, l'API le confirme, `email: false`.
+
+  Corollaire à retenir : **l'avis Supabase « leaked password protection » ne
+  s'appliquait pas à l'interface mais bien au projet**, tant qu'un mot de passe
+  pouvait exister. Il est sans objet maintenant, plus pour la même raison.
+
+  `anonymous_users` et `phone` étaient déjà à faux, et `disable_signup` reste à
+  faux exprès : c'est ce qui laisse un nouveau visiteur créer son compte
+  Google.
 - **Toute action demande un compte.** `collections.ts` lève `CompteRequis`,
   l'interface ouvre `ModaleConnexion`. Le site n'écrit plus rien dans
   localStorage : `local-statuts.ts` ne garde que lecture et effacement, pour
