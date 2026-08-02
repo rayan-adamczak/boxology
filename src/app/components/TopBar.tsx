@@ -29,7 +29,10 @@ export function TopBar() {
               l'identité sur petit écran, où le nom écrit peut céder la place. */}
           <Logo hauteur={26} />
           <span
-            style={{ fontFamily: "var(--reel-font-titre)", fontSize: "18px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}
+            /* 21 px et non 18 : à 18, la hauteur d'x du mot tombait bien sous
+               les 26 px du mot-symbole, qui prenait le dessus. Le pied de page
+               reste à 18, il n'a pas de bandeau à équilibrer. */
+            style={{ fontFamily: "var(--reel-font-titre)", fontSize: "21px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}
           >
             jaquette.app
           </span>
