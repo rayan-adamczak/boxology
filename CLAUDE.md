@@ -3003,7 +3003,7 @@ quatre « j » décalés, lus comme des tranches d'étagère, blanc devant puis 
 tracés.
 
 **Trois copies des mêmes tracés, et c'est assumé** : `public/logo.svg` (fond
-transparent), `public/favicon.svg` (tuile `#14181c`, rayon 44) et
+transparent), `public/favicon.svg` (tuile sur dégradé) et
 `src/app/components/Logo.tsx`. Une retouche vaut pour les trois, plus le lockup
 recopié dans `scripts/og/og-jaquette.html`. La source unique supposerait un
 `<img>` à l'écran, donc une requête de plus sur le chemin de rendu du bandeau,
@@ -3021,17 +3021,32 @@ plutôt qu'un 404 franc. Trois fichiers désormais : `favicon.svg`,
 lui-même et un double arrondi se voyant. Cache de sept jours dans `_headers`,
 comme les polices et pour la même raison, leur nom ne porte pas de hachage.
 
+**Le fond de la tuile est un dégradé vertical, et il a d'abord été raté** : posé
+en aplat `#14181c` avec un arrondi de 44, quand le node n'a ni l'un ni l'autre.
+Les valeurs Tailwind rendues par `get_design_context` sont **semi-transparentes**
+(`rgba(20,24,28,0.5)` en haut), donc elles ne disent rien tant qu'on ignore sur
+quoi elles se composent. Ce qui tranche est l'export PNG du node, lu au pixel :
+
+    haut #191B1D      60 % #15181B      bas #13171B      coins opaques, carré
+
 Les PNG sont rendus depuis le SVG par Chrome sans interface, jamais dessinés à
-la main :
+la main, et **le SVG y entre en image de fond CSS encodée en base64** :
 
-    chrome --headless --disable-gpu --default-background-color=00000000 \
-      --window-size=180,180 --screenshot=apple-touch-icon.png file://…
+    body { width:180px; height:180px;
+           background-image: url("data:image/svg+xml;base64,…");
+           background-size: 180px 180px; }
 
-**Le SVG doit être en ligne dans la page de rendu, pas en `<img src="file://">`**
-qui reste bloqué et sort une icône d'image cassée. Même piège pour les polices
-d'`og-jaquette.html` si on les sert par un serveur local : le pare-feu de la
-machine refuse la connexion, et la page rendue est l'écran d'erreur de Chrome.
-Le chemin relatif du fichier, lui, fonctionne tel quel.
+Les deux autres façons ont été essayées et échouent en silence :
+`<img src="file://…">` reste bloqué et sort une icône d'image cassée ; un
+`<svg>` en ligne dimensionné en attributs rend **un pixel plus court que la
+fenêtre**, donc la dernière ligne sort transparente, ce qui ne se voit qu'en
+relisant les octets. Même famille de piège que le §9 : un rendu cassé ressemble
+à un rendu réussi.
+
+Même chose pour les polices d'`og-jaquette.html` : les servir par un serveur
+local ne marche pas, le pare-feu de la machine refuse la connexion et la page
+rendue est l'écran d'erreur de Chrome. Le chemin relatif du fichier, lui,
+fonctionne tel quel.
 
 `og-jaquette.jpg` a été refaite avec le mot-symbole à gauche du nom, même
 lockup qu'au bandeau, et son décompte remis à 15 000 éditions, il annonçait
