@@ -258,11 +258,19 @@ function BlocFiche({
  * des noms d'une colonne à l'autre.
  */
 function CarteActeur({ membre, onClick }: { membre: CastMember; onClick: () => void }) {
+  /*
+    `w-full` sur le bouton est indispensable : un `<button>` se dimensionne sur
+    son contenu, même passé en `flex`. La vignette est en `w-full` avec un
+    rapport 2/3, donc elle suivait cette largeur adaptée au contenu, et une carte
+    sans photo retombait sur les 48 px de la pastille d'initiales, plus étroite
+    et plus courte que ses voisines. La largeur fixe posée par l'enveloppe du
+    rail ne descendait pas jusqu'ici.
+  */
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col gap-2 rounded-[10px] text-left outline-none"
+      className="group flex w-full flex-col gap-2 rounded-[10px] text-left outline-none"
     >
       <span
         className="relative block w-full overflow-hidden rounded-[10px]"
