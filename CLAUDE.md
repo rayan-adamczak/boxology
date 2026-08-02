@@ -363,8 +363,32 @@ les deux côtés portaient un EAN, **aucune** ne concordait.
 ### Sécurité
 RLS activé partout. Policies `anon` en **lecture seule** sur `films`,
 `editions`, `edition_films`. `bluray_import`, `kv_store_38e4ee68` et les tables
-de sauvegarde renvoient `[]` en anon. `collections` est plus fermée encore :
-`revoke all` sur le rôle `anon`, donc **401** et non tableau vide.
+de sauvegarde répondent **401**, et `collections` aussi.
+
+**Les privilèges d'écriture ont été retirés à `anon` le 2 août 2026**,
+migration `20260802_revoquer_ecriture_anon.sql`. Ils étaient là depuis
+toujours : Supabase donne par défaut `insert, update, delete, truncate` à
+`anon` sur tout le schéma `public`, et seule l'absence de policy d'écriture
+retenait la clé publique du bundle. La RLS faisait bien son travail, mesuré
+avant la migration par un vrai `INSERT` :
+
+    42501  new row violates row-level security policy for table "films"
+
+**Mais c'était une barrière unique**, et elle tombe avec un
+`disable row level security` posé le temps d'une migration. `collections`
+montrait déjà la bonne façon de faire depuis le 30 juillet : révoquer les
+privilèges, pour que le refus arrive avant la RLS. Les quatre tables de
+travail et de sauvegarde sont passées en `revoke all` au même moment, donc
+elles rendent 401 au lieu de `[]`, et un refus se lit enfin comme un refus.
+
+Le `alter default privileges` de la même migration vise les tables à venir,
+sinon la prochaine créée repart avec les droits d'écriture par défaut. Il porte
+`for role postgres` : une table créée par un autre rôle y échapperait, à
+vérifier dans `pg_default_acl` si une table neuve ressort inscriptible.
+
+Après migration, l'écriture anon ne parle même plus de RLS :
+
+    42501  permission denied for table films
 
 La table `statuts` a été supprimée le 30 juillet 2026 (vestige mono-utilisateur
 sans `user_id`, deux lignes de test, aucune référence),
@@ -386,13 +410,30 @@ réellement exercé.
 La clé `anon` du bundle est publique par nature, ce n'est pas une fuite.
 Vérifié : aucune `service_role` dans `dist/` ni dans l'historique git.
 
-**Toujours non vérifié** : le refus d'écriture anon sur `films`, `editions` et
-`edition_films`, protégées par des policies et non par un `revoke`. Un `PATCH`
-sur un filtre vide renvoie 204 que la policy accepte ou refuse ; seul un
-`INSERT` réel tranche. Le 42501 obtenu sur `collections` ne dit rien de ces
-trois tables : ce n'est pas le même mécanisme.
+**Le refus d'écriture anon est vérifié depuis le 2 août 2026**, par un `INSERT`
+réel et non par un `PATCH` sur filtre vide, qui rend 200 que la policy accepte
+ou refuse. Contrôlé après coup : `films.id=1` intacte, aucune ligne de test en
+base. `rpc/supprimer_mon_compte` en anon rend **42501 permission denied for
+function**, l'`EXECUTE` n'étant pas donné à ce rôle ; le garde-fou
+`auth.uid() is null` n'est donc même pas atteint.
 
-**Non vérifié aussi** : `supprimer_mon_compte()`. Elle est exposée dans
+**En-têtes de sécurité posés le 2 août 2026** dans `public/_headers` : CSP,
+`X-Frame-Options`, `Permissions-Policy`. Le jeton de session vivant dans
+`localStorage`, une XSS quelconque vaut prise de compte, et rien n'empêchait un
+script injecté d'exfiltrer où il voulait. Deux contraintes du site s'y lisent :
+`style-src 'unsafe-inline'`, parce que le corps injecté par le middleware pose
+ses styles en attribut, et un `img-src` à deux hôtes, mesurés en base sur les
+36 031 URL de visuels, `img.jaquette.app` et `image.tmdb.org`. Le JSON-LD
+n'exige rien, un `<script type="application/ld+json">` étant un bloc de données
+que le navigateur n'exécute pas. Éprouvé sous `wrangler pages dev dist`, seule
+façon de servir `_headers` et `functions/` ensemble : fiche film, accueil et
+`/about` rendus sans une violation en console, morceau `lazy()` chargé en 200.
+
+**HSTS reste à activer**, depuis Cloudflare, SSL/TLS puis Edge Certificates. Il
+n'est pas dans `_headers` exprès : l'engagement se défait mal une fois le
+`max-age` servi.
+
+**Non vérifié** : `supprimer_mon_compte()` sous une vraie session. Elle est exposée dans
 l'OpenAPI et le DDL est passé, mais l'appeler pour confirmer son garde-fou
 `auth.uid() is null` supposerait de risquer l'effacement d'un compte réel si le
 jeton employé portait une revendication `sub`. Pas de test destructif pour

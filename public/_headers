@@ -1,5 +1,44 @@
 # En-têtes appliqués par Cloudflare Pages. Même mécanisme que public/_redirects.
 
+# ---------------------------------------------------------------------------
+# Sécurité, posée le 2 août 2026
+# ---------------------------------------------------------------------------
+#
+# Le jeton de session vit dans `localStorage` (auth-js), donc n'importe quelle
+# XSS, y compris venue d'une dépendance, vaut prise de compte complète. La CSP
+# est la défense en profondeur qui manquait : sans elle, un script injecté peut
+# exfiltrer vers le domaine de son choix.
+#
+# Ce qui a été relevé avant d'écrire ces valeurs, pour ne pas casser la page :
+#
+#   img-src     deux hôtes et deux seulement, mesurés en base sur les 36 031
+#               URL d'`affiche_url`, `backdrop_url`, `image_url` et
+#               `images_secondaires` : img.jaquette.app (19 201) et
+#               image.tmdb.org (16 830). `data:` reste ouvert, les vignettes
+#               embarquées de /welcome en dépendent.
+#   style-src   'unsafe-inline' est obligatoire, et ce n'est pas une facilité :
+#               le corps injecté par functions/_middleware.ts pose ses styles en
+#               attribut, faute de pouvoir rendre React dans le Worker.
+#   script-src  'self' suffit. Le JSON-LD du middleware est un `<script
+#               type="application/ld+json">`, un bloc de données que le
+#               navigateur n'exécute pas, donc que la CSP ne filtre pas.
+#   connect-src le projet Supabase, qui sert à la fois PostgREST et auth-js.
+#               La connexion Google est une navigation, pas une requête.
+#
+# `frame-ancestors 'none'` interdit l'iframe, donc le détournement de clic sur
+# les boutons de collection. `X-Frame-Options` le double pour les navigateurs
+# qui ignorent la directive.
+#
+# HSTS n'est volontairement pas ici : Cloudflare le gère depuis SSL/TLS > Edge
+# Certificates, et l'engagement est difficile à défaire une fois le max-age
+# servi.
+/*
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.tmdb.org https://img.jaquette.app; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co
+  X-Frame-Options: DENY
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
 # Vite met un hash de contenu dans le nom de chaque asset : index-C_AF09Vl.js
 # ne changera jamais de contenu, un nouveau build produit un nouveau nom. Sans
 # règle ici, Cloudflare revalidait à chaque visite (cf-cache-status: REVALIDATED

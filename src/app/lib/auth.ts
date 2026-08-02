@@ -55,12 +55,33 @@ function sessionPlausible(): boolean {
 }
 
 /**
+ * Ramène une destination de retour à un chemin de ce site, ou à la racine.
+ *
+ * `new URL(x, origin)` rend `x` tel quel quand `x` est absolu : un
+ * `https://ailleurs.example` passerait en `redirectTo`, et le jeton partirait
+ * avec. Deux formes trompent l'œil et sont couvertes ici, `//ailleurs.example`,
+ * relatif au protocole, et `\\ailleurs.example`, que les navigateurs traitent
+ * comme la précédente.
+ *
+ * Aucun appelant ne passe aujourd'hui autre chose qu'un littéral ou
+ * `window.location.pathname`, donc rien n'est exploitable en l'état. Mais la
+ * seule barrière restante était la liste de redirections autorisées côté
+ * Supabase, c'est-à-dire un réglage de tableau de bord qu'aucun test du dépôt
+ * ne surveille.
+ */
+function cheminInterne(destination: string): string {
+  if (!destination.startsWith("/")) return "/";
+  if (destination.startsWith("//") || destination.startsWith("/\\")) return "/";
+  return destination;
+}
+
+/**
  * Le site est utilisable sans compte. On revient donc là où l'utilisateur a
  * cliqué, pas sur une page d'accueil.
  */
 export async function connexionGoogle(retourVers: string = window.location.pathname): Promise<void> {
   const auth = await charger();
-  const redirectTo = new URL(retourVers, window.location.origin).toString();
+  const redirectTo = new URL(cheminInterne(retourVers), window.location.origin).toString();
   // Aucun `scopes` : le provider Google de Supabase demande déjà `email` et
   // `profile`, et les redéclarer les faisait apparaître en double dans l'URL
   // d'autorisation. Surtout, ne rien ajouter ici est une contrainte à tenir,

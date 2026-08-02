@@ -10,6 +10,12 @@
       ],
       "port": 5173,
       "autoPort": true
+    },
+    {
+      "name": "jaquette-pages",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["wrangler", "pages", "dev", "dist", "--port", "8788"],
+      "port": 8788
     }
   ]
 }
