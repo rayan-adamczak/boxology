@@ -937,7 +937,7 @@ catalogue vide : 404 à **zéro octet**, signature d'un chemin qui n'existe pas.
 
 ---
 
-## 6. Scripts (`~/Documents/jaquette-scraping/`)
+## 6. Scripts (`~/jaquette-scraping/`)
 
 ### Ils tournent sur GitHub Actions depuis le 2 août 2026
 
@@ -1277,7 +1277,7 @@ l'heure inscrite ne serait pas l'heure réelle.
     launchctl load   ~/Library/LaunchAgents/app.jaquette.popularite.plist
     launchctl unload ~/Library/LaunchAgents/app.jaquette.popularite.plist
     launchctl start  app.jaquette.popularite        # forcer une passe
-    tail ~/Documents/jaquette-scraping/maj_popularite.log
+    tail ~/jaquette-scraping/maj_popularite.log
 
 `StartCalendarInterval` et non `StartInterval` : launchd rattrape un rendez-vous
 manqué au réveil suivant, ce qu'un intervalle en secondes ne fait pas. Un Mac
