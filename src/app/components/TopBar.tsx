@@ -27,7 +27,11 @@ export function TopBar() {
         >
           {/* Le mot-symbole reste visible à toute taille : c'est lui qui porte
               l'identité sur petit écran, où le nom écrit peut céder la place. */}
-          <Logo hauteur={26} />
+          {/* 21 px, soit l'encre du « j » du mot mesurée à côté (20,06 px à
+              21 px de corps) : c'est la même lettre répétée, donc toute autre
+              hauteur se lit comme une faute d'échelle. À 26 px le mot-symbole
+              dépassait le mot de 30 %. */}
+          <Logo hauteur={21} />
           <span
             /* 21 px et non 18 : à 18, la hauteur d'x du mot tombait bien sous
                les 26 px du mot-symbole, qui prenait le dessus. Le pied de page
