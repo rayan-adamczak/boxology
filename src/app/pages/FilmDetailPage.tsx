@@ -737,9 +737,15 @@ export function FilmDetailPage() {
 
           {film.synopsis && (
             /*
-              Quatre lignes sur mobile, tout sur écran large. Un synopsis TMDB
-              fait souvent quinze lignes à 375 px : déplié, il repoussait la
-              barre d'onglets si loin qu'on ne soupçonnait plus son existence.
+              Quatre lignes partout, dépliables. Un synopsis TMDB fait souvent
+              quinze lignes à 375 px, et jusqu'à huit en desktop : entier, il
+              repoussait les boutons puis la barre d'onglets si bas qu'on ne
+              soupçonnait plus leur existence.
+
+              La troncature a d'abord été réservée au mobile, au motif qu'un
+              écran large avait la place. Il l'a, mais ce n'est pas la question :
+              le héros doit tenir dans le premier écran, boutons compris, et
+              c'est la longueur du texte qui décide, pas celle de l'écran.
 
               `line-clamp` et non une troncature de la chaîne : couper le texte
               en JavaScript demanderait de deviner combien de signes tiennent
@@ -748,7 +754,7 @@ export function FilmDetailPage() {
             <div className="col-span-2 row-start-3 sm:col-span-1 sm:col-start-2 sm:row-start-2 sm:mb-2 max-w-[640px]">
               <p
                 ref={synopsisRef}
-                className={synopsisOuvert ? "" : "line-clamp-4 sm:line-clamp-none"}
+                className={synopsisOuvert ? "" : "line-clamp-4"}
                 style={{ fontSize: "15px", color: "var(--reel-text)", lineHeight: "24px" }}
               >
                 {film.synopsis}
@@ -757,7 +763,7 @@ export function FilmDetailPage() {
                 <button
                   type="button"
                   onClick={() => setSynopsisOuvert((o) => !o)}
-                  className="mt-1 sm:hidden outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] rounded-[6px]"
+                  className="mt-1 rounded-[6px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
                   style={{ fontSize: "14px", fontWeight: 500, color: "var(--reel-accent-clair)" }}
                 >
                   {synopsisOuvert ? "Voir moins" : "Voir plus"}
