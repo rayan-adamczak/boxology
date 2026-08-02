@@ -951,14 +951,48 @@ la CI sans arrêter les passes locales.
 Sept secrets : `SUPABASE_SERVICE_ROLE_KEY`, `TMDB_READ_TOKEN`, les quatre
 `R2_*`, et `CF_DEPLOY_HOOK`.
 
-| workflow | déclenchement | ce qu'il fait |
+| workflow | quand | ce qu'il fait |
 |---|---|---|
-| `maj-shopify.yml` | **cron, mardi 8 h UTC** | 10 collections Metaluna + Le Chat qui fume |
-| `maj-zavvi.yml` | à la main | énumérer, crawler, résoudre, miroiter, écrire |
-| `publier.yml` | appelé par les deux | hook Cloudflare, puis vérifie le sitemap servi |
+| `maj-popularite.yml` | lundi 8 h UTC | rafraîchit `films.popularite` |
+| `maj-shopify.yml` | mardi 8 h UTC | 10 collections Metaluna + Le Chat qui fume |
+| `maj-zavvi.yml` | mercredi 6 h UTC | énumérer, crawler, résoudre, miroiter, écrire |
+| `maj-bluray.yml` | jeudi 7 h UTC | **import seul**, la collecte est locale |
+| `maj-ec.yml` | vendredi 7 h UTC | énumérer le delta, trier, résoudre, écrire |
+| `publier.yml` | appelé par les passes | hook Cloudflare, puis vérifie le sitemap servi |
+| `recapituler.yml` | appelé par les passes | ouvre une issue de récapitulatif |
+| `dvdfr.yml` | à la main | enrichit par code-barres, **n'élargit rien** |
 
-**Aucun workflow pour blu-ray.com ni editioncollector**, les deux plus gros
-fonds. C'est le trou restant, et il est décrit au §8.
+Un jour par passe : elles écrivent toutes en base et se disputeraient le
+verrou `ecriture-base` sans rien y gagner.
+
+**Une seule chose reste sur la machine, et une seule raison la retient.**
+`crawl_bluray_local.sh`, posé par `app.jaquette.bluray.plist` le mercredi
+10 h : blu-ray.com refuse l'IP des runners GitHub, voir §9. Il énumère,
+crawle le delta, dépose l'état dans R2, et la passe du jeudi reprend cet état
+sans jamais adresser une requête à blu-ray.com.
+
+**Un cron ne fournit aucune entrée**, et `inputs.x` y vaut faux quel que soit
+le défaut déclaré. Toute condition qui dépend d'une entrée doit donc porter
+`github.event_name == 'schedule'` en tête. Sans ça, la passe Zavvi planifiée
+aurait écrit 11 495 éditions au lieu de 4 446, et la passe blu-ray n'aurait
+jamais réénuméré son listing, donc jamais rien trouvé.
+
+**Chaque passe rend des comptes.** `recapituler.yml` ouvre une issue et la
+referme aussitôt : c'est une trace, pas une tâche, et GitHub notifie déjà par
+courriel. Une chaîne qui tourne seule et ne dit rien est indistinguable d'une
+chaîne cassée, ce dont le §9 garde deux exemples le même jour. `recap.py`
+compare l'état courant à un instantané gardé dans R2 sous `etat/recap.json` :
+aucune table ne date ses lignes, donc la différence est le seul moyen de dire
+« depuis la dernière fois » sans migration. L'instantané n'est déplacé qu'à la
+fin d'une passe complète, sinon ce qu'une passe tombée en route a écrit ne
+serait jamais annoncé.
+
+**L'état de reprise vit dans R2**, sous `etat/`, déposé et repris par
+`etat_r2.py`. C'est ce qui rend les collectes incrémentales sur un runner
+éphémère : sans lui, Zavvi recrawlait ses 12 665 fiches à chaque passe, soit
+660 minutes au lieu de quelques-unes. Les pages brutes de blu-ray.com
+s'archivent de même sous `bluray/pages/` par `pages_r2.py`, le bucket faisant
+foi et non un journal.
 
 **Résolution et écriture sont séparées jusque dans le graphe de jobs.** Le
 premier étage tourne en parallèle et ne fait que lire ; le second est seul sur
@@ -1160,7 +1194,24 @@ Trois défauts silencieux corrigés dans la même reprise :
 | `enum_ec.py` | Énumère le listing, sort le delta vs base |
 | `tri_ec.py` | Sépare éditions disque et produits dérivés |
 | `resoudre_ec.py` | Résolution TMDB, **lecture seule** |
-| `ecrire_ec.py` | Écriture (`--apply`), décisions manuelles en dur |
+| `ecrire_ec.py` | Écriture (`--apply`) |
+
+**Le `DECISIONS` d'`ecrire_ec.py` a longtemps passé pour un obstacle à
+l'automatisation. Il n'en est pas un** : ce dictionnaire de six rattachements
+tranchés à la main en juillet 2026 est **keyé par slug**, donc inerte pour
+toute fiche neuve. La chaîne est planifiée depuis le 2 août 2026 (§6).
+
+**Le vrai manque, lui, demeure : aucune mesure indépendante.**
+editioncollector ne publie ni durée ni réalisateur, là où Metaluna, Le Chat
+qui fume et Zavvi permettent de confronter la durée du boîtier au `runtime` de
+TMDB. Ne restent que le titre exact et l'année entre parenthèses, présente sur
+une fiche sur cinq. Ce que `resoudre_ec.py` ne sait pas trancher part dans
+`ec_ambigus.json`, que l'écriture ignore : ces éditions entrent orphelines,
+et c'est le bon sens de la panne.
+
+**C'est la seule des cinq chaînes sans état à conserver** : `enum_ec.py`
+mesure son delta contre les `url_source` déjà en base, pas contre un fichier,
+donc rien à déposer dans R2.
 
 ### Rattachement des éditions orphelines (2026-07-30)
 
@@ -1262,32 +1313,27 @@ d'avancement partagé, la seconde saute tout ce que la première a déjà noté.
 | Fichier | Rôle |
 |---|---|
 | `dates_editions.py` | `date_sortie` (texte anglais) → `date_parution` (`--apply`) |
-| `maj_popularite.sh` | Rafraîchit `films.popularite`, lancé par launchd |
+| `maj_popularite.sh` | Rafraîchit `films.popularite`, désormais sur Actions |
 
 **Piège de locale dans `dates_editions.py`** : `%b` et `%B` de `strptime`
 dépendent de la locale du système. Sous une locale française, « Sep » n'est pas
 reconnu et la passe rendrait **zéro date sans rien signaler**. Les mois passent
 donc par une table explicite.
 
-**La popularité se rafraîchit toute seule, une fois par semaine.**
-`~/Library/LaunchAgents/app.jaquette.popularite.plist`, **lundi 10 h**, et
-non la nuit : à 4 h la machine dort, launchd remettrait la passe au réveil et
-l'heure inscrite ne serait pas l'heure réelle.
+**La popularité se rafraîchit toute seule, lundi 8 h UTC**, par
+`maj-popularite.yml` sur GitHub Actions (§6). Le script `maj_popularite.sh` et
+son agent launchd sont retirés ; le script reste pour un lancement à la main.
 
-    launchctl load   ~/Library/LaunchAgents/app.jaquette.popularite.plist
-    launchctl unload ~/Library/LaunchAgents/app.jaquette.popularite.plist
-    launchctl start  app.jaquette.popularite        # forcer une passe
-    tail ~/jaquette-scraping/maj_popularite.log
+**Elle a longtemps été sur la machine, et le motif est éteint.** La clé
+`service_role` n'avait rien à faire dans les secrets d'un dépôt **public** ;
+le dépôt de collecte est privé, la clé y est déjà, et quatre autres chaînes
+s'en servent. La bascule a en outre réglé une panne muette : l'agent launchd
+n'avait jamais tourné une seule fois, `~/Documents` étant protégé par la
+confidentialité de macOS (§9).
 
-`StartCalendarInterval` et non `StartInterval` : launchd rattrape un rendez-vous
-manqué au réveil suivant, ce qu'un intervalle en secondes ne fait pas. Un Mac
-éteint le lundi décale la passe, il ne la saute pas.
-
-**Sur la machine et non dans un cron GitHub**, alors que le dépôt s'y prêterait.
-La clé `service_role` donne un accès total à la base ; la poser dans les secrets
-d'un dépôt **public** l'exposerait à quiconque obtiendrait un jour un droit
-d'écriture dessus. Elle ne quitte pas `~/.config/boxology.env`. La contrepartie
-est assumée : la passe ne tourne que si le Mac est allumé.
+**Aucun déploiement derrière**, contrairement aux passes qui font entrer des
+éditions : `popularite` est lu à l'exécution par PostgREST, il n'entre ni dans
+le bundle ni dans le sitemap.
 
 La passe repart de zéro à chaque fois, l'avancement sert à reprendre après une
 coupure, pas à sauter les films vus la semaine d'avant. C'est bien tout le
@@ -1955,35 +2001,46 @@ pas au crawler.
 
 ## 8. Chantiers ouverts
 
-### Automatiser les deux sources qui restent
+### Le trou de source, et pourquoi il ne se comble pas tout seul
 
-**C'est le chantier principal, et il est à moitié fait.** Les catalogues
-Shopify se rafraîchissent seuls (§6, cron du mardi), Zavvi se relance d'une
-commande, mais **blu-ray.com et editioncollector n'ont aucun workflow**, alors
-qu'ils portent 9 210 éditions à eux deux, soit près des deux tiers du
-catalogue.
+**Les cinq passes sont automatisées depuis le 2 août 2026** (§6). Ce qui reste
+n'est plus un problème d'ordonnancement mais de **couverture** : des œuvres
+qu'aucune source ne porte.
 
-**Ne pas confondre « importé » et « automatisé ».** Le fonds blu-ray.com est
-clos depuis le 2 août 2026, rien n'y est en attente (§4) ; c'est la **repasse**
-qui manque, celle qui verra les nouveautés de la semaine prochaine. Un fonds
-complet se périme aussi vite qu'un fonds incomplet.
+    Moonlight (2016)              0 édition
+    Portrait de la jeune fille    0 édition
+    Les Yeux sans visage          œuvre en base, 0 édition
 
-Ce qui manque n'est pas la chaîne, elle existe et a tourné, mais son portage :
+Le catalogue est piloté par les éditions : une œuvre n'existe que si un disque
+la porte, et 134 fiches sans édition ont été supprimées le 31 juillet 2026
+pour cette raison. Un ajout à la main serait donc défait à la passe suivante.
 
-- **blu-ray.com** bute sur `crawl/pages/`, 346 Mo de pages gzippées qu'un
-  runner éphémère ne peut pas garder. Le §10 rappelle que trois corrections de
-  parseur ont été rejouées grâce à ce cache, sans une requête réseau. Le
-  reverser dans R2 est le préalable, et `pages_r2.py` le fait, sous
-  `bluray/pages/<id>.html.gz`. Second risque, non mesuré : ils ont déjà servi
-  un 403 sur l'UA du robot, et une plage d'IP de datacenter se bloque plus
-  facilement qu'un résidentiel. À ne pas confondre avec le **521** de leur
-  serveur d'images (§4), qui n'est pas un refus ;
-- **editioncollector** bute sur `ecrire_ec.py`, qui porte des décisions
-  manuelles en dur. Rien n'est planifiable tant qu'elles n'en sortent pas.
+**Aucune des cinq sources ne couvre le marché français généraliste.**
+blu-ray.com filtré France ne rend que 6 207 fiches, editioncollector est un
+catalogue de collectionneurs, Metaluna dix éditeurs de niche, Le Chat qui fume
+un label, Zavvi le marché britannique. Diaphana, Pyramide, Le Pacte,
+Metropolitan n'y sont nulle part.
 
-Le reste est acquis : un `schedule:` de cinq champs dans le workflow suffit à
-faire tourner une chaîne sans personne, et `publier.yml` referme la boucle
-jusqu'au redéploiement.
+**Piège de lecture à connaître** : Le Chat qui fume « a » bien *Les Yeux sans
+visage*, mais c'est `NITRATE #10`, un numéro de leur revue, rangé à juste
+titre dans les dérivés par `tri_chat.py`, `formats: []`. Vérifier que le
+produit trouvé est un disque avant de conclure à un défaut de rattachement.
+
+Les issues possibles, dans l'ordre :
+
+1. **Les flux produits Awin**, Fnac, Cultura, E.Leclerc, Zavvi : EAN, prix,
+   images, marché français, et c'est déjà l'objectif commercial du §1. Bloqué
+   tant qu'aucun programme n'a validé la candidature.
+2. **Le listing dvdfr**, écarté au §5 et toujours à raison : les facettes qui
+   permettraient de n'énumérer que le Blu-ray sont en `Disallow`.
+3. Rien d'autre n'a été mesuré.
+
+**Ne pas attendre de dvdfr qu'il comble ce trou.** `dvdfr.yml` interroge
+**code-barres par code-barres**, à partir des EAN déjà en base : il apporte le
+distributeur, la date de parution française, la zone et le format cinéma, mais
+**aucune édition nouvelle**, une fiche n'en listant pas d'autres. Il enrichit
+l'existant, il ne l'élargit pas, et son workflow dépose deux artefacts que
+rien n'écrit encore en base.
 
 ### Décisions en attente sur les orphelines
 Il reste **897 éditions sans film** au 2 août 2026, sur 15 483, le taux se
@@ -2889,6 +2946,33 @@ Documentés parce qu'ils se reproduiront.
   n'avait jamais été comparée.
 
 ### Infrastructure
+- **blu-ray.com refuse l'IP des runners GitHub, et ce n'est pas un 403.**
+  Mesuré le 2 août 2026 : après une vingtaine de minutes d'énumération
+  réussie, page 97 des coffrets, `<urlopen error [Errno 111] Connection
+  refused>` sur les trois tentatives. Un refus au niveau TCP, la connexion
+  n'étant même pas acceptée, donc un pare-feu et non l'application. La même
+  passe, même code, même délai, **passe depuis la machine de l'éditeur** et va
+  au bout des trois catégories. Une plage d'IP de datacenter se fait bannir là
+  où une connexion domestique passe.
+
+  D'où le partage : collecte locale, import sur Actions, et l'état échangé par
+  le bucket R2 plutôt que par le réseau. `maj-bluray.yml` garde une entrée
+  `collecter`, à faux par défaut : elle a servi à mesurer, elle n'a plus à
+  servir.
+- **Un agent launchd ne peut pas lire `~/Documents`.** Les deux agents
+  échouaient en 127, `/bin/zsh: can't open input file`, et la passe de
+  popularité affichait `runs = 0` depuis son installation : elle n'avait
+  jamais tourné, son unique ligne de journal venant d'un lancement à la main.
+  Le défaut est **muet**, le catalogue paraissant à jour sans l'être.
+
+  **Autoriser `/bin/zsh` puis le binaire Python ne change rien** : macOS
+  attribue l'accès au *processus responsable*, qui pour un agent launchd est
+  le programme déclaré dans le plist, et les autorisations données aux enfants
+  ne rattrapent pas cette attribution. Le correctif est de sortir le dépôt du
+  dossier protégé, `~/jaquette-scraping`, la racine du dossier personnel n'en
+  étant pas un. Il vaut aussi pour la suite : le chemin du binaire Homebrew
+  porte le numéro de version, `python@3.14/3.14.6`, donc la moindre mise à
+  jour aurait invalidé l'autorisation.
 - **Dans GitHub Actions, `skipped` se propage de façon transitive**, et un run
   qui n'a rien fait ressort **vert**. Rencontré deux fois le 2 août 2026 sur
   la même chaîne. Avec `run_crawl`, le job `crawler` est sauté ; `miroir` s'en
