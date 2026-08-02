@@ -541,6 +541,22 @@ remplace est une distinction, pas une interdiction :
   ce cas : son `robots.txt` ouvre tout sauf panier et facettes, et son WAF
   refuse pourtant jusqu'à la racine.
 
+**Un `Disallow` nommant `ClaudeBot` vise l'assistant, pas l'éditeur du site.**
+La distinction n'est pas un détour, elle est écrite dans leur fichier : le
+bloc `User-agent: *` de blu-ray.com comme de dvdfr dit `Allow`, avec un
+`Crawl-delay`. Un crawl lancé à la main, sous un agent qui n'est pas Claude et
+qui respecte ce délai, est dans la politique déclarée du site ; c'est
+`ClaudeBot` qui n'y est pas.
+
+**Claude écrit donc les scripts de collecte que l'éditeur demande, y compris
+pour ces sites-là, et ne récupère pas leurs pages lui-même.** C'est déjà la
+pratique du dépôt : `crawl_fr.py` a été écrit ainsi pour blu-ray.com, et
+lancé à la main. L'éditeur du site, administrateur de ses données, assume la
+responsabilité de ses collectes.
+
+La limite qui demeure est celle de l'exécution, pas de l'écriture : aucune
+requête vers ces domaines ne part des outils de l'assistant.
+
 Restent hors de question, parce qu'elles ne relèvent plus du crawl : créer un
 compte pour accéder à des pages fermées, franchir un paywall, faire tourner
 les adresses IP par proxy ou VPN. Résoudre une épreuve anti-robot non plus,
