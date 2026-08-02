@@ -83,20 +83,30 @@
   Cache-Control: public, max-age=2592000, stale-while-revalidate=2592000
 
 # Icônes du site. Mêmes contraintes que les polices : leur nom ne porte pas de
-# hachage, donc un remplacement réutilise le chemin. Sept jours, jamais
-# `immutable`, et `stale-while-revalidate` pour que le remplacement se propage
-# sans faire attendre personne. Le navigateur ne redemande de toute façon une
-# icône qu'à l'ouverture d'un onglet.
+# hachage, donc un remplacement réutilise le chemin, et jamais `immutable`.
+#
+# **Une heure, et non sept jours comme au premier jet.** Mesuré le 3 août 2026
+# après avoir redessiné le logo : le déploiement était bien en ligne, la feuille
+# de style hachée à jour, et `curl` rendait pourtant l'ancienne icône avec
+# `cf-cache-status: HIT` et `age: 7930`. `stale-while-revalidate` ne rattrape
+# pas ce cas, il ne se déclenche qu'une fois le `max-age` écoulé : l'ancien
+# dessin serait resté à la périphérie jusqu'à sept jours, ou jusqu'à une purge
+# à la main dans le tableau de bord.
+#
+# Une heure de `max-age` avec un mois de `stale-while-revalidate` garde la
+# réponse instantanée, borne la dérive à soixante minutes et ne coûte qu'une
+# revalidation horaire sur des fichiers de deux à cinq kilo-octets. Un
+# navigateur, lui, ne redemande son icône qu'à l'ouverture d'un onglet.
 /favicon.ico
-  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+  Cache-Control: public, max-age=3600, stale-while-revalidate=2592000
 /favicon.svg
-  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+  Cache-Control: public, max-age=3600, stale-while-revalidate=2592000
 /favicon-96.png
-  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+  Cache-Control: public, max-age=3600, stale-while-revalidate=2592000
 /apple-touch-icon.png
-  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+  Cache-Control: public, max-age=3600, stale-while-revalidate=2592000
 /logo.svg
-  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+  Cache-Control: public, max-age=3600, stale-while-revalidate=2592000
 
 # Visuel de partage. Les scrapers sociaux le récupèrent une fois puis le gardent
 # de leur côté ; un jour de cache suffit et permet de le corriger vite.
