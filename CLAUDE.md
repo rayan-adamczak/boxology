@@ -880,6 +880,43 @@ Shopify, donc le même endpoint que Le Chat qui fume, plus
 eux mais compte zéro produit, et leur propre boutique était en maintenance le
 1er août 2026 : Ultra Collector reste à faire.
 
+**Ils exposent en réalité 67 catalogues d'éditeurs, et dix seulement étaient
+pris.** Relevé le 3 août 2026 : les 55 restants sont entrés dans
+`collectes.py`, soit **65 collections** en tout. Ce n'était pas une nouveauté
+de leur côté, c'était une lecture incomplète du nôtre.
+
+Ce que ça vise est exactement le creux du §8, 65 % de couverture sur les
+œuvres de 2000-2014 : **Studio Canal 385, Paramount 342, Warner Vidéo 332,
+Universal 281, BQHL 278, Gaumont 149, Pathé 78, Metropolitan 67**, soit
+environ 2 750 fiches françaises. Ce sont les éditeurs dont l'absence
+produisait les `Armageddon`, `Broken Arrow` et `Bone Collector` introuvables
+au catalogue. S'y ajoutent 3 800 fiches de catalogues d'import, même statut
+que Criterion : Vinegar Syndrome 758, Kino Lorber 663, Arrow Video 409,
+Shout Factory 382, Warner Archive 325, 88 Films 248, Severin 248.
+
+**Les dix déjà importées ont grossi de 20 à 50 % en deux jours** : Artus de
+148 à 196, ESC de 177 à 272, Rimini de 191 à 224. `enum_metaluna.py`
+fusionnant, elles se rattrapent seules dans la vague qui les inclut.
+
+**Les collections de genre, de décennie et de format ne s'énumèrent pas**, et
+c'est mesuré : `blu-ray` en annonce 5 024 et `4k` 3 152, mais leur feed
+s'arrête vers la page 9 à 24-30 produits, `limit=250` n'étant pas honoré.
+L'endpoint racine `/products.json` est bridé à 16. Seules les collections
+d'éditeur, plus petites, se servent entières. C'est aussi ce qui rend le
+`editeur` déclaré indispensable : sans EAN, la déduplication se fait sur le
+titre replié **restreint au même éditeur**, et une collection de genre n'en
+déclare aucun.
+
+**Le miroir R2 est suspendu jusqu'en septembre 2026**, décision du 3 août.
+`ecrire_metaluna.py --sans-miroir` écrit l'URL de la boutique dans `image_url`
+**et** dans `image_url_source` ; sans ce drapeau, `image_url` désignerait un
+objet R2 jamais déposé, et une carte afficherait un visuel brisé, ce qui se
+dégrade plus mal qu'une carte sans visuel. `url_miroir()` étant déterministe,
+la bascule se recalculera sans rien recrawler, comme `basculer_images.py`.
+C'est du hotlink assumé et daté, et c'est aussi ce qui rend la passe tenable :
+sur Zavvi le miroir coûtait quatre heures contre quarante minutes pour tout
+le reste.
+
 **Le compteur de collection ment sur le volume réel.** `collections.json`
 annonce 370 fiches pour Criterion et 272 pour ESC ; le listing paginé en rend
 338 et 178. L'écart est fait d'épuisés que la collection compte encore mais
@@ -1217,13 +1254,33 @@ Sept secrets : `SUPABASE_SERVICE_ROLE_KEY`, `TMDB_READ_TOKEN`, les quatre
 | workflow | quand | ce qu'il fait |
 |---|---|---|
 | `maj-popularite.yml` | lundi 8 h UTC | rafraîchit `films.popularite` |
-| `maj-shopify.yml` | mardi 8 h UTC | 10 collections Metaluna + Le Chat qui fume |
+| `maj-shopify.yml` | mardi 8 h UTC | **65** collections Metaluna + Le Chat qui fume |
 | `maj-zavvi.yml` | mercredi 6 h UTC | énumérer, crawler, résoudre, miroiter, écrire |
 | `maj-bluray.yml` | jeudi 7 h UTC | **import seul**, la collecte est locale |
 | `maj-ec.yml` | vendredi 7 h UTC | énumérer le delta, trier, résoudre, écrire |
 | `publier.yml` | appelé par les passes | hook Cloudflare, puis vérifie le sitemap servi |
 | `recapituler.yml` | appelé par les passes | ouvre une issue de récapitulatif |
 | `dvdfr.yml` | à la main | enrichit par code-barres, **n'élargit rien** |
+
+**Les cinq passes n'ont pas tourné du 2 août 14 h 04 au 3 août**, et rien ne
+l'a signalé. `recapituler.yml`, ajouté ce jour-là, déclare
+`permissions: issues: write` ; un workflow réutilisable ne pouvant pas obtenir
+plus de droits que son appelant, GitHub refusait **au démarrage**, et c'est
+l'appelant entier qui tombait, pas seulement le récapitulatif. Détail du piège
+au §9.
+
+**Le mécanisme censé faire rendre des comptes empêchait les passes de
+tourner**, ce qui est la forme la plus aboutie du défaut qu'il devait
+prévenir. Les runs Zavvi verts de la veille ne l'appelaient pas encore, d'où
+l'illusion que tout allait bien.
+
+**La liste des collections vit dans `metaluna/collectes.py` et nulle part
+ailleurs.** Elle était recopiée trois fois, dans la table, dans la matrice et
+dans la boucle d'écriture. Un job `lister` la lit et l'expose aux deux étages,
+et l'entrée `collections` permet de traiter par vagues, ce qui compte quand
+2 000 minutes de runner par mois se partagent entre cinq passes. L'entrée
+`appliquer` donne une simulation de bout en bout, désarmée sur cron par un
+test sur `event_name`.
 
 Un jour par passe : elles écrivent toutes en base et se disputeraient le
 verrou `ecriture-base` sans rien y gagner.
@@ -3724,6 +3781,32 @@ Documentés parce qu'ils se reproduiront.
 
       if: ${{ !cancelled() && needs.amont.result != 'failure' }}
 
+- **Un workflow réutilisable ne peut pas demander plus de droits que son
+  appelant, et GitHub refuse alors *au démarrage*.** `recapituler.yml` déclare
+  `permissions: issues: write` pour ouvrir son issue ; l'appelant, lui, n'en
+  déclarait aucun. Résultat, `startup_failure` : **aucun job, aucun journal,
+  aucune annotation exposée par l'API**, et c'est l'appelant entier qui tombe,
+  pas seulement le job appelé. Le droit se déclare **chez l'appelant**, sur le
+  job qui appelle :
+
+      recapituler:
+        needs: publier
+        permissions:
+          issues: write
+        uses: ./.github/workflows/recapituler.yml
+
+  Ce qui rend ce piège coûteux, c'est que rien ne le montre. `actionlint` ne
+  voit rien, l'API rend `startup_failure` et s'arrête là, et les workflows
+  voisins continuent de passer tant qu'ils n'appellent pas le fautif. Ce qui
+  l'a trouvé est une **branche jetable et six runs d'une seconde** : rejouer
+  d'abord le fichier *d'origine*, ce qui a mis les modifications récentes hors
+  de cause, puis retirer les appels réutilisables, puis remonter pièce par
+  pièce. La bissection sur le fichier bat l'hypothèse, ici comme ailleurs.
+
+  Fausse piste écartée en chemin, et qui semblait bonne : `if: >-` sur deux
+  lignes. **YAML ne replie pas une ligne plus indentée**, donc l'expression
+  gardait un saut de ligne au milieu du `${{ }}`. C'était un vrai défaut, il
+  ne causait pas celui-là.
 - **Un job parallélisé trop tôt travaille sur une question qui n'est pas encore
   posée.** Le miroir Zavvi ne dépendait que du crawl, pour tourner pendant la
   résolution TMDB et gagner une heure de mur. Mais il ne pouvait pas savoir
