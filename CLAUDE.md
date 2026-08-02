@@ -481,6 +481,77 @@ l'OpenAPI et le DDL est passé, mais l'appeler pour confirmer son garde-fou
 jeton employé portait une revendication `sub`. Pas de test destructif pour
 valider un garde-fou.
 
+### Audit du 2 août 2026
+
+Passé deux fois, la seconde après correction. Ce qui suit est l'état mesuré, pas
+l'état supposé : chaque ligne a été exercée avec la clé `anon` du bundle, celle
+que n'importe quel visiteur possède.
+
+**Six défauts trouvés, six corrigés.** Aucun n'était exploité, tous étaient à
+barrière unique, ce qui est le vrai motif de les avoir traités :
+
+| | corrigé par |
+|---|---|
+| privilèges d'écriture `anon` sur le catalogue | `20260802_revoquer_ecriture_anon.sql` |
+| aucun en-tête de sécurité, pas de CSP | `public/_headers` |
+| pas de HSTS, `img` servi en clair | tableau de bord Cloudflare |
+| inscription par email ouverte côté projet | tableau de bord Supabase |
+| `jaquette.pages.dev` indexable et autocanonique | `functions/_middleware.ts` |
+| redirection ouverte possible dans `connexionGoogle` | `cheminInterne()` dans `lib/auth.ts` |
+
+Chacun est décrit à sa place, ici ou au §7, avec ce qui a été mesuré avant et
+après. Les deux réglages de tableau de bord n'ont **aucune trace dans le
+dépôt**, c'est la raison d'être de ces notes.
+
+**Ce qui ressort propre, et comment ça a été établi** :
+
+    INSERT / PATCH / DELETE anon sur films, edition_films   401
+    collections, bluray_import, kv_store, sauvegardes       401
+    films, editions, edition_films en lecture               200
+    rpc/supprimer_mon_compte en anon                        401
+    storage/v1/bucket                                       200 mais []
+    graphql/v1                                              200 mais extension absente
+    R2 : listing 404, PUT et DELETE anonymes                401
+
+Les sept fonctions de `public` ont `search_path = ''`, une seule est
+`security definer` et `anon` n'a pas son `EXECUTE`. Aucun cookie n'est posé par
+le site, donc rien à voler et pas de CSRF à monter. Le code ne porte ni `eval`,
+ni `innerHTML`, ni `http://` en dur ; les trois liens `target="_blank"` ont leur
+`rel="noreferrer noopener"` ; le middleware compte 36 appels à `echapper()` et
+ne passe `{html:true}` qu'à du contenu qui en sort. Aucun secret dans `dist/`
+ni dans l'historique git.
+
+**Deux pièges de méthode, tous deux rencontrés ce jour-là.** Ils sont la
+version « surface HTTP » du §9, un scan cassé se lit comme un scan négatif :
+
+- **un 200 ne dit rien tant qu'on n'a pas lu le corps.** `storage/v1/bucket` et
+  `graphql/v1` répondent tous deux 200 en anon ; le premier rend `[]`, aucun
+  bucket, le second une **erreur** disant que `pg_graphql` n'est pas activé.
+  Conclure sur le code aurait inventé deux surfaces qui n'existent pas ;
+- **un avis de vulnérabilité se lit sur le mode employé, pas sur le paquet**,
+  cf. react-router au §9.
+
+**Ce qui reste ouvert, et pourquoi c'est un choix** :
+
+- **`npm audit` garde un `high`**, « RSC Mode CSRF Bypass », qui ne se corrige
+  qu'en react-router 8 et ne concerne pas un `BrowserRouter` déclaratif ;
+- **quatre avis Supabase en `INFO`**, « RLS activée sans policy » sur les tables
+  fermées : c'est l'état voulu depuis qu'elles sont en `revoke all`, le linter
+  ne sait pas que la barrière est ailleurs ;
+- **`supprimer_mon_compte` reste exécutable par `authenticated`**, c'est sa
+  raison d'être, et son garde-fou n'est toujours pas éprouvé sous une vraie
+  session, voir juste au-dessus ;
+- **le préchargement HSTS reste à Off**, à rouvrir après six mois sans
+  incident ;
+- **la création de comptes Google reste ouverte à tous**, et doit l'être : c'est
+  le parcours du site. Fermer l'inscription par email retire l'adresse jetable,
+  pas le compte Google. Si l'abus arrive, le levier suivant est Supabase,
+  Authentication puis Rate Limits, et non le code.
+
+**Ce que l'audit n'a pas couvert** : les workflows GitHub Actions et leurs sept
+secrets, qui vivent dans le dépôt privé `jaquette-scraping` (§6), et le contenu
+de `auth.users` au-delà d'un décompte par fournisseur.
+
 ---
 
 ## 4. État du catalogue
