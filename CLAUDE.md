@@ -3218,6 +3218,18 @@ Documentés parce qu'ils se reproduiront.
   ainsi perdu a fait écran blanc sur tout le site sans que le build bronche.
   `strict` reste désactivé, les écrans hérités de Figma Make noieraient le
   signal sous des centaines d'erreurs de nullité.
+- **Un avis `npm audit` se lit sur le mode employé, pas sur le paquet.**
+  react-router porte le 2 août 2026 douze avis dont onze ne visent que le mode
+  framework, le rendu serveur ou RSC : l'application est en `BrowserRouter`
+  déclaratif, sans routeur de données, sans action, sans chargeur. Monté de
+  7.13.0 à 7.18.2 ce jour-là, avec Vite de 6.3.5 à 6.4.3, ce qui solde tout ce
+  qui s'applique. **Le `high` restant, « RSC Mode CSRF Bypass », ne se corrige
+  qu'en react-router 8, un changement majeur, et il ne concerne pas ce site.**
+  Ne pas prendre la version 8 pour ce seul motif, `npm audit` ne sait pas quel
+  mode on utilise. Vérifié après montée : `tsc` vert, navigation client,
+  bouton retour, recherche approchante, pagination et 301 du middleware.
+  Vite est un outil de construction, ses avis ne portent que sur le serveur de
+  développement, jamais sur ce qui est servi en production.
 - **Un `tsc` vert en local ne dit rien du build Cloudflare** quand plusieurs
   sessions travaillent dans le même répertoire. Le 31 juillet 2026, la page de
   bienvenue importait `getDernieresEditions` de `reelio-db.ts`, fonction qui
