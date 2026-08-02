@@ -926,6 +926,87 @@ async function servirAPropos(url: URL, next: () => Promise<Response>): Promise<R
   return injecterListe(reponse, meta, canonical, corps, null);
 }
 
+/**
+ * `/legal` et `/privacy`, en texte.
+ *
+ * Elles servaient 48 octets et le titre générique du catalogue : une mention
+ * légale partagée en lien s'annonçait « jaquette.app, le catalogue des éditions
+ * Blu-ray et 4K françaises », et un client sans JavaScript n'y lisait rien. Ce
+ * sont pourtant les deux pages qu'on cite quand on nous demande qui édite le
+ * site ou ce que deviennent les données.
+ *
+ * **Le corps servi est un sommaire, pas le texte complet.** Le texte juridique
+ * vit dans les composants React, en JSX, et le recopier ici en dur créerait deux
+ * versions qui dériveraient sans que rien ne le signale, le piège déjà consigné
+ * pour la fiche film. Un sommaire de sections avec une ligne chacune donne au
+ * moteur de quoi comprendre la page et à un aperçu de quoi s'afficher, sans
+ * prétendre remplacer ce que le visiteur lira.
+ */
+const PAGES_LEGALES: Record<
+  string,
+  { titre: string; description: string; sections: [string, string][] }
+> = {
+  "/legal": {
+    titre: `Mentions légales | ${SITE_NOM}`,
+    description:
+      `Éditeur, hébergement, propriété intellectuelle et signalement pour ${SITE_NOM}. ` +
+      `Site personnel édité à titre non professionnel.`,
+    sections: [
+      ["Éditeur du site", "Rayan Adamczak, designer, agissant à titre non professionnel (LCEN art. 6)."],
+      ["Directeur de la publication", "L'éditeur du site."],
+      ["Hébergement", "Cloudflare Pages pour le site, Supabase pour la base, hébergée dans l'Union européenne."],
+      ["Propriété intellectuelle", "Les visuels de jaquettes appartiennent à leurs éditeurs, les métadonnées de films viennent de TMDB."],
+      ["Base de données", "Extraction substantielle interdite au titre des articles L. 341-1 et suivants du code de la propriété intellectuelle. Consultation, usage privé et citation avec lien restent libres."],
+      ["Signalement", "Une erreur, une édition manquante, une demande de retrait : contact@jaquette.app."],
+      ["Nature du service", "Catalogue informatif. Le site ne vend rien et ne permet aucun achat."],
+    ],
+  },
+  "/privacy": {
+    titre: `Politique de confidentialité | ${SITE_NOM}`,
+    description:
+      `Ce que ${SITE_NOM} enregistre, ce qu'il n'enregistre pas, et comment effacer ` +
+      `son compte. Aucun traceur, aucune publicité, hébergement dans l'Union européenne.`,
+    sections: [
+      ["Sans compte", "Aucun traceur, aucune publicité, aucun profilage. La consultation ne demande rien."],
+      ["Avec un compte", "L'adresse et l'identifiant Google du compte, plus la liste des éditions marquées. Rien d'autre."],
+      ["Ce que le site ne fait pas", "Ni revente, ni partage à des tiers, ni mesure d'audience publicitaire."],
+      ["Services tiers", "Google pour la connexion, Supabase pour la base, Cloudflare pour l'hébergement, TMDB pour les métadonnées."],
+      ["Vos droits", "Accès, rectification et effacement (RGPD art. 17). La suppression du compte et des listes se fait depuis la page Mon compte."],
+    ],
+  },
+};
+
+async function servirLegale(
+  chemin: string,
+  url: URL,
+  next: () => Promise<Response>,
+): Promise<Response> {
+  const page = PAGES_LEGALES[chemin];
+  const reponse = await next();
+  if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
+
+  const canonical = `${url.origin}${chemin}`;
+  const corps = enveloppe(
+    `<h1 style="font-family:var(--reel-font-titre,inherit);font-size:38px;margin:0 0 12px">` +
+      `${echapper(page.titre.split(" | ")[0])}</h1>` +
+      `<p style="margin:0 0 28px">${echapper(page.description)}</p>` +
+      page.sections
+        .map(
+          ([titre, texte]) =>
+            `<section style="margin:0 0 20px">` +
+            `<h2 style="font-size:20px;margin:0 0 6px">${echapper(titre)}</h2>` +
+            `<p style="margin:0;opacity:.8">${echapper(texte)}</p></section>`,
+        )
+        .join("") +
+      `<p style="margin:28px 0 0">Contact : ` +
+      `<a href="mailto:contact@jaquette.app" style="color:var(--reel-accent-clair,#6ea8ff)">` +
+      `contact@jaquette.app</a></p>` +
+      liensAxes(),
+  );
+
+  return injecterListe(reponse, { titre: page.titre, description: page.description }, canonical, corps, null);
+}
+
 async function servirBienvenue(url: URL, next: () => Promise<Response>): Promise<Response> {
   const reponse = await next();
   if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
@@ -1124,6 +1205,13 @@ export async function onRequest(context: Contexte): Promise<Response> {
   if (url.pathname === "/about") {
     try {
       return await servirAPropos(url, next);
+    } catch {
+      return next();
+    }
+  }
+  if (url.pathname === "/legal" || url.pathname === "/privacy") {
+    try {
+      return await servirLegale(url.pathname, url, next);
     } catch {
       return next();
     }
