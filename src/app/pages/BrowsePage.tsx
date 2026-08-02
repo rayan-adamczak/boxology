@@ -30,12 +30,18 @@ import { suggestionsPour } from "../lib/suggestions";
  * tiers sans que l'accroche bouge, et rien ne l'avait signalé. Les relire après
  * chaque grosse campagne d'import.
  *
+ * Rebelote le 2 août 2026, et l'écart était pire : **8 664 films, 15 483
+ * éditions, 5 460 codes-barres** pour une accroche restée à 4 500 et 8 400. Les
+ * imports Metaluna, Le Chat qui fume, Zavvi et la clôture de blu-ray.com ont
+ * doublé le fonds en deux jours. Le compte des codes-barres, lui, a à peine
+ * bougé : ni Zavvi ni Metaluna n'en publient.
+ *
  * Une ligne pour les recompter :
  *
  *     curl -sI -H "apikey: $CLE" -H "Prefer: count=exact" -H "Range: 0-0" \
  *       "https://<projet>.supabase.co/rest/v1/editions?select=id" | grep -i content-range
  */
-const CATALOGUE = { films: "4 500", editions: "8 400", codesBarres: "5 300" };
+const CATALOGUE = { films: "8 500", editions: "15 000", codesBarres: "5 400" };
 
 /**
  * Libellé de section, calqué sur Letterboxd.
@@ -208,7 +214,7 @@ export function BrowsePage() {
       {/*
         Accroche. Une mosaïque d'affiches derrière le texte plutôt qu'un aplat :
         le sujet du site, ce sont les jaquettes, et une page d'accueil qui n'en
-        montre aucune vend mal un catalogue de 8 400 objets.
+        montre aucune vend mal un catalogue de 15 000 objets.
       */}
       <section className="relative overflow-hidden">
         <MosaiqueAffiches editions={dernieres} />

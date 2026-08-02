@@ -19,8 +19,10 @@
  *
  * Les chiffres sont arrondis par le bas, comme l'accroche de l'accueil : ils ne
  * font que croître, donc « plus de 8 400 » reste vrai sans qu'on y touche.
- * Relevés le 1er août 2026 sur 4 582 œuvres, 8 471 éditions, 5 305 codes-barres
- * et 712 séries.
+ * Relevés le 2 août 2026 sur 8 664 œuvres, 15 483 éditions, 5 460 codes-barres
+ * et 741 séries, après les imports Metaluna, Le Chat qui fume et Zavvi et la
+ * clôture du fonds blu-ray.com. Les relire après chaque grosse campagne : la
+ * péremption ne se signale nulle part.
  */
 
 export interface Question {
@@ -52,7 +54,7 @@ export const FAQ: SectionFaq[] = [
         ancre: "what-is-jaquette",
         question: "Qu’est-ce que jaquette.app ?",
         reponse: [
-          "Un catalogue des éditions physiques de films sorties en France : Blu-ray, 4K, steelbooks, digibooks, coffrets. Plus de 8 400 éditions rattachées à plus de 4 500 œuvres.",
+          "Un catalogue des éditions physiques de films sorties en France : Blu-ray, 4K, steelbooks, digibooks, coffrets. Plus de 15 000 éditions rattachées à plus de 8 500 œuvres.",
           "Un même film existe souvent en dizaines d’éditions, et ces différences comptent pour qui collectionne. Aucune base ne les recensait correctement en français.",
         ],
       },
@@ -128,7 +130,7 @@ export const FAQ: SectionFaq[] = [
         question: "Pourquoi certaines éditions n’ont-elles pas de fiche technique ?",
         reponse: [
           "Même raison, en miroir : les sources qui publient les jaquettes ne publient pas les spécifications du disque, et celles qui publient les spécifications ne publient pas les jaquettes.",
-          "Environ 2 500 éditions portent une fiche technique complète, définition, HDR, ratio, pistes audio, sous-titres, éditeur.",
+          "Environ 2 700 éditions portent des spécifications de disque, dont 1 800 la fiche complète : définition, HDR, ratio, pistes audio, sous-titres, éditeur.",
         ],
       },
       {
@@ -172,7 +174,7 @@ export const FAQ: SectionFaq[] = [
         question: "À quoi sert le code-barres affiché sur une édition ?",
         reponse: [
           "À identifier le disque sans ambiguïté, en boutique ou en occasion. Deux éditions au titre presque identique se distinguent par leur EAN.",
-          "Plus de 5 300 éditions en portent un. C’est une donnée que ni TMDB ni les sites de critique ne publient.",
+          "Plus de 5 400 éditions en portent un. C’est une donnée que ni TMDB ni les sites de critique ne publient.",
         ],
       },
       {
