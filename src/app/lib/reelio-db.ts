@@ -73,8 +73,15 @@ export interface Edition {
   sous_titres: string[] | null;
   disques: string | null;
   packaging: string | null;
-  /** Éditeur vidéo du disque. Remplace le distributeur, absent de TMDB. */
+  /** Éditeur vidéo du disque, celui qui presse. */
   editeur: string | null;
+  /**
+   * Distributeur du disque, relevé chez dvdfr et nulle part ailleurs : TMDB ne
+   * le publie pas, et `production_companies` liste les sociétés de production,
+   * qui ne le sont que par coïncidence. Distinct d'`editeur` : Studiocanal
+   * presse, Universal distribue.
+   */
+  distributeur: string | null;
   /**
    * Date de parution du disque, analysée depuis `date_sortie`, qui reste du
    * texte anglais, inutilisable pour trier. Nulle sur les éditions
@@ -133,6 +140,7 @@ export interface SpecsFilm {
   languesAudio: string[];
   sousTitres: string[];
   editeurs: string[];
+  distributeurs: string[];
   zones: string[];
   /** Nombre d'éditions ayant fourni au moins une valeur. */
   sources: number;
@@ -179,7 +187,7 @@ export function agregerSpecs(editions: Edition[]): SpecsFilm {
   const compteurs: Record<string, Map<string, number>> = {
     definitions: new Map(), hdr: new Map(), ratios: new Map(),
     codecs: new Map(), languesAudio: new Map(), sousTitres: new Map(),
-    editeurs: new Map(), zones: new Map(),
+    editeurs: new Map(), distributeurs: new Map(), zones: new Map(),
   };
   const ajouter = (cle: string, valeurs: (string | null | undefined)[]) => {
     for (const v of valeurs) {
@@ -193,7 +201,8 @@ export function agregerSpecs(editions: Edition[]): SpecsFilm {
   for (const ed of editions) {
     const pistes = Array.isArray(ed.pistes_audio) ? ed.pistes_audio : [];
     const renseignee =
-      !!(ed.resolution || ed.ratio || ed.ratio_origine || ed.codec || ed.editeur) ||
+      !!(ed.resolution || ed.ratio || ed.ratio_origine || ed.codec || ed.editeur ||
+         ed.distributeur) ||
       pistes.length > 0 || splitList(ed.hdr).length > 0 || splitList(ed.sous_titres).length > 0;
     if (renseignee) sources += 1;
 
@@ -207,6 +216,7 @@ export function agregerSpecs(editions: Edition[]): SpecsFilm {
     ajouter("languesAudio", pistes.map((p) => p?.langue));
     ajouter("sousTitres", splitList(ed.sous_titres));
     ajouter("editeurs", [ed.editeur]);
+    ajouter("distributeurs", [ed.distributeur]);
     ajouter("zones", zonesDe(ed.region));
   }
 
@@ -223,6 +233,7 @@ export function agregerSpecs(editions: Edition[]): SpecsFilm {
     languesAudio: classer("languesAudio"),
     sousTitres: classer("sousTitres"),
     editeurs: classer("editeurs"),
+    distributeurs: classer("distributeurs"),
     zones: classer("zones"),
     sources,
   };

@@ -1263,6 +1263,18 @@ export function FilmDetailPage() {
                     value: specs.sousTitres.join(", "),
                   },
                   specs.editeurs.length > 0 && { label: "Éditeur", value: specs.editeurs.join(" · ") },
+                  /*
+                    Le distributeur vient de dvdfr, et de nulle part ailleurs :
+                    TMDB ne le publie pas, ce que le §8 notait comme un manque
+                    définitif. Il suit l'éditeur parce qu'on les confond
+                    volontiers, et la fiche technique de SensCritique, prise
+                    pour référence, les distingue de la même façon :
+                    Studiocanal presse, Universal distribue.
+                  */
+                  specs.distributeurs.length > 0 && {
+                    label: "Distributeur",
+                    value: specs.distributeurs.join(" · "),
+                  },
                   specs.zones.length > 0 && { label: "Zone", value: specs.zones.join(" · ") },
                 ]}
                 note={
