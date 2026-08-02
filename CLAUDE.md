@@ -2185,6 +2185,125 @@ qu'ailleurs : relire la page, pas le champ qu'on en avait extrait.
 Les scripts trouvent des candidats pour la plupart ; ce qui manque est la
 validation, pas la détection.
 
+### Ce que veulent les gens qui cataloguent leur collection, relevé le 2 août 2026
+
+Relevé pour arbitrer la feuille de route, pas pour la remplir. Rangé par
+fréquence dans les sources, et non par facilité.
+
+**La méthode d'abord, parce qu'elle borne la confiance.** Reddit est
+inaccessible à l'assistant, leur `robots.txt` refusant nommément le crawler
+d'Anthropic ; AVS Forum et Home Theater Forum servent un **402 Payment
+Required** aux robots ; blu-ray.com et dvdfr bloquent déjà les agents Claude
+(§5). Ce qui a été lu est donc : les avis App Store **américains et français**
+de My Movies, CLZ Movies, iCollect et DVD Profiler, en texte intégral par le
+flux `itunes.apple.com/…/rss/customerreviews`, un fil du forum Blu-ray en
+français, un fil AVForums sur les steelbooks, une revue détaillée de Movie
+Collector, et les pages de fonctionnalités des concurrents.
+
+**Biais assumé : un avis de boutique est écrit par quelqu'un en colère.** Le
+mur payant y est sur-représenté, l'usage tranquille absent. C'est pourquoi le
+classement ci-dessous ne suit pas le volume brut.
+
+#### Le grief dominant n'est pas une fonction, c'est le modèle
+
+Motif identique chez les quatre applications : mur payant à 20 ou 50 titres,
+découvert **en plein scan** et jamais annoncé ; licence « à vie » invalidée au
+passage d'une version majeure, My Movies 5 vers 6 ; un abonnement par type de
+média chez CLZ, donc trois pour qui collectionne films, livres et musique.
+
+    « l'application est payante au bout du 50ème DVD enregistré »
+    « la version précédente que j'ai achetée est maintenant bloquée »
+    « payer chaque année devient lassant »
+
+La gratuité de consultation, déjà acquise, est donc un argument de
+positionnement plus fort que n'importe quelle fonction à écrire.
+
+#### Perte de données, sauvegarde et export
+
+Deuxième par volume : collections de 700 à 900 titres effacées après une mise
+à jour, aucune récupération, service client muet. La revue de Movie Collector
+relève l'absence d'export hors version Pro, et un avis que les EAN ne sont ni
+consultables ni exportables. **L'export CSV de sa liste est trivial et répond à
+une peur réelle** ; le gager derrière un paiement se lirait comme une prise
+d'otage, c'est exactement le nerf du grief précédent.
+
+#### La base est fausse ou trouée, et c'est ce qui fait partir
+
+Un tiers des films ajoutés sous un titre incorrect chez CLZ, utilisateur parti
+chez un concurrent ; des EAN classés DVD pour un disque Blu-ray ; colonne
+« Edition » remplie au hasard, `Blue Ray` mal orthographié ; jaquettes fausses
+au scan ; blu-ray.com ignorant les disques exclusifs au Royaume-Uni.
+
+#### Le marché français est un trou, et les utilisateurs le disent
+
+C'est la trouvaille la plus exploitable, et elle est écrite en toutes lettres
+dans les avis français des applications dominantes :
+
+    « A éviter en France », aucune reconnaissance des DVD français
+    « Trop de titres manquants pour les films français »
+    « base de données anglais uniquement », « interface anglaise »
+
+Ce que la France a aujourd'hui : **Filmotech**, freeware de bureau dont
+l'application Android n'est « plus suivie », et **Ant Movie Catalog**, d'une
+autre époque. All My Movies interroge TMDB et Allociné mais reste un logiciel
+Windows. **Aucun service web français, moderne et gratuit.**
+
+#### Les demandes, au-delà du scan et de la valeur
+
+| demande | où en est jaquette |
+|---|---|
+| éviter le doublon en magasin, raison n°1 citée | recherche en place, tenir la vitesse sur téléphone |
+| distinguer les éditions d'un même film | **le modèle de données, déjà** |
+| coffrets décomposés film par film | `edition_films`, déjà |
+| suivre la mise à niveau DVD vers 4K | rien, mais tout est en base |
+| prêt de disque, « film prêté » | rien |
+| statistiques de collection | rien |
+| page publique partageable | rien |
+| calendrier des sorties et alertes | `date_parution`, incomplet |
+| signaler une édition manquante | rien |
+
+**La granularité par édition est l'avantage, et il est structurel.** My Movies
+compte un coffret comme un seul film ; la revue de Movie Collector juge sa
+fonction coffret « confuse et mal documentée », le manuel n'expliquant pas
+comment s'en servir ; un avis CLZ rapporte que les volumes multiples d'une
+saison d'animé passent pour des doublons, et que le contournement casse les
+métadonnées. C'est précisément ce que 15 483 éditions distinctes et une
+relation plusieurs-à-plusieurs règlent par construction.
+
+**Le signalement d'édition manquante est la meilleure réponse au trou de
+source.** My Movies en fait un argument de vente, l'équipe créant la fiche
+rapidement. Ça vaut mieux qu'un import de masse, et ça ne heurte pas la règle
+« une œuvre n'existe que si un disque la porte », le signalement portant sur le
+disque.
+
+#### Les deux murs, et ils ne se règlent pas par du front
+
+- **Le scan de code-barres, fonction la plus demandée.** 5 460 EAN pour
+  15 483 éditions, soit **35 %**, et Zavvi comme Metaluna n'en publient aucun.
+  Un scan qui échoue deux fois sur trois est pire que pas de scan. Le blocage
+  est la couverture EAN, pas le lecteur.
+- **La valeur de la collection, deuxième plus demandée.** Aucune source de
+  prix, et `prix_editeur` est un prix conseillé, pas une cote. Suspendu à
+  Awin comme le reste du volet commercial (§8, trou de source).
+
+#### Abonnement envisagé en v2, deux à trois euros par mois
+
+Prévu pour donner des statistiques de collection. Compatible avec ce qui
+précède **à une condition** : ce qui est gratuit aujourd'hui le reste, et rien
+ne se ferme rétroactivement. Le grief n°1 ne porte pas sur le fait de payer,
+il porte sur le mur surgi en cours de route et sur la licence reprise.
+
+Deux réserves à consigner pendant qu'elles sont fraîches :
+
+- **la statistique est ce qui se monnaie le moins bien.** Elle n'apparaît
+  qu'au huitième rang des demandes relevées, et Filmotech la donne
+  gratuitement depuis des années. Ce que les gens ont dit vouloir payer, c'est
+  la **valeur** de leur collection, précisément ce qu'on ne sait pas encore
+  produire ;
+- **ne jamais gager l'export ni la sauvegarde.** Ce sont les deux réponses à
+  la peur de tout perdre, et les faire payer transforme l'argument de confiance
+  en son contraire.
+
 ### Fonctionnel
 - **Authentification en ligne depuis le 30 juillet 2026.** Google uniquement,
   `auth-js` seul et chargé à la demande, +0,75 Ko compressé au bundle initial,
