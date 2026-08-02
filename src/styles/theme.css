@@ -283,12 +283,20 @@
   inset: -3px;
   border-radius: 9999px;
   padding: 2px;
+  /* Les trois couleurs sont écrites deux fois et le fond fait le double de la
+     largeur : c'est ce qui rend le défilement raccordable. Une seule série
+     laisserait une couture rouge/cyan à repasser à chaque tour. */
   background: linear-gradient(
     90deg,
-    var(--reel-logo-cyan) 0%,
-    var(--reel-logo-ambre) 50%,
-    var(--reel-logo-rouge) 100%
+    var(--reel-logo-cyan),
+    var(--reel-logo-ambre),
+    var(--reel-logo-rouge),
+    var(--reel-logo-cyan),
+    var(--reel-logo-ambre),
+    var(--reel-logo-rouge),
+    var(--reel-logo-cyan)
   );
+  background-size: 200% 100%;
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -304,6 +312,26 @@
 
 .reel-anneau-logo:focus-within::after {
   opacity: 1;
+  /* L'animation n'est déclarée qu'ici, pas sur la couche au repos : sinon elle
+     tourne en permanence sous une opacité nulle, et le compositeur repeint un
+     cadre de 686 px que personne ne voit. */
+  animation: reel-anneau-defile 5s linear infinite;
+}
+
+/* Le fond fait 200 % de large, donc le décaler de 200 % ramène exactement le
+   même motif : le tour boucle sans saut. */
+@keyframes reel-anneau-defile {
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/* Un anneau qui tourne est un ornement, jamais l'information : ce qui dit où
+   est le focus, c'est le cadre coloré, et il reste. */
+@media (prefers-reduced-motion: reduce) {
+  .reel-anneau-logo:focus-within::after {
+    animation: none;
+  }
 }
 
 /*
