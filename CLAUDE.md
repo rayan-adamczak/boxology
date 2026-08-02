@@ -2304,6 +2304,84 @@ Deux réserves à consigner pendant qu'elles sont fraîches :
   la peur de tout perdre, et les faire payer transforme l'argument de confiance
   en son contraire.
 
+### Couverture mesurée sur des collections réelles, le 2 août 2026
+
+Premier banc d'essai du catalogue contre des collections tenues par des
+collectionneurs français, et non contre nos propres sources. **73,0 %**,
+216 entrées couvertes sur 296.
+
+Dix listes publiques SensCritique de collection physique, **première page de
+chacune**, rapprochées sur `public.mots_recherche(titre)` plus année à ±1,
+puis contrôle qu'au moins une ligne d'`edition_films` porte le film.
+
+| liste | taille | échantillon | couvert |
+|---|---|---|---|
+| sagas 80-90 (Freddy, Rambo, Rocky, Predator) | 149 | 30 | **100 %** |
+| collection Blu-ray/DVD | 558 | 30 | 90,0 % |
+| DVD / Blu-ray / Steelbook | 309 | 30 | 83,3 % |
+| steelbooks | 174 | 30 | 80,0 % |
+| ma collection Blu-ray | 311 | 30 | 80,0 % |
+| mes Blu-ray | 1 861 | 30 | 70,0 % |
+| ma collection cinéma | 799 | 30 | 70,0 % |
+| Blu-ray et 4K Ultra HD | 1 953 | 30 | 63,3 % |
+| Blu-ray, ma collection | 1 491 | 26 | 61,5 % |
+| vidéothèque UHD/BD/DVD | 4 444 | 30 | **30,0 %** |
+
+**Chaque film trouvé porte au moins une édition, sans une exception**, effet
+direct de la purge des 134 œuvres orphelines du 31 juillet.
+
+**Le premier chiffre était faux et il fallait le vérifier.** La passe stricte
+rendait 69,6 % : dix lignes étaient des **échecs de rapprochement, pas des
+trous de catalogue**, sorties par un `%` de trigrammes. Le piège du §9 à
+l'identique, un scan cassé qui se lit comme un scan négatif.
+
+    Alien - Le 8ème Passager  ->  « Alien, le huitième passager »  15 éditions
+    007 Spectre               ->  « Spectre »                       6 éditions
+    Freddy 3, Freddy 5        ->  titres français sans le préfixe   3 éditions
+    Always - Pour toujours    ->  « Always »                        2 éditions
+
+**Un cas vaut démonstration plutôt que correction.** `Batman v Superman -
+Ultimate Edition` compte comme un **film distinct** dans la liste steelbook, à
+côté de la version cinéma. Chez nous c'est une des 18 éditions du même film.
+SensCritique n'ayant pas de couche édition, l'utilisateur en fabrique une en
+dédoublant l'œuvre. L'argument du §8 écrit par un collectionneur sans qu'on le
+lui demande.
+
+**Le creux est au milieu, et c'est contre-intuitif :**
+
+| période | couvert |
+|---|---|
+| avant 1980 | 71 % |
+| 1980-1999 | 80 % |
+| **2000-2014** | **65 %** |
+| 2015 et après | 86 % |
+
+Ce sont les années de bascule DVD vers Blu-ray, catalogue de studio grand
+public, que les cinq sources ne couvrent pas. Les absents ne sont pas des
+raretés : `Armageddon`, `Broken Arrow`, `Bone Collector`, `Mission to Mars`,
+`Australia`, `(500) jours ensemble`, `Insidious`, `2 Guns`, `Enemy`,
+`A Dangerous Method`, `Agora`, `Alpha`, `Les Huit Salopards`,
+`120 battements par minute`, `In the Mood for Love`, `Le Dahlia Noir`,
+`Obsession`, `Assaut`, `Arizona Junior`. Vérifié une seconde fois, toutes
+années confondues : réellement absents.
+
+**La liste la plus mal couverte est la plus cinéphile.** Les 30 % de la
+vidéothèque de 4 444 titres sont du Ferrara et du De Palma, précisément le
+fonds que Carlotta et Sidonis éditent, et dont nous n'avons que 231 et
+158 fiches.
+
+**Deux limites, à rappeler avant de comparer à une mesure future :**
+
+- **première page seulement.** La pagination des listes passe par `?page=`,
+  chemin en `Disallow` chez eux. Neuf listes sur dix étant alphabétiques,
+  l'échantillon est chargé en chiffres et en A, biais réel de direction
+  inconnue ;
+- **73 % est un plancher.** Le rapprochement retenu est strict, le repli par
+  trigrammes n'a servi qu'à contrôler les absents, jamais à les compter.
+
+À refaire à l'identique après le prochain import, c'est le seul moyen de dire
+si une source neuve comble le trou ou grossit le catalogue à côté.
+
 ### Fonctionnel
 - **Authentification en ligne depuis le 30 juillet 2026.** Google uniquement,
   `auth-js` seul et chargé à la demande, +0,75 Ko compressé au bundle initial,
