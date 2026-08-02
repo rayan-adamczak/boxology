@@ -252,7 +252,11 @@ export function BrowsePage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Rechercher un film…"
-              className="relative z-10 w-full rounded-full py-4 pl-14 pr-5 outline-none transition"
+              /* Ni `relative` ni `z-*` ici : l'input passerait au-dessus de la
+                 loupe, qui est en `absolute` sans contexte d'empilement à elle,
+                 et son fond opaque l'effacerait. L'anneau est hors de la boîte,
+                 il n'a besoin d'aucun empilement. */
+              className="w-full rounded-full py-4 pl-14 pr-5 outline-none transition"
               style={{
                 backgroundColor: "var(--reel-surface)",
                 border: "1px solid var(--reel-border)",
