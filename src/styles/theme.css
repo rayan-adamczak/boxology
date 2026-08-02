@@ -360,35 +360,43 @@
   restait 40 px de chaque côté, soit 2,8 % de la largeur, et la page touchait les
   bords. La proportion est donc pilotée directement.
 
-  `clamp(880px, 68%, 1760px)` tient les trois régimes :
+  `clamp(840px, 62%, 1600px)` tient les trois régimes :
 
-    68 %      la proportion voulue, 16 % de marge de chaque côté
-    880 px    plancher, sous 1 294 px de fenêtre la proportion serrerait trop
-              le contenu (à 1 024 px elle ne laisserait que 696 px)
-    1760 px   plafond, au-delà de 2 588 px une ligne de texte deviendrait
+    62 %      la proportion voulue, 19 % de marge de chaque côté
+    840 px    plancher, sous 1 355 px de fenêtre la proportion serrerait trop
+              le contenu (à 1 024 px elle ne laisserait que 635 px)
+    1600 px   plafond, au-delà de 2 581 px une ligne de texte deviendrait
               illisible
+
+  **Resserré le 3 août 2026**, de 68 % à 62 % et de 1 760 à 1 600 px de plafond,
+  le plancher suivant de 880 à 840. La page touchait trop les bords sur un écran
+  courant : à 1 512 px de fenêtre le contenu passe de 1 028 à 937 px, et la marge
+  de 242 à 287 px de chaque côté. Le plancher est descendu avec, sans quoi il
+  aurait mordu sur une plage de plus en plus large et annulé le resserrement
+  entre 1 294 et 1 420 px.
 
   En pourcentage et non en `vw` : `vw` compte la barre de défilement, donc
   déborderait de quelques pixels à droite.
 
-  Sous `lg` la gouttière reste en pixels : sur un téléphone la proportion
-  mangerait la moitié de l'écran.
+  Sous `lg` la gouttière reste en pixels, et ils ont grossi au même moment,
+  16 → 20 et 24 → 32 : sur un téléphone la proportion mangerait la moitié de
+  l'écran, mais 16 px collaient le texte au bord sur un écran de 375.
 */
 .reel-gouttiere {
   margin-inline: auto;
   width: 100%;
-  padding-inline: 16px;
+  padding-inline: 20px;
 }
 
 @media (min-width: 640px) {
   .reel-gouttiere {
-    padding-inline: 24px;
+    padding-inline: 32px;
   }
 }
 
 @media (min-width: 1024px) {
   .reel-gouttiere {
-    width: clamp(880px, 68%, 1760px);
+    width: clamp(840px, 62%, 1600px);
     max-width: none;
     padding-inline: 0;
   }
