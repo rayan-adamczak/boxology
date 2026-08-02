@@ -360,20 +360,19 @@
   restait 40 px de chaque côté, soit 2,8 % de la largeur, et la page touchait les
   bords. La proportion est donc pilotée directement.
 
-  `clamp(840px, 62%, 1600px)` tient les trois régimes :
+  `clamp(800px, 58%, 1500px)` tient les trois régimes :
 
-    62 %      la proportion voulue, 19 % de marge de chaque côté
-    840 px    plancher, sous 1 355 px de fenêtre la proportion serrerait trop
-              le contenu (à 1 024 px elle ne laisserait que 635 px)
-    1600 px   plafond, au-delà de 2 581 px une ligne de texte deviendrait
+    58 %      la proportion voulue, 21 % de marge de chaque côté
+    800 px    plancher, sous 1 380 px de fenêtre la proportion serrerait trop
+              le contenu (à 1 024 px elle ne laisserait que 594 px)
+    1500 px   plafond, au-delà de 2 586 px une ligne de texte deviendrait
               illisible
 
-  **Resserré le 3 août 2026**, de 68 % à 62 % et de 1 760 à 1 600 px de plafond,
-  le plancher suivant de 880 à 840. La page touchait trop les bords sur un écran
-  courant : à 1 512 px de fenêtre le contenu passe de 1 028 à 937 px, et la marge
-  de 242 à 287 px de chaque côté. Le plancher est descendu avec, sans quoi il
-  aurait mordu sur une plage de plus en plus large et annulé le resserrement
-  entre 1 294 et 1 420 px.
+  **Resserré deux fois le 3 août 2026**, 68 % puis 62 % puis 58 %, plafond de
+  1 760 à 1 500 px, plancher de 880 à 800. À 1 512 px de fenêtre le contenu passe
+  de 1 028 à 877 px et la marge de 242 à 317 px de chaque côté. Le plancher
+  descend à chaque cran, sans quoi il mordrait sur une plage de plus en plus
+  large et annulerait le resserrement sur les tailles d'écran courantes.
 
   En pourcentage et non en `vw` : `vw` compte la barre de défilement, donc
   déborderait de quelques pixels à droite.
@@ -396,7 +395,7 @@
 
 @media (min-width: 1024px) {
   .reel-gouttiere {
-    width: clamp(840px, 62%, 1600px);
+    width: clamp(800px, 58%, 1500px);
     max-width: none;
     padding-inline: 0;
   }

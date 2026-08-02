@@ -34,10 +34,11 @@ export function TopBar() {
               les lettres et descendent aussi bas qu'elles. */}
           <Logo hauteur={21} />
           <span
-            /* 24 px. Le couple a grossi deux fois : 18 puis 21 px de corps
-               paraissaient timides dans un bandeau de 72 px de haut, où le
-               mot-symbole est le seul élément de marque. */
-            style={{ fontFamily: "var(--reel-font-titre)", fontSize: "24px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}
+            /* 27 px. Le nom a grossi trois fois, 18 puis 21 puis 24, sans que
+               la griffe suive au dernier cran : elle reste à 21 px, calée sur
+               la capitale plus descendante d'un corps de 24. Le nom la dépasse
+               donc désormais, à dessein, c'est lui qui porte la marque. */
+            style={{ fontFamily: "var(--reel-font-titre)", fontSize: "27px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}
           >
             jaquette.app
           </span>
