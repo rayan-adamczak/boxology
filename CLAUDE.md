@@ -111,7 +111,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 8 602 lignes
+### `films`, 8 664 lignes
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -172,7 +172,7 @@ toujours. Au 31 juillet 2026 la tête de liste est *L'Odyssée* (1 167),
 indéfiniment les succès du jour de l'import, d'où la tâche hebdomadaire
 décrite au §6.
 
-### `editions`, 14 744 lignes
+### `editions`, 15 483 lignes
 `id` (identity **ajoutée en juillet 2026**, elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `formats_extraits` (text[]), `url_source`, `contenu_brut`, `image_url`,
@@ -180,7 +180,7 @@ applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `langues`, `nb_commentaires`, `nb_wishlist`, `prix_fnac_extrait`,
 `film_id` (film principal), **`source`**, **`source_id`**.
 
-`source` vaut `bluray.com` (5 278), `zavvi.com` (4 446),
+`source` vaut `bluray.com` (6 017), `zavvi.com` (4 446),
 `editioncollector.fr` (3 193), `metalunastore.fr` (1 615) ou
 `lechatquifume.com` (212).
 
@@ -252,18 +252,18 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films`, 16 890 liens
+### `edition_films`, 17 513 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
-Répartition : `zavvi` 4 446, `bluray_page` 2 891, `film_id` 2 619,
-`bluray_tmdb` 2 483, `bluray_page_partiel` 1 710, `corrige_manuel` 692,
+Répartition : `zavvi` 4 446, `bluray_tmdb` 3 106, `bluray_page` 2 891,
+`film_id` 2 619, `bluray_page_partiel` 1 710, `corrige_manuel` 692,
 `metaluna_*` 1 322, `collection_tmdb` 199, `probable` 171,
 `chat_qui_fume` 134, `make_my_day` 86, `corrige_annee` 68,
 `chat_qui_fume_duree` 66, `metaluna_relecture` 76 et
 `metaluna_relecture_partiel` 2, `fusion_doublon` 3.
 
-16 890 liens pour **13 963 éditions rattachées** sur 14 744, soit 94,7 % :
+17 513 liens pour **14 586 éditions rattachées** sur 15 483, soit 94,2 % :
 l'écart entre liens et éditions, ce sont les coffrets, qui portent un lien par
 film.
 
@@ -271,6 +271,12 @@ film.
 et ne l'est pas : l'import Zavvi du 2 août 2026 n'a écrit **que des éditions
 rattachées**, les 7 049 orphelines qu'il aurait pu créer ayant été refusées à
 l'entrée. Ajouter du rattaché relève la moyenne.
+
+**Puis il est redescendu de 94,7 à 94,2 %, et c'est sain.** Les 739 éditions
+blu-ray.com entrées le 2 août (§4) sont arrivées avec 623 liens seulement : les
+ambiguës sont écrites **sans** rattachement plutôt que liées au hasard. Une
+orpheline se voit et se corrige, un lien faux se lit comme une vérité. Un taux
+qui ne baisse jamais est le signe qu'on force les liens, pas qu'on les mesure.
 
 **La source d'un lien dit comment il a été obtenu, pas seulement d'où.** C'est
 ce qui rend chaque campagne isolable et annulable sans toucher aux autres :
@@ -330,8 +336,26 @@ parenthèses, ce qui abîme un bloc `$$ ... $$`. Le tableau de bord annonce
 recrée trois lignes plus bas.
 
 ### `bluray_import`, table de transit
-3 100 fiches crawlées, avec statut : `promu` (2 546), `a_verifier` (464),
-`doublon` (90). Invisible du site, aucune policy anon.
+6 201 fiches crawlées, avec statut : `promu` (6 017), `doublon` (184).
+Invisible du site, aucune policy anon.
+
+**Rien n'est plus en attente depuis le 2 août 2026**, et c'est le premier jour
+où c'est vrai : `a_verifier` et `a_creer` sont à zéro, 6 017 + 184 = 6 201.
+
+Les 464 `a_verifier` étaient un résidu de la passe manuelle de juillet, jugés
+par un rapprochement **de titre** que `import_1b_dedupliquer.py` a depuis
+abandonné, et qu'il ne mesure plus que pour mémoire. Leur repasser la règle
+actuelle, l'EAN seul, a rendu **463 `a_creer` pour un seul vrai doublon**
+(`reprendre_a_verifier.py`).
+
+Ce qui a fait la décision n'est pas le rendement mais la nature des cibles :
+les 464 visaient 206 éditions editioncollector, dont **une seule en a attiré
+210**, intitulée `Steelbook – X-Men : La prélogie`, qui avait ramassé
+`Halo Legends`, `Avatar 3D`, `Titanic 3D`, `Ghostbusters 1 and 2`. Une autre
+s'appelle littéralement `Blu-ray 4K`. Le §9 dit déjà qu'un candidat réduit à du
+vocabulaire d'édition n'est pas un titre ; **la règle vaut dans les deux sens,
+la cible comme le candidat**. Second indice, décisif : sur les 130 paires où
+les deux côtés portaient un EAN, **aucune** ne concordait.
 
 ### Tables de sauvegarde
 `editions_film_id_backup_20260728`, `editions_supprimees_20260728`.
@@ -380,18 +404,41 @@ valider un garde-fou.
 
 | | |
 |---|---|
-| Films | 8 602 |
-| Éditions | 14 744 |
-| Codes-barres | 5 008, dont 13 codes de magasin sans valeur hors enseigne |
-| Éditions rattachées | 13 963 (94,7 %) |
-| Éditions sans film | 781 |
-| Éditions avec visuel | 14 701 (99,7 %) |
-| URL au sitemap | 9 441 |
+| Films | 8 664 |
+| Éditions | 15 483 |
+| Codes-barres | 5 460, dont 13 codes de magasin sans valeur hors enseigne |
+| Éditions rattachées | 14 586 (94,2 %) |
+| Éditions sans film | 897 |
+| Éditions avec visuel | 15 164 (97,9 %) |
+| URL au sitemap | 9 525 |
 
 **Zavvi est entré le 2 août 2026**, +4 446 éditions et +2 822 films, le plus
 gros import du catalogue, et le premier à passer **entièrement par GitHub
 Actions** (§6). Le nombre de codes-barres n'a pas bougé d'une unité : Zavvi
 n'en publie aucun.
+
+**Le fonds blu-ray.com a été clos le 2 août 2026**, +739 éditions et +62 films
+en deux lots, et il ne reste **rien en attente** : 6 201 fiches énumérées,
+6 017 éditions, 184 doublons.
+
+| lot | éditions | liens | films |
+|---|---|---|---|
+| les 464 `a_verifier` de juillet, relues | 463 | 380 | 5 |
+| les 284 fiches jamais collectées | 276 | 243 | 57 |
+
+Les 284 manquaient parce qu'`enum_fr.py` avait rendu 6 201 ids là où la base en
+portait 5 917 : le listing du site tourne, et le §5 rappelle que le fichier se
+**fusionne** au lieu de s'écraser. Crawlées à 5 s d'intervalle, 25 minutes,
+zéro échec, et le cache de `crawl/pages/` est désormais **complet à 6 201**.
+
+**La couverture en visuels est passée de 99,7 à 97,9 %**, et ce n'est pas une
+régression : les 319 éditions sans jaquette sont à 296 des fiches blu-ray.com
+dont l'image répond **404 chez eux**. Elles retombent sur l'affiche TMDB du
+film. Le point mesuré au passage : leur serveur d'images a servi une série de
+**521** en pleine passe, code Cloudflare signifiant que l'origine ne répond
+plus. Ce n'est ni 403 ni 429, donc ni blocage ni limite de débit ; le
+coupe-circuit du miroir s'est arrêté à 20 échecs d'affilée, et une reprise deux
+heures plus tard a passé les 304 images restantes sans un échec.
 
 **Dix catalogues d'éditeurs sont entrés le 1er août 2026**, +1 827 éditions et
 +1 235 films, soit une journée qui a fait grossir la base d'un cinquième :
@@ -509,7 +556,7 @@ soit 13 éditions réelles.
 Ne pas se fier au sitemap : il annonçait 1 201 nouveautés, mais mêle figurines,
 jeux et livres, et ne couvre que 1 477 URL sur 3 193.
 
-### blu-ray.com, 2 546 éditions
+### blu-ray.com, 6 017 éditions
 Crawlé en juillet 2026, d'abord 3 100 fiches sur 5 486 seulement : le site
 renvoyait **403** sur le User-Agent du robot. Blocage levé, vérifié à 200 avec
 le même `Boxology-catalog-bot/1.0`, et **catalogue crawlé en entier le
@@ -856,7 +903,7 @@ français : c'est ce qui prouve que la couche a changé, pas que l'URL est mal
 
 Et le quota d'alors la rendait de toute façon inutilisable en masse :
 **200 fiches par utilisateur et par semaine**, réinitialisable trois fois, 800
-au plus, les consultations de jaquette comprises. Nos 5 008 EAN auraient
+au plus, les consultations de jaquette comprises. Nos 5 460 EAN auraient
 demandé six semaines et demie dans le meilleur cas.
 
 **Le crawl HTML est fermé là où il faudrait qu'il ouvre.** Les facettes de
@@ -1081,6 +1128,8 @@ Résultat : 218 éditions, 197 rattachées (92,9 % hors dérivés), 194 films cr
 | `import_2_resoudre.py` | Résolution TMDB, **lecture seule** |
 | `import_3_ecrire.py` | Création films + éditions + liens |
 | `import_4_titres.py` | Nettoyage des titres (`--apply` pour écrire) |
+| `reprendre_a_verifier.py` | Repasse la règle de dédup actuelle sur un résidu (`--apply`) |
+| `pages_r2.py` | Verse `crawl/pages/` sur R2, préalable à l'automatisation (`--apply`) |
 
 **L'étape 1b manquait**, et ne s'est vue qu'en rejouant la chaîne le 31 juillet
 2026 : les fiches chargées restent en statut `charge`, que l'étape 2 ne lit pas.
@@ -1259,7 +1308,7 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   Function les ajoute par fiche au lieu de les modifier, en se raccrochant à
   `og:site_name`, une balise qui existe à coup sûr.
 - **`sitemap.xml`** généré au build par `scripts/generer-sitemap.mjs` depuis la
-  base. **5 446 URL** au 1er août 2026, contre 5 072 la veille et 2 105 avant
+  base. **9 525 URL** au 2 août 2026, contre 5 446 la veille et 2 105 avant
   les campagnes de rattachement du 30 juillet 2026. Seuls les films
   rattachés à une édition y figurent, en **adresse canonique avec slug**. Le
   script casse le build s'il ne trouve aucun film, et aussi si `films.slug`
@@ -1911,16 +1960,24 @@ pas au crawler.
 **C'est le chantier principal, et il est à moitié fait.** Les catalogues
 Shopify se rafraîchissent seuls (§6, cron du mardi), Zavvi se relance d'une
 commande, mais **blu-ray.com et editioncollector n'ont aucun workflow**, alors
-qu'ils portent 8 471 éditions à eux deux, soit plus de la moitié du catalogue.
+qu'ils portent 9 210 éditions à eux deux, soit près des deux tiers du
+catalogue.
+
+**Ne pas confondre « importé » et « automatisé ».** Le fonds blu-ray.com est
+clos depuis le 2 août 2026, rien n'y est en attente (§4) ; c'est la **repasse**
+qui manque, celle qui verra les nouveautés de la semaine prochaine. Un fonds
+complet se périme aussi vite qu'un fonds incomplet.
 
 Ce qui manque n'est pas la chaîne, elle existe et a tourné, mais son portage :
 
 - **blu-ray.com** bute sur `crawl/pages/`, 346 Mo de pages gzippées qu'un
   runner éphémère ne peut pas garder. Le §10 rappelle que trois corrections de
   parseur ont été rejouées grâce à ce cache, sans une requête réseau. Le
-  reverser dans R2 est le préalable. Second risque, non mesuré : ils ont déjà
-  servi un 403 sur l'UA du robot, et une plage d'IP de datacenter se bloque
-  plus facilement qu'un résidentiel ;
+  reverser dans R2 est le préalable, et `pages_r2.py` le fait, sous
+  `bluray/pages/<id>.html.gz`. Second risque, non mesuré : ils ont déjà servi
+  un 403 sur l'UA du robot, et une plage d'IP de datacenter se bloque plus
+  facilement qu'un résidentiel. À ne pas confondre avec le **521** de leur
+  serveur d'images (§4), qui n'est pas un refus ;
 - **editioncollector** bute sur `ecrire_ec.py`, qui porte des décisions
   manuelles en dur. Rien n'est planifiable tant qu'elles n'en sortent pas.
 
@@ -1929,9 +1986,16 @@ faire tourner une chaîne sans personne, et `publier.yml` referme la boucle
 jusqu'au redéploiement.
 
 ### Décisions en attente sur les orphelines
-Il reste **751 éditions sans film** après le crawl complet du 31 juillet 2026 :
-585 blu-ray.com et 166 editioncollector. Le catalogue ayant doublé, le nombre
-absolu remonte alors que le taux de rattachement se tient à 91,1 %.
+Il reste **897 éditions sans film** au 2 août 2026, sur 15 483, le taux se
+tenant à 94,2 %. Le nombre absolu monte à chaque import et le taux aussi : ce
+sont deux mesures qui ne disent pas la même chose, et c'est la seconde qui
+compte.
+
+Les 116 orphelines ajoutées le 2 août sont les ambiguës des deux lots
+blu-ray.com : `import_3_ecrire.py` écrit l'édition mais ne pose un lien que sur
+une résolution à candidat unique. `King Kong` avec ses huit candidats, ou un
+fragment de titre comme `+ + Digital`, entrent sans rattachement plutôt qu'avec
+un faux.
 
 Ce que la relecture des cas ambigus a appris, le 31 juillet : **le sous-titre de
 la page porte souvent la réponse.** `Train to Busan Blu-ray (SteelBook)` annonce
