@@ -558,8 +558,33 @@ export function FilmDetailPage() {
           large, nette, et on retombe sur l'affiche floutée sinon, faute de
           mieux. Chaque fiche a donc sa propre couleur dominante.
         */}
+        {/*
+          **L'atmosphère a une hauteur à elle, indépendante du contenu.**
+
+          Elle épousait le héros, en `inset-0`. Déplier le synopsis fait grandir
+          le héros, donc la boîte, donc `object-cover` recalculait son cadrage :
+          l'image sautait sous le texte. Mesuré à 1 440 px sur un synopsis long,
+          696 px de haut fermé contre 829 ouvert, et 673 contre 1 252 à 375 px.
+
+          Les deux dégradés sont dans le même bloc, et pas seulement l'image :
+          laissés en `inset-0`, leurs arrêts auraient continué de suivre la
+          hauteur du héros, donc la part d'image voilée aurait changé au
+          dépliage. C'est le même défaut, en moins voyant.
+
+          `min(100%, …)` est un garde-fou : sans lui, un héros plus court que la
+          hauteur fixée laisserait le bloc déborder sur la barre d'onglets. Les
+          valeurs sont calées pour que ce cas ne se présente pas, la colonne de
+          l'affiche tenant le héros à environ 600 px en bureau et 545 au moins en
+          téléphone, mais une retouche de gabarit ne doit pas casser la page.
+
+          Sous le bloc, le fond plat de la page prend le relais : le dégradé
+          vertical finit déjà sur `--reel-bg`, la jonction ne se voit pas.
+        */}
         {(film.backdrop_url || film.affiche_url) && (
-          <div className="absolute inset-0 overflow-hidden">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden"
+            style={{ height: "min(100%, clamp(420px, 40vw, 560px))" }}
+          >
             <img
               src={film.backdrop_url ?? film.affiche_url ?? ""}
               alt=""
@@ -579,28 +604,30 @@ export function FilmDetailPage() {
                   : { filter: "blur(32px)", transform: "scale(1.15)", opacity: 0.35 }
               }
             />
+
+            {/*
+              Deux dégradés, pas un. Le vertical seul laissait le texte sur une
+              image nette : lisible sur un fond sombre, illisible sur un ciel
+              clair ou un visage. L'horizontal donne au texte un fond franc à
+              gauche et laisse l'image respirer à droite, où il n'y a rien à
+              lire.
+            */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(to right, rgba(16, 23, 32,1) 0%, rgba(16, 23, 32,0.99) 40%, rgba(16, 23, 32,0.9) 58%, rgba(16, 23, 32,0.55) 78%, rgba(16, 23, 32,0.3) 100%)",
+              }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(to bottom, rgba(16, 23, 32,0.7) 0%, rgba(16, 23, 32,0.35) 30%, rgba(16, 23, 32,0.8) 80%, var(--reel-bg) 100%)",
+              }}
+            />
           </div>
         )}
-        {/*
-          Deux dégradés, pas un. Le vertical seul laissait le texte sur une
-          image nette : lisible sur un fond sombre, illisible sur un ciel clair
-          ou un visage. L'horizontal donne au texte un fond franc à gauche et
-          laisse l'image respirer à droite, où il n'y a rien à lire.
-        */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to right, rgba(16, 23, 32,1) 0%, rgba(16, 23, 32,0.99) 40%, rgba(16, 23, 32,0.9) 58%, rgba(16, 23, 32,0.55) 78%, rgba(16, 23, 32,0.3) 100%)",
-          }}
-        />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to bottom, rgba(16, 23, 32,0.7) 0%, rgba(16, 23, 32,0.35) 30%, rgba(16, 23, 32,0.8) 80%, var(--reel-bg) 100%)",
-          }}
-        />
 
         {/*
           Le lien de retour est passé à l'intérieur du héros. Dehors, il occupait
