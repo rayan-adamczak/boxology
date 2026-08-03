@@ -2621,6 +2621,62 @@ Trois caractères minimum, quatre puces au plus : en dessous « bl » remonterai
 la moitié des formats, au-delà la rangée se lit comme une seconde liste de
 résultats.
 
+### Panneau d'aperçu sous le champ, le 3 août 2026
+
+`ApercuRecherche.tsx`, monté par `ChampRecherche`. On tape, la liste se
+remplit, on clique un titre sans jamais valider. Modèle SensCritique.
+
+**Il est facultatif, et `/catalogue` ne l'a pas.** C'est la seule page dont la
+grille est directement sous le champ et se rafraîchit à la frappe : un panneau
+y montrerait les huit premières lignes de ce qu'elle affiche déjà, en masquant
+les filtres. Il sert donc au bandeau et aux pages qui n'ont pas de grille sous
+la main.
+
+C'est le bandeau qui y gagne le plus : il n'emmenait nulle part avant Entrée,
+donc chercher depuis une fiche film coûtait une navigation avant même de savoir
+si le titre existait au catalogue.
+
+**Le panneau ne fait aucune requête, il rend ce qu'on lui passe.** L'accueil
+cherche déjà pour sa grille et lui donne ces résultats tronqués à huit ; le
+bandeau, qui n'a pas de grille, apporte les siens (`useApercuFilms`). Une
+requête propre au panneau aurait doublé chaque frappe sur l'accueil.
+
+`useApercuFilms` n'écrit rien dans l'URL, à la différence de `useRechercheFilms` :
+chercher depuis une fiche film remplacerait sinon l'adresse de la fiche pendant
+la frappe.
+
+**Trois pièges, tous les trois mesurés :**
+
+- **le `mousedown` est neutralisé sur tout le panneau.** Sans ça le champ perd
+  le focus au premier bouton de la souris, le panneau se démonte, et le `click`
+  n'atteint jamais le lien visé. C'est aussi ce qui rend inutile tout écouteur
+  de document pour fermer au clic extérieur : le `blur` du champ ne se
+  déclenche plus que pour un vrai clic dehors ;
+- **Chrome vide un `input type="search"` sur Échap.** Le panneau devait se
+  fermer en gardant la saisie, il repartait à zéro. `preventDefault` sur la
+  touche, le ✕ du champ restant pour ceux qui veulent effacer ;
+- **la hauteur du panneau se mesure, elle ne se suppose pas.** Avec un plafond
+  `min(60vh, 480px)`, le bouton « voir tous les résultats » tombait 60 px sous
+  le bord de l'écran à 375 × 760. Le champ mesure la place réelle sous lui, au
+  défilement et au redimensionnement, ce dernier parce que le clavier logiciel
+  d'un téléphone change la hauteur de la fenêtre au moment précis où le panneau
+  est là.
+
+**Faire remonter le champ sous le bandeau a été essayé, et c'est impossible sur
+ces pages.** Chaque frappe écrit dans l'URL, donc produit une `location.key`
+neuve, et `GestionDefilement` remet la page en haut à chaque navigation qui
+n'est pas un retour arrière : le `scrollBy` était défait dans la foulée, sans
+rien signaler. Mesuré, le champ restait à 250 px du haut, exactement où il
+était. Ce n'est pas gênant, la page étant ramenée en haut, le champ est
+toujours à sa position naturelle et la mesure suffit.
+
+Clavier : flèches pour parcourir, Entrée pour ouvrir la ligne choisie, Entrée
+sans sélection pour « voir tous les résultats », Échap pour fermer. La
+sélection repasse par « rien » en bout de liste, sinon on ne peut plus revenir
+au champ sans la souris. Motif `combobox` avec `aria-activedescendant`, et
+`tabIndex={-1}` sur les lignes : la tabulation ne doit pas entrer dans la
+liste.
+
 ### Pages de regroupement, en place le 31 juillet 2026
 
 78 pages : `/formats`, `/publishers`, `/genres` et leurs 75 entrées.
@@ -3380,6 +3436,32 @@ Ce qui reste, et rien d'autre : le signalement d'édition par l'utilisateur
 branché sur l'enrichissement dvdfr par code-barres, et les flux marchands.
 
 ### Fonctionnel
+- **Le premier rendu ne doit pas attendre la session, le 3 août 2026.** Sur une
+  visite connectée, l'accueil affichait le **catalogue**, c'est-à-dire la
+  version déconnectée du site, puis basculait sur le tableau de bord. Mesuré en
+  production, la bascule arrivait à 2,5 s :
+
+      1608 ms  bundle chargé, React monte
+      2102 ms  morceau auth-client, chargé à la demande
+      2512 ms  rafraîchissement du jeton  <- session enfin tranchée
+      2823 ms  films, editions, collections
+
+  Deux causes, deux correctifs. **`compteProbable()` lit le stockage** là où
+  auth-js écrit sa session et répond au premier rendu, sans télécharger quoi que
+  ce soit : `Accueil` choisit donc le bon écran tout de suite, et `useSession` ne
+  fait plus que confirmer. Le bandeau fait pareil avec `apercuNom()`, à la place
+  d'un trou de 96 px qui se lisait comme une déconnexion.
+
+  **Et la fiche film n'attend plus la session pour ses données publiques** : le
+  film et ses éditions ne dépendent d'aucun compte, seuls les statuts en
+  dépendent. C'est un effet séparé, et `statutsPrets` tient les pastilles
+  sourdes tant qu'on ne sait pas, plutôt que d'affirmer « pas dans votre
+  collection » avant de l'avoir lu.
+
+  **Le faux positif est assumé et il est le bon sens** : une session révoquée
+  fait afficher le tableau de bord une seconde avant de retomber sur le
+  catalogue. C'est le clignotement d'hier, dans l'autre sens, et bien plus rare.
+  Éprouvé sous `wrangler` dans les deux sens, avec et sans clé en stockage.
 - **Authentification en ligne depuis le 30 juillet 2026.** Google uniquement,
   `auth-js` seul et chargé à la demande, +0,75 Ko compressé au bundle initial,
   le reste dans un morceau séparé de 24,5 Ko. Parcours exercé de bout en bout en

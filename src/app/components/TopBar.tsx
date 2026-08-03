@@ -4,9 +4,10 @@ import { ChevronDown, Settings, LogOut, Bookmark, Library, User as UserIcon, Bel
 import { UserAvatar } from "./UserAvatar";
 import { Logo } from "./Logo";
 import { ChampRecherche } from "./ChampRecherche";
-import { connexionGoogle, deconnexion, nomAffiche, useSession } from "../lib/auth";
+import { apercuNom, connexionGoogle, deconnexion, nomAffiche, useSession } from "../lib/auth";
 import { arobase, cheminProfil } from "../lib/identifiant";
 import { useProfil } from "../lib/profils";
+import { useApercuFilms } from "../lib/recherche-films";
 
 /**
  * Bandeau, refait le 3 août 2026.
@@ -29,6 +30,13 @@ export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [clocheOuverte, setClocheOuverte] = useState(false);
   const [saisie, setSaisie] = useState("");
+  /*
+    Le bandeau n'a pas de grille où poser ses résultats : il apporte donc sa
+    propre recherche, là où l'accueil et /catalogue passent celle de leur page.
+    Elle n'écrit rien dans l'URL, sans quoi chercher depuis une fiche film
+    remplacerait l'adresse de la fiche pendant la frappe.
+  */
+  const apercu = useApercuFilms(saisie);
   const session = useSession();
   const etatProfil = useProfil();
   const profil = etatProfil.statut === "pret" ? etatProfil.profil : null;
@@ -105,6 +113,7 @@ export function TopBar() {
                   valeur={saisie}
                   onChange={setSaisie}
                   onValider={chercher}
+                  apercu={apercu}
                   taille="compact"
                 />
               </div>
@@ -132,7 +141,21 @@ export function TopBar() {
             n'affiche rien à cet endroit, sinon un visiteur déjà connecté verrait
             « Se connecter » clignoter à chaque chargement de page.
           */}
-          {session === undefined && <div style={{ width: 96, height: 34 }} aria-hidden="true" />}
+          {/*
+            `session === undefined` n'arrive **que** sur une visite connectée :
+            sans clé en stockage, `useSession` répond `null` dès le premier
+            rendu. Ce cas est donc celui de quelqu'un qui a un compte et attend
+            que le jeton soit rafraîchi, deux secondes et demie mesurées en
+            production. Un trou de 96 pixels à cet endroit se lisait comme une
+            déconnexion ; on pose l'avatar tout de suite, avec le nom lu dans le
+            stockage, et le menu s'active quand la session est confirmée.
+          */}
+          {session === undefined && (
+            <div className="flex items-center gap-1 p-0.5" aria-hidden="true">
+              <UserAvatar name={apercuNom()} size={34} />
+              <ChevronDown size={16} color="var(--reel-muted)" />
+            </div>
+          )}
 
           {session === null && (
             <>

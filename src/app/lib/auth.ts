@@ -149,6 +149,52 @@ export async function identiteCourante(): Promise<{ jeton: string; userId: strin
   return { jeton: data.session.access_token, userId: data.session.user.id };
 }
 
+/**
+ * Y a-t-il un compte, pour ce qui se décide **au premier rendu** ?
+ *
+ * `useSession` rend `undefined` tant qu'auth-js n'a pas tranché, et ça prend du
+ * temps : le morceau est chargé à la demande, puis le jeton est rafraîchi par
+ * le réseau. Mesuré en production le 3 août 2026 sur une visite connectée, la
+ * session n'était résolue qu'à **2 512 ms**, dont 405 ms pour le seul
+ * rafraîchissement.
+ *
+ * Pendant ce temps, tout ce qui teste `session ? … : …` affiche la version
+ * déconnectée du site à quelqu'un qui est connecté. Sur l'accueil, c'était la
+ * page de catalogue à la place du tableau de bord, donc un changement de page
+ * entier sous les yeux du visiteur.
+ *
+ * Cette fonction lit le stockage, là où auth-js écrit sa session, et répond
+ * tout de suite. Elle ne valide rien : un jeton expiré vaut « connecté », parce
+ * qu'auth-js va le rafraîchir et que c'est le cas courant. Le seul faux positif
+ * possible est un rafraîchissement refusé, session révoquée ou trop vieille, et
+ * il coûte le clignotement qu'on subissait jusqu'ici, dans l'autre sens et
+ * beaucoup plus rarement.
+ */
+export function compteProbable(): boolean {
+  return sessionPlausible();
+}
+
+/**
+ * Nom affichable lu dans le stockage, sans charger auth-js.
+ *
+ * Même usage que `compteProbable`, pour le bandeau : afficher l'avatar et le
+ * nom dès le premier rendu plutôt qu'un trou de 96 pixels.
+ */
+export function apercuNom(): string {
+  try {
+    const brut = localStorage.getItem(CLE_STOCKAGE);
+    if (!brut) return "";
+    const objet = JSON.parse(brut) as Record<string, any>;
+    // Selon les versions, auth-js range la session à plat ou sous une clé.
+    const u = objet?.user ?? objet?.currentSession?.user ?? objet?.session?.user;
+    if (!u) return "";
+    return u.user_metadata?.full_name ?? u.user_metadata?.name ?? u.email ?? "Compte";
+  } catch {
+    /* Stockage indisponible ou contenu illisible : on n'invente rien. */
+    return "";
+  }
+}
+
 /** Nom affichable, en repli sur l'adresse puis sur un libellé neutre. */
 export function nomAffiche(session: Session | null): string {
   if (!session) return "";

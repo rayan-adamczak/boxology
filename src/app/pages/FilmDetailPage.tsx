@@ -152,13 +152,16 @@ function parseCast(val: unknown): CastMember[] {
 interface CircleStatusButtonsProps {
   editionId: number;
   status: StatutValue | undefined;
+  /** Les statuts du compte sont-ils connus ? Faux le temps que la session soit
+   *  tranchée : les pastilles sont alors sourdes plutôt que menteuses. */
+  pret: boolean;
   /** La page tient la bascule : elle écrit en base, ou ouvre la modale de
    *  connexion s'il n'y a pas de compte. Ce composant n'a pas à le savoir. */
   onToggle: (editionId: number, value: StatutValue) => void;
 }
 
-function CircleStatusButtons({ editionId, status, onToggle }: CircleStatusButtonsProps) {
-  const handle = (value: StatutValue) => onToggle(editionId, value);
+function CircleStatusButtons({ editionId, status, pret, onToggle }: CircleStatusButtonsProps) {
+  const handle = (value: StatutValue) => { if (pret) onToggle(editionId, value); };
 
   const collectionActive = status === "possede";
   const wishlistActive = status === "envie";
@@ -363,6 +366,10 @@ export function FilmDetailPage() {
   const [film, setFilm] = useState<Film | null>(null);
   const [editions, setEditions] = useState<Edition[]>([]);
   const [statuts, setStatuts] = useState<Record<number, StatutValue>>({});
+  /* Les pastilles ne disent rien du visiteur tant que c'est faux : la fiche
+     s'affiche désormais avant que la session soit tranchée, et « pas dans
+     votre collection » serait affirmé sans le savoir. */
+  const [statutsPrets, setStatutsPrets] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("Editions");
@@ -398,12 +405,22 @@ export function FilmDetailPage() {
     return () => window.removeEventListener("resize", mesurer);
   }, [film?.synopsis, synopsisOuvert]);
 
+  /*
+   * Le film et ses éditions sont publics : ils ne dépendent d'aucune session et
+   * ne doivent donc rien attendre.
+   *
+   * Ils l'attendaient, et ça coûtait une seconde de page vide. Mesuré en
+   * production le 3 août 2026, sur une visite connectée :
+   *
+   *     1608 ms  bundle chargé, React monte
+   *     2102 ms  morceau auth-client
+   *     2512 ms  rafraîchissement du jeton  <- la session est tranchée ici
+   *     2823 ms  films, editions, collections
+   *
+   * Soit quatre allers-retours en série là où deux suffisent. Le motif d'alors
+   * était juste, mais il ne visait que les statuts : voir l'effet suivant.
+   */
   useEffect(() => {
-    // Tant que la session n'est pas résolue, on ne charge pas les statuts : on
-    // les lirait vides pour les remplacer aussitôt par ceux du compte, et les
-    // boutons changeraient d'état sous le curseur.
-    if (session === undefined) return;
-
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -413,9 +430,6 @@ export function FilmDetailPage() {
         if (cancelled) return;
         setFilm(f);
         setEditions(eds);
-        // Vide sans compte (cf. lib/collections.ts).
-        const st = await chargerStatuts(eds.map((e) => e.id));
-        if (!cancelled) setStatuts(st);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Erreur inconnue");
       } finally {
@@ -423,9 +437,37 @@ export function FilmDetailPage() {
       }
     })();
     return () => { cancelled = true; };
+  }, [filmId]);
+
+  /*
+   * Les statuts, eux, attendent bel et bien la session, et c'est le motif
+   * d'origine : sans elle on les lirait vides pour les remplacer aussitôt par
+   * ceux du compte, et les boutons changeraient d'état sous le curseur.
+   *
+   * `statutsPrets` porte cette attente à l'écran. Sans lui, la page s'affiche
+   * plus tôt mais les pastilles annoncent « pas dans votre collection » avant
+   * de savoir, ce qui est un mensonge d'une seconde sur la seule chose que la
+   * page dise du visiteur.
+   */
+  useEffect(() => {
+    if (session === undefined || editions.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        // Vide sans compte (cf. lib/collections.ts).
+        const st = await chargerStatuts(editions.map((e) => e.id));
+        if (!cancelled) { setStatuts(st); setStatutsPrets(true); }
+      } catch {
+        // Un statut illisible ne doit pas emporter la fiche : on laisse les
+        // pastilles neutres plutôt que d'afficher une erreur sur la page.
+        if (!cancelled) setStatutsPrets(true);
+      }
+    })();
+    return () => { cancelled = true; };
     // `session?.user.id` et non `session` : l'objet est recréé à chaque
     // rafraîchissement de jeton, ce qui rechargerait la page toutes les heures.
-  }, [filmId, session === undefined, session?.user.id]);
+  }, [editions, session === undefined, session?.user.id]);
 
   /*
    * Titre et description propres à la fiche. Tant que le film n'est pas chargé
@@ -1292,6 +1334,7 @@ export function FilmDetailPage() {
                         <CircleStatusButtons
                           editionId={ed.id}
                           status={statuts[ed.id]}
+                          pret={statutsPrets}
                           onToggle={handleEditionStatut}
                         />
                       </div>

@@ -53,7 +53,7 @@ import { TableauDeBordPage } from "./pages/TableauDeBordPage";
  * lien partagé n'a pas de seconde chance.
  */
 import { ProfilPublicPage } from "./pages/ProfilPublicPage";
-import { useSession } from "./lib/auth";
+import { compteProbable, useSession } from "./lib/auth";
 
 /*
  * Pages chargées à la demande : rarement visitées, les embarquer dans le bundle
@@ -86,13 +86,20 @@ const ListesPage = lazy(() =>
  * Connecté, c'est le tableau de bord : collection, activité, sorties à venir.
  * Le parcours du catalogue a sa page, `/catalogue`, dans le bandeau.
  *
- * `undefined` = session non résolue. On rend le catalogue pendant ce temps
- * plutôt qu'un écran vide : c'est la version qui vaut pour un visiteur de
- * passage, et elle disparaît d'elle-même si une session existe.
+ * `undefined` = session non résolue, et c'est le cas au premier rendu de toute
+ * visite connectée : auth-js est chargé à la demande puis rafraîchit son jeton
+ * par le réseau, ce qui prenait **2,5 secondes** mesurées en production.
+ *
+ * Rendre le catalogue pendant ce temps revenait à montrer la version
+ * déconnectée du site à quelqu'un de connecté, puis à changer de page entière
+ * sous ses yeux. On tranche donc sur `compteProbable()`, qui lit le stockage
+ * sans rien télécharger : le bon écran est choisi dès le premier rendu, et
+ * `useSession` ne fait plus que le confirmer.
  */
 function Accueil() {
   const session = useSession();
-  return session ? <TableauDeBordPage /> : <BrowsePage />;
+  const connecte = session === undefined ? compteProbable() : session !== null;
+  return connecte ? <TableauDeBordPage /> : <BrowsePage />;
 }
 
 /**
