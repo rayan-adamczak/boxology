@@ -111,6 +111,37 @@ function formatDuration(raw: string | null): string {
 }
 
 /**
+ * Les données que la Pages Function a posées dans la page, si elles portent
+ * bien sur ce film.
+ *
+ * Le Worker a déjà lu le film et ses éditions pour écrire le `<head>`, le corps
+ * et le JSON-LD ; il les inline dans un `<script type="application/json">`
+ * (cf. `donneesInlinees` dans `functions/_middleware.ts`). Les reprendre évite
+ * un aller-retour qui, mesuré en production, ne rendait la liste des éditions
+ * qu'à 2 823 ms.
+ *
+ * **L'identifiant est vérifié.** Une navigation interne vers une autre fiche
+ * trouverait encore le bloc de la page d'entrée ; il ne doit servir qu'à celle
+ * pour laquelle il a été écrit.
+ *
+ * Le bloc n'est pas consommé : la page relit derrière, sans écran de
+ * chargement, donc un second montage sur la même fiche repart du même état
+ * initial et se rafraîchit pareil. Rien ne dépend de l'ordre.
+ */
+function ficheInlinee(filmId: number): { film: Film; editions: Edition[] } | null {
+  try {
+    const bloc = document.getElementById("donnees-fiche");
+    if (!bloc?.textContent) return null;
+    const charge = JSON.parse(bloc.textContent) as { film?: Film; editions?: Edition[] };
+    if (!charge.film || charge.film.id !== filmId) return null;
+    return { film: charge.film, editions: charge.editions ?? [] };
+  } catch {
+    /* Bloc absent, tronqué, illisible : on charge par le réseau comme avant. */
+    return null;
+  }
+}
+
+/**
  * L'URL d'une offre, si et seulement si c'est un lien HTTPS.
  *
  * `offres.url` est le seul `href` du site construit depuis la base, et rien en
@@ -363,14 +394,17 @@ export function FilmDetailPage() {
   const { id } = useParams<{ id: string }>();
   const filmId = Number(id);
 
-  const [film, setFilm] = useState<Film | null>(null);
-  const [editions, setEditions] = useState<Edition[]>([]);
+  /* Lu une fois, avant le premier rendu : un effet s'exécute après la peinture,
+     donc y lire le bloc laisserait passer une image vide pour rien. */
+  const [initial] = useState(() => ficheInlinee(filmId));
+  const [film, setFilm] = useState<Film | null>(initial?.film ?? null);
+  const [editions, setEditions] = useState<Edition[]>(initial?.editions ?? []);
   const [statuts, setStatuts] = useState<Record<number, StatutValue>>({});
   /* Les pastilles ne disent rien du visiteur tant que c'est faux : la fiche
      s'affiche désormais avant que la session soit tranchée, et « pas dans
      votre collection » serait affirmé sans le savoir. */
   const [statutsPrets, setStatutsPrets] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initial === null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("Editions");
   const [selectedPerson, setSelectedPerson] = useState<string | null>(null);
@@ -422,8 +456,20 @@ export function FilmDetailPage() {
    */
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+
+    /* Le bloc inliné par la Pages Function, s'il porte sur cette fiche. Relu
+       ici et pas seulement à l'état initial : une navigation interne change
+       `filmId` sans remonter le composant. */
+    const local = ficheInlinee(filmId);
+    if (local) {
+      setFilm(local.film);
+      setEditions(local.editions);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
+
     (async () => {
       try {
         const [f, eds] = await Promise.all([getFilm(filmId), getEditionsForFilm(filmId)]);
@@ -431,7 +477,10 @@ export function FilmDetailPage() {
         setFilm(f);
         setEditions(eds);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Erreur inconnue");
+        /* Avec des données inlinées à l'écran, une lecture ratée ne doit pas
+           remplacer une fiche lisible par un message d'erreur : le réseau a
+           échoué, le contenu affiché reste vrai. */
+        if (!cancelled && !local) setError(e instanceof Error ? e.message : "Erreur inconnue");
       } finally {
         if (!cancelled) setLoading(false);
       }

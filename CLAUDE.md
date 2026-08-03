@@ -2256,6 +2256,36 @@ la réponse ressort telle quelle. Ailleurs la réponse est reconstruite pour
 obtenir des en-têtes modifiables, `Response.redirect` rendant les siens figés.
 Vérifié sous `wrangler` que la 301 garde son `Location` en le traversant.
 
+**Les données de la fiche sont inlinées depuis le 3 août 2026**, dans un
+`<script type="application/json" id="donnees-fiche">` posé après `#root`. Le
+Worker vient de lire le film et ses éditions pour écrire le `<head>`, le corps
+et le JSON-LD ; sans ce bloc, le navigateur refaisait le même aller-retour une
+fois le bundle chargé, et la liste des éditions n'arrivait qu'à 2 823 ms.
+
+`lireFilm` demande donc les colonnes de la **fiche**, plus seulement celles du
+`<head>` : `films` en entier, et les éditions énumérées sans `contenu_brut`,
+qui pèse des dizaines de kilo-octets et que personne n'affiche.
+
+**Après `#root` et non dedans** : `createRoot` remplace le contenu du conteneur
+au montage, ce qui effacerait le bloc avant lecture. Et c'est un bloc de
+**données**, pas un script : `application/json` n'est pas exécuté, donc la CSP
+`script-src 'self'` le laisse passer sans `unsafe-inline`. Le chevron ouvrant
+est échappé comme dans le JSON-LD, un `</script>` dans un synopsis fermerait la
+balise par surprise.
+
+**État initial, pas vérité définitive.** La page relit derrière, sans écran de
+chargement : un onglet resté ouvert ne fige pas un prix. L'identifiant est
+vérifié à la lecture, une navigation interne vers une autre fiche ne doit pas
+ressortir ces données-là.
+
+Le coût réel est nul en octets et se paie en une requête de moins. Sur *Game of
+Thrones*, la fiche la plus fournie du catalogue avec 64 éditions :
+
+| | brut | compressé |
+|---|---|---|
+| page avec le bloc | 97 370 o | 11 390 o |
+| la requête qu'il remplace | 107 890 o | 10 023 o |
+
 **Le corps, parce que le `<head>` ne suffisait pas.** Le corps servi faisait
 48 octets, `<div id="root"></div>` et rien d'autre : un moteur qui n'exécute
 pas le JavaScript n'avait aucun texte à lire, et une fiche ne pouvait pas

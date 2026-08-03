@@ -139,15 +139,34 @@ async function lireFilm(id: number): Promise<FilmSeo | null> {
      colonne est un vestige, le rattachement vit dans la table de liens
      (cf. `getEditionsForFilm`). Les embarquer ici évite un second aller-retour,
      et le même appel sert au décompte de la description et au JSON-LD. */
-  const champsFilm =
-    "id,titre,titre_original,type,annee,duree,note,nb_votes,realisateur," +
-    "scenariste,genres,pays,date_sortie,imdb_id,synopsis,affiche_url,slug";
+  /*
+   * On demande tout ce dont la **fiche** a besoin, pas seulement le `<head>`.
+   *
+   * Ces colonnes servaient au titre, à la description et au JSON-LD, donc une
+   * poignée suffisait. Depuis le 3 août 2026 la réponse est aussi inlinée dans
+   * la page (`donneesInlinees`) pour que React n'ait plus à la redemander : il
+   * faut donc que ce que l'on lit ici couvre ce que `getFilm` et
+   * `getEditionsForFilm` liraient côté client, sans quoi la fiche s'afficherait
+   * amputée avant de se corriger, c'est-à-dire le défaut qu'on vient fermer.
+   *
+   * `films` en entier, c'est une ligne. Les éditions sont énumérées, elles :
+   * `contenu_brut` porte le texte brut de la source, parfois des dizaines de
+   * kilo-octets, et personne ne l'affiche ; `image_url_source` et ses voisines
+   * ne servent qu'aux scripts d'import.
+   */
+  const champsFilm = "*";
   /* `offres(...)` est une jointure à gauche : une édition sans offre revient
      avec un tableau vide plutôt que de disparaître. C'est le cas de 96 % du
-     catalogue, donc ce n'est pas un détail de forme. */
+     catalogue, donc ce n'est pas un détail de forme. `url` est demandée pour la
+     page, qui en fait le lien marchand ; le JSON-LD, lui, continue de pointer
+     la fiche du site et jamais le lien de tracking (§7). */
   const champsEdition =
-    "id,titre,ean,image_url,editeur,date_parution,formats_extraits," +
-    "offres(marchand,prix,devise,disponible,releve_le)";
+    "id,titre,url_source,image_url,images_secondaires,slug,type,ean,prix_editeur," +
+    "univers,supports,langues,nb_commentaires,nb_wishlist,film_id,formats_extraits," +
+    "prix_fnac_extrait,region,pays,date_sortie,source,codec,resolution,hdr,ratio," +
+    "ratio_origine,pistes_audio,sous_titres,disques,packaging,editeur,date_parution," +
+    "collection_editeur,numero_collection,distributeur," +
+    "offres(marchand,prix,devise,disponible,url,releve_le)";
 
   const url =
     `https://${PROJET}.supabase.co/rest/v1/films` +
@@ -528,9 +547,49 @@ function injecter(reponse: Response, film: FilmSeo, canonical: string) {
     /* Le corps servi au crawler. React l'efface à son montage : `createRoot`
        remplace le contenu du conteneur, il ne l'hydrate pas. */
     .on("#root", {
-      element: (el: any) => el.setInnerContent(corpsFilm(film), { html: true }),
+      element: (el: any) => {
+        el.setInnerContent(corpsFilm(film), { html: true });
+        el.after(donneesInlinees(film), { html: true });
+      },
     })
     .transform(reponse);
+}
+
+/**
+ * Les données de la fiche, posées dans la page pour que React n'ait pas à les
+ * redemander.
+ *
+ * Le Worker vient de les lire pour écrire le `<head>`, le corps et le JSON-LD.
+ * Sans ce bloc, le navigateur refaisait le même aller-retour une fois le bundle
+ * chargé : mesuré en production, la fiche n'avait ses éditions qu'à 2 823 ms,
+ * dont 300 ms pour cette seule requête, après avoir attendu le bundle.
+ *
+ * **Un bloc de données, pas un script.** `type="application/json"` n'est pas
+ * exécuté par le navigateur, donc la CSP `script-src 'self'` le laisse passer
+ * sans `unsafe-inline` et rien n'y est évalué. Le chevron ouvrant est échappé
+ * pour la même raison que dans le JSON-LD : un `</script>` dans un synopsis
+ * fermerait la balise par surprise.
+ *
+ * Posé **après** `#root` et non dedans : `createRoot` remplace le contenu du
+ * conteneur au montage, ce qui effacerait le bloc avant que la page ait pu le
+ * lire.
+ *
+ * Le contrat avec le client est l'identifiant du film, vérifié à la lecture :
+ * une navigation interne vers une autre fiche ne doit pas ressortir ces
+ * données-ci. Et la page s'en sert comme **état initial**, pas comme vérité
+ * définitive : elle relit derrière, sans écran de chargement, pour qu'un onglet
+ * resté ouvert ne fige pas un prix.
+ */
+function donneesInlinees(film: FilmSeo): string {
+  /* `edition_films` porte les éditions imbriquées dans le film : les laisser
+     écrirait deux fois la même liste, pour un bloc qui pèse déjà. */
+  const { edition_films: _liens, ...fiche } = film as FilmSeo & Record<string, unknown>;
+  const charge = { film: fiche, editions: editionsDe(film) };
+  return (
+    `<script type="application/json" id="donnees-fiche">` +
+    `${JSON.stringify(charge).replace(/</g, "\\u003c")}` +
+    `</script>`
+  );
 }
 
 /* ------------------------------------------------------------------------ */
