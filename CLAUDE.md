@@ -152,7 +152,7 @@ faire dans l'autre sens coupe la connexion le temps de l'écart.
 
 ## 3. Modèle de données
 
-### `films`, 10 871 lignes (3 août 2026, dont 748 séries)
+### `films`, 11 105 lignes (3 août 2026, dont 748 séries)
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -213,7 +213,7 @@ toujours. Au 31 juillet 2026 la tête de liste est *L'Odyssée* (1 167),
 indéfiniment les succès du jour de l'import, d'où la tâche hebdomadaire
 décrite au §6.
 
-### `editions`, 20 602 lignes (3 août 2026)
+### `editions`, 20 698 lignes (3 août 2026)
 `id` (identity **ajoutée en juillet 2026**, elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `formats_extraits` (text[]), `url_source`, `contenu_brut`, `image_url`,
@@ -304,7 +304,7 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films`, 21 055 liens
+### `edition_films`, 21 688 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
@@ -842,11 +842,11 @@ Metaluna s'enchaînent : les relever plutôt que les recopier.
 
 | | |
 |---|---|
-| Films | 10 871, dont 748 séries |
-| Éditions | 20 602 |
+| Films | 11 105, dont 748 séries |
+| Éditions | 20 698 |
 | Codes-barres | 5 460, dont 13 codes de magasin sans valeur hors enseigne |
-| Éditions rattachées | 18 110 (87,9 %), pour 21 055 liens |
-| Éditions sans film | 2 492 |
+| Éditions rattachées | 18 743 (90,6 %), pour 21 688 liens |
+| Éditions sans film | 1 955 |
 | Éditions avec visuel | 20 282 (98,4 %) |
 | **Offres marchandes** | **724**, sur 724 éditions et 658 films |
 | URL au sitemap | 12 017 |
@@ -3086,63 +3086,56 @@ l'existant, il ne l'élargit pas, et son workflow dépose deux artefacts que
 rien n'écrit encore en base.
 
 ### Décisions en attente sur les orphelines
-Il reste **2 492 éditions sans film** au 3 août 2026, sur 20 602, pour un taux
-de 87,9 %. La veille c'était 897 sur 15 483 et 94,2 %. Le nombre absolu et le
-taux sont deux mesures qui ne disent pas la même chose, et elles peuvent aller
-dans des sens opposés selon ce qu'un import fait entrer : Zavvi n'écrivait que
-du rattaché et faisait monter les deux, les vagues Metaluna font entrer des
-catalogues d'auteur que TMDB indexe mal et font baisser le taux. Aucun des deux
-mouvements n'est une anomalie.
 
-Les 116 orphelines ajoutées le 2 août sont les ambiguës des deux lots
-blu-ray.com : `import_3_ecrire.py` écrit l'édition mais ne pose un lien que sur
-une résolution à candidat unique. `King Kong` avec ses huit candidats, ou un
-fragment de titre comme `+ + Digital`, entrent sans rattachement plutôt qu'avec
-un faux.
+**1 955 éditions sans film au 3 août 2026**, sur 20 698, soit 90,6 % de
+rattachement. Le taux monte, il était à 87,9 % le matin même : la relecture
+Metaluna a posé 315 liens et créé 57 films.
 
-Ce que la relecture des cas ambigus a appris, le 31 juillet : **le sous-titre de
-la page porte souvent la réponse.** `Train to Busan Blu-ray (SteelBook)` annonce
-« 2 Movies » sur un disque unique de 118 min, ce qui paraissait absurde, son
-sous-titre dit `incl. Seoul Station`, le préquel animé de la même année. Le
-contrôle automatique avait bien refusé le candidat *Peninsula* (2020),
-postérieur au disque, mais il ne savait pas quoi mettre à la place. Même leçon
-qu'ailleurs : relire la page, pas le champ qu'on en avait extrait.
+| source | orphelines | total | |
+|---|---|---|---|
+| metalunastore.fr | 1 282 | 6 830 | 18 % |
+| blu-ray.com | 494 | 6 017 | 8 % |
+| editioncollector.fr | 164 | 3 193 | 5 % |
+| lechatquifume.com | 15 | 212 | 7 % |
+| **zavvi.com** | **0** | 4 446 | 0 % |
 
-État de la campagne précédente, pour mémoire :
+**Zavvi à zéro n'est pas une prouesse, c'est `--rattachees-seules`** : les
+7 049 orphelines qu'il aurait créées ont été refusées à l'entrée (§6).
 
-- **116 coffrets blu-ray.com sans liste de contenu** : `Ozu en 20 films`,
-  `Douglas Sirk - Les Mélodrames allemands`. La page annonce le nombre de films
-  mais ne les nomme pas, et le titre ne les nomme pas non plus. Trois leviers
-  ont été essayés sur les 126 de départ ; deux ont donné, le troisième est
-  mort et la raison est mesurée :
+**Les 1 282 orphelines Metaluna ont été relues et ne le seront plus.** La
+passe du 3 août 2026 a essayé les 1 557 et n'en a rattaché que 315 : le
+blocage n'est pas la mesure mais le **candidat**, TMDB ne rendant rien sur 52
+titres sur 60. Deux familles, toutes deux hors de portée d'une recherche :
 
-  | levier | rendement |
-  |---|---|
-  | `search/collection` par nom de saga | 9 coffrets, 43 liens |
-  | édition jumelle (même titre nu, même compte) | 1 coffret, 2 liens |
-  | filmographie du réalisateur | 0 |
+- **les œuvres que TMDB ne référence pas**, tout le bis espagnol d'Eloy de la
+  Iglesia chez Artus, `Le Prêtre`, `La Créature`, `Le Buraliste de Vallecas` ;
+- **les doubles programmes et coffrets d'auteur**, `Croisières sidérales +
+  Konga`, `France, société anonyme + Hitler, connais pas`, `Coffret Jacques
+  Rozier`, que le §9 interdit de forcer.
 
-  **La filmographie ne peut pas marcher.** Restreinte à la plage d'années du
-  bandeau, elle n'égale jamais le compte annoncé : John Hughes 6 contre 5,
-  Buster Keaton 11 contre 5, Fassbinder 39 contre 7, Kiarostami 14 contre 18,
-  Lamberto Bava 16 contre 2. Sans égalité, aucun contrôle ne valide le
-  résultat, et choisir un sous-ensemble reviendrait à deviner, c'est ce qui a
-  produit le lot `probable`, faux à 15 %. Mesuré par `resoudre8.py`, gardé pour
-  ne pas refaire l'essai.
-- **166 editioncollector** : pas de page brute conservée, et `contenu_brut`
-  mêle packaging et œuvres dans la même liste à puces. La neuvième passe en a
-  repris 29 (111 liens) en lisant ce bloc autrement : voir le piège des lignes
-  de contenu plus bas.
-- **37 films et 25 séries** : surtout des opéras, des concerts et des captations
-  que TMDB ne référence pas. Recoupe le chantier « une quinzaine d'opéras à
-  écarter » : ces fiches n'ont pas d'œuvre à laquelle se rattacher.
-- **236 rattachements `probable`** à vérifier au fil de la navigation, plus
-  **845 liens `bluray_page_partiel`** : coffrets rattachés à une partie
-  seulement de leur contenu. Chaque lien est exact, c'est la liste qui est
-  incomplète.
+Deux leviers restent, tous deux petits : les **abréviations de boutique**,
+`Mme Wardh` là où TMDB écrit `Madame`, et les **huit collections sautées**
+faute de fichier de tri, `agfa`, `cauldron-films`, `chameleon-films`,
+`massacre-video`, `raro-video`, `scorpion-releasing`, `synapse-films`,
+`third-window`, jamais relues.
 
-Les scripts trouvent des candidats pour la plupart ; ce qui manque est la
-validation, pas la détection.
+**7 films seulement n'ont aucune édition**, contre 134 supprimés le 31 juillet.
+Le catalogue est piloté par les éditions, et il l'est bien.
+
+**Rien n'est en transit.** `bluray_import` ne porte plus que 6 017 promues et
+184 doublons : ni `charge`, ni `a_verifier`, ni `a_creer`.
+
+**Ce qui reste à relire, et qui n'est pas une panne** :
+
+    bluray_page_partiel          1 710   coffrets rattachés en partie
+    probable                       171   écrits sans relecture, juillet
+    metaluna_relecture_partiel      48
+
+Chaque lien partiel est **exact**, c'est la liste du coffret qui est
+incomplète. Les 171 `probable` ont passé le contrôle du bandeau blu-ray.com le
+1er août ; le label garde la trace de leur origine, pas un doute actuel.
+
+État de la campagne de juillet, pour mémoire :
 
 ### Ce que veulent les gens qui cataloguent leur collection, relevé le 2 août 2026
 
@@ -4135,6 +4128,16 @@ Documentés parce qu'ils se reproduiront.
   même groupe, et aucune mesure ne l'aurait signalé : le libellé est la seule
   donnée disponible, il n'y a rien à confronter. Une table relue famille par
   famille est le seul garde-fou.
+- **Le vocabulaire d'édition change avec la langue du catalogue.** La
+  relecture des 1 557 orphelines Metaluna rendait **zéro** rattachement. Un
+  scan qui rend zéro se vérifie (§10) : sur un échantillon de 60, **52
+  n'obtenaient aucun candidat de TMDB**. L'anglais met l'épithète devant,
+  `Limited Edition` là où le français écrit `Édition limitée`, donc
+  `The Chronicles of Riddick 4K Limited Edition` partait tel quel. C'est le
+  piège du suffixe de format, déjà consigné pour Criterion et blu-ray.com,
+  appliqué à une langue de plus par les 55 collections anglophones du 3 août.
+  Une fois `Metal Pack`, `Steelbook`, `Boxset`, `(STFR)` et les guillemets
+  retirés : 315 liens, 57 films.
 - **Un désaccord peut n'être qu'une différence de granularité.** Sur 995
   divergences d'éditeur entre dvdfr et blu-ray.com, la quasi-totalité étaient
   la même maison écrite autrement, `Universal Studios` contre `Universal
