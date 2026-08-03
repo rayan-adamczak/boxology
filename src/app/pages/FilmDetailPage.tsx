@@ -1145,36 +1145,35 @@ export function FilmDetailPage() {
                                   {annee}
                                 </span>
                               )}
-                              {/*
-                                Le prix éditeur, en texte et non en capsule : ce
-                                n'est pas une propriété discrète relevée sur le
-                                disque comme le format ou la zone, c'est une
-                                valeur, au même titre que l'année (§8).
-
-                                La devise vient de la source : Zavvi est une
-                                boutique britannique et ses 4 446 prix sont en
-                                livres, les afficher en euros serait faux sur la
-                                moitié des éditions valorisées.
-
-                                « conseillé » est écrit, parce que c'est un prix
-                                de sortie et non une cote : un steelbook épuisé
-                                se revend plus cher, un fond de bac beaucoup
-                                moins.
-                              */}
-                              {(formaterPrix(ed.prix_editeur, ed.source) ??
-                                formaterPrix(ed.prix_fnac_extrait, ed.source)) && (
-                                <span
-                                  className="tabular-nums"
-                                  style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "19.5px" }}
-                                >
-                                  {formaterPrix(ed.prix_editeur, ed.source) ??
-                                    formaterPrix(ed.prix_fnac_extrait, ed.source)}
-                                  {formaterPrix(ed.prix_editeur, ed.source) && (
-                                    <span className="hidden sm:inline"> conseillé</span>
-                                  )}
-                                </span>
-                              )}
                             </div>
+                          )}
+
+                          {/*
+                            Le prix sur sa propre ligne, sous les badges, comme
+                            la maquette (node 1:146) : en graisse et en couleur
+                            de texte, là où les badges et l'année restent gris.
+                            C'est la seule valeur de la ligne qu'on vient
+                            chercher, elle ne se lit pas au milieu du reste.
+
+                            La devise vient de la source : Zavvi est britannique
+                            et ses 4 446 prix sont en livres (cf. `lib/prix.ts`).
+                            « conseillé » est écrit parce que c'est un prix de
+                            sortie, pas une cote.
+                          */}
+                          {(formaterPrix(ed.prix_editeur, ed.source) ??
+                            formaterPrix(ed.prix_fnac_extrait, ed.source)) && (
+                            <p className="flex items-baseline gap-1.5">
+                              <span
+                                className="tabular-nums"
+                                style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)", lineHeight: "22.5px" }}
+                              >
+                                {formaterPrix(ed.prix_editeur, ed.source) ??
+                                  formaterPrix(ed.prix_fnac_extrait, ed.source)}
+                              </span>
+                              {formaterPrix(ed.prix_editeur, ed.source) && (
+                                <span style={{ fontSize: "12px", color: "var(--reel-muted)" }}>conseillé</span>
+                              )}
+                            </p>
                           )}
 
                         </div>
