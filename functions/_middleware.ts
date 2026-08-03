@@ -1460,6 +1460,28 @@ async function servir(context: Contexte): Promise<Response> {
   const url = new URL(request.url);
 
   /*
+   * Sur le domaine, l'origine est une constante, pas une lecture de la requête.
+   *
+   * `url.origin` vient de l'en-tête `Host`, que le client écrit. Cloudflare
+   * refuse tout hôte hors zone, `evil.example` comme `jaquette.app.evil.example`
+   * rendent 403, mais **le port passe** :
+   *
+   *     curl -H 'Host: jaquette.app:8080' https://jaquette.app/movies/560
+   *     301  https://jaquette.app:8080/movies/harry-potter-…/560
+   *     <link rel="canonical" href="https://jaquette.app:8080/…" />
+   *
+   * Une quinzaine de `${url.origin}` en dépendent, canonical, `og:url` et le
+   * `Location` des 301. On normalise donc une fois ici, plutôt que de reprendre
+   * chaque ligne : les autres hôtes gardent leur origine réelle, `localhost`
+   * sous `wrangler` et les déploiements de prévisualisation en ont besoin pour
+   * rester testables, et ils sont de toute façon en `noindex`.
+   */
+  if (url.hostname === HOTE_CANONIQUE) {
+    url.protocol = "https:";
+    url.port = "";
+  }
+
+  /*
    * Un asset ne doit jamais répondre du HTML, jamais.
    *
    * La réécriture SPA (`/* /index.html 200`) s'applique aussi à `/assets/*` et

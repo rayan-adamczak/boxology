@@ -59,20 +59,32 @@ function sessionPlausible(): boolean {
  *
  * `new URL(x, origin)` rend `x` tel quel quand `x` est absolu : un
  * `https://ailleurs.example` passerait en `redirectTo`, et le jeton partirait
- * avec. Deux formes trompent l'œil et sont couvertes ici, `//ailleurs.example`,
- * relatif au protocole, et `\\ailleurs.example`, que les navigateurs traitent
- * comme la précédente.
+ * avec. La seule barrière derrière est la liste de redirections autorisées de
+ * Supabase, un réglage de tableau de bord qu'aucun test du dépôt ne surveille.
  *
+ * **On résout d'abord, on compare ensuite.** La version précédente inspectait
+ * la chaîne brute, `//ailleurs.example` et `/\\ailleurs.example`, et elle se
+ * contournait par une tabulation : l'analyseur d'URL retire tabulations et
+ * sauts de ligne **avant** de résoudre, donc `"/\tailleurs.example"` passait le
+ * test puis devenait absolu.
+ *
+ *     "//evil.example"    -> attrapé
+ *     "/\t/evil.example"  -> https://evil.example/   <- passait
+ *
+ * Comparer l'origine après résolution n'a rien à énumérer, donc rien à oublier.
  * Aucun appelant ne passe aujourd'hui autre chose qu'un littéral ou
- * `window.location.pathname`, donc rien n'est exploitable en l'état. Mais la
- * seule barrière restante était la liste de redirections autorisées côté
- * Supabase, c'est-à-dire un réglage de tableau de bord qu'aucun test du dépôt
- * ne surveille.
+ * `window.location.pathname` : ce n'est pas une faille refermée, c'est un
+ * garde-fou qui tient enfin ce qu'il annonce.
  */
 function cheminInterne(destination: string): string {
-  if (!destination.startsWith("/")) return "/";
-  if (destination.startsWith("//") || destination.startsWith("/\\")) return "/";
-  return destination;
+  try {
+    const cible = new URL(destination, window.location.origin);
+    if (cible.origin !== window.location.origin) return "/";
+    return `${cible.pathname}${cible.search}${cible.hash}`;
+  } catch {
+    /* Chaîne que l'analyseur refuse, `%zz` par exemple : on ne devine pas. */
+    return "/";
+  }
 }
 
 /**

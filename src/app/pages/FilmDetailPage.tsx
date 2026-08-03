@@ -110,6 +110,29 @@ function formatDuration(raw: string | null): string {
   return `${h}h ${String(min).padStart(2, "0")}min`;
 }
 
+/**
+ * L'URL d'une offre, si et seulement si c'est un lien HTTPS.
+ *
+ * `offres.url` est le seul `href` du site construit depuis la base, et rien en
+ * aval ne le filtre : React ne bloque pas `javascript:` (il n'avertit qu'en
+ * développement), et le contrôle de schéma de react-router ne couvre que
+ * `<Link to>`, pas un `<a>` écrit à la main.
+ *
+ * Le contrôle est au rendu et non à l'écriture, parce que l'affichage est le
+ * seul endroit qui voie toutes les sources : la colonne est remplie par
+ * `offres_awin.py` aujourd'hui, elle le sera par un autre programme demain.
+ * Les 724 lignes en base sont toutes en `https`, ce garde-fou ne corrige donc
+ * rien, il empêche qu'un flux marchand fasse un jour entrer autre chose.
+ */
+function lienMarchand(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
+}
+
 /** `photo` est une URL TMDB complète, posée par `enrichir_tmdb.py --cast-seul`.
  *  Absente sur les seconds rôles que TMDB n'illustre pas. */
 interface CastMember { nom: string; role: string; photo?: string }
@@ -1184,24 +1207,44 @@ export function FilmDetailPage() {
                             if (offre) {
                               const montant = formaterMontant(offre.prix, offre.devise);
                               const jour = new Date(offre.releve_le).toLocaleDateString("fr-FR");
+                              const lien = lienMarchand(offre.url);
+                              /* Sans lien utilisable, on garde le prix et le
+                                 marchand : c'est l'information, le lien n'est
+                                 que le chemin pour y aller. Même repli que
+                                 pour un prix absent, une ligne plus bas. */
+                              const contenu = (
+                                <>
+                                  <span
+                                    className="tabular-nums"
+                                    style={{ fontSize: "15px", fontWeight: 600, lineHeight: "22.5px" }}
+                                  >
+                                    {montant}
+                                  </span>
+                                  <span style={{ fontSize: "12px" }}>chez {offre.marchand}</span>
+                                </>
+                              );
                               return (
                                 <p className="flex items-baseline gap-1.5">
-                                  <a
-                                    href={offre.url}
-                                    target="_blank"
-                                    rel="sponsored noopener noreferrer"
-                                    title={`Prix relevé le ${jour}`}
-                                    className="flex items-baseline gap-1.5 hover:underline"
-                                    style={{ color: "var(--reel-accent-clair)" }}
-                                  >
-                                    <span
-                                      className="tabular-nums"
-                                      style={{ fontSize: "15px", fontWeight: 600, lineHeight: "22.5px" }}
+                                  {lien ? (
+                                    <a
+                                      href={lien}
+                                      target="_blank"
+                                      rel="sponsored noopener noreferrer"
+                                      title={`Prix relevé le ${jour}`}
+                                      className="flex items-baseline gap-1.5 hover:underline"
+                                      style={{ color: "var(--reel-accent-clair)" }}
                                     >
-                                      {montant}
+                                      {contenu}
+                                    </a>
+                                  ) : (
+                                    <span
+                                      title={`Prix relevé le ${jour}`}
+                                      className="flex items-baseline gap-1.5"
+                                      style={{ color: "var(--reel-muted)" }}
+                                    >
+                                      {contenu}
                                     </span>
-                                    <span style={{ fontSize: "12px" }}>chez {offre.marchand}</span>
-                                  </a>
+                                  )}
                                 </p>
                               );
                             }

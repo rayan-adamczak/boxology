@@ -128,6 +128,26 @@ L'ancienne clé du script était déjà révoquée (401) ; celle en service, dan
 fichier d'environnement, a été remplacée par `import_scripts_2026_07` et
 l'ancienne supprimée du tableau de bord.
 
+**Le fichier était en `0644`, donc lisible par tout processus du Mac**, relevé
+le 3 août 2026 par le second audit. Il porte aussi les quatre `R2_*` depuis, et
+la clé `service_role` porte `rolbypassrls`, c'est-à-dire qu'elle traverse
+d'un coup toutes les barrières décrites au §3. Le contraste était net sur la
+même machine, `~/.config/gh/hosts.yml` et `~/.wrangler/config/default.toml`
+étaient en `0600`.
+
+    chmod 600 ~/.config/boxology.env
+
+**Un secret qui a été lisible doit être tenu pour lu.** La rotation de la clé
+`service_role` et du couple R2 reste donc à faire, comme celle du secret du
+client OAuth Google, dont le fichier `client_secret_*.json` traînait dans
+`~/Downloads`, en `0644` lui aussi, depuis le 30 juillet. Sa correspondance
+avec la production a été établie **sans l'ouvrir** : `/auth/v1/authorize` rend
+un `client_id` identique à celui que porte le nom du fichier.
+
+Ordre pour le secret Google, à ne pas inverser : régénérer dans la console
+Google Cloud **puis** reporter dans Supabase, Authentication, Providers. Le
+faire dans l'autre sens coupe la connexion le temps de l'écart.
+
 ---
 
 ## 3. Modèle de données
@@ -758,6 +778,59 @@ version « surface HTTP » du §9, un scan cassé se lit comme un scan négatif 
 **Ce que l'audit n'a pas couvert** : les workflows GitHub Actions et leurs sept
 secrets, qui vivent dans le dépôt privé `jaquette-scraping` (§6), et le contenu
 de `auth.users` au-delà d'un décompte par fournisseur.
+
+### Second audit, le 3 août 2026
+
+Repassé en six domaines parallèles, chaque constat confié ensuite à un relecteur
+chargé de le **réfuter** plutôt que de le confirmer. **Cinq des huit constats
+les plus graves sont tombés à cette relecture**, dont deux qui décrivaient un
+état déjà corrigé : l'arbre a bougé trois fois pendant l'audit, et le
+signalement anonyme a été fermé dix minutes après avoir été introduit. Un
+rapport rendu sans cette étape aurait annoncé des failles inexistantes.
+
+**Le défaut le plus grave n'était pas sur le site mais sur la machine**, et
+aucun contrôle du dépôt ne pouvait le voir : voir §2, le fichier de secrets en
+`0644`. Le reste est mineur et corrigé :
+
+- **`cheminInterne()` se contournait par une tabulation.** Le garde-fou posé la
+  veille inspectait la chaîne brute, or l'analyseur d'URL retire tabulations et
+  sauts de ligne **avant** de résoudre : `"/\t/evil.example"` passait le test
+  puis devenait absolu. Il résout maintenant d'abord et compare l'origine
+  ensuite, forme qui n'a rien à énumérer donc rien à oublier. Un garde-fou qui
+  se contourne est pire qu'aucun, il éteint la vigilance ;
+- **`offres.url` partait dans un `href` sans contrôle de schéma**, seul `href`
+  dynamique du site, et rien en aval ne filtre `javascript:` : React n'avertit
+  qu'en développement, et le filtre de react-router ne couvre que `<Link to>`.
+  Contrôlé au rendu, `lienMarchand()` dans `FilmDetailPage`, parce que
+  l'affichage est le seul endroit qui voie toutes les sources ;
+- **l'en-tête `Host` pilotait `url.origin`**, donc le canonical, `og:url` et le
+  `Location` des 301. Cloudflare refuse les hôtes hors zone, `evil.example`
+  rend 403, mais le **port** passait : `Host: jaquette.app:8080` produisait un
+  canonical vers `https://jaquette.app:8080`. L'origine est normalisée une fois
+  à l'entrée du middleware plutôt que sur quinze lignes ; les autres hôtes
+  gardent la leur, `localhost` et les prévisualisations en ont besoin ;
+- **`texte_interdit` était appelable par tout compte connecté**, migration
+  `20260803_texte_interdit_ferme.sql`. Un booléen interrogeable à volonté publie
+  la liste aussi sûrement que la table elle-même, un mot à la fois, et surtout
+  il dit quelle **graphie** passe.
+
+  Le piège, et il aurait cassé la création de profil : `profils_normaliser` est
+  un déclencheur **`security invoker`**, donc il s'exécute sous le rôle qui
+  écrit et vérifie ses privilèges de fonction. Le relecteur affirmait le
+  contraire, « le déclencheur tourne sous le propriétaire ». Mesuré avant
+  d'écrire, puis après : sous `authenticated`, l'insertion traverse bien le
+  déclencheur, un identifiant interdit rend toujours `23514 identifiant
+  indisponible`, l'appel direct rend `42501 permission denied for function`, et
+  `etat_identifiant` répond encore. **Un verdict de relecture se vérifie comme
+  le reste.**
+
+**Restent ouverts, mesurés et assumés** : `http://localhost:5173` figure dans la
+liste blanche de redirection du projet de production ; `/legal` servi sans
+JavaScript porte encore les mentions d'avant le régime professionnel ; 51 des 57
+dépendances directes ne sont atteintes par aucun code, les `ui/` de shadcn n'étant
+importées nulle part ; la file de `signalements` n'a **aucune sortie dans le
+produit**, son plafond de 50 ne redescend jamais et personne n'est prévenu
+quand un signalement arrive.
 
 ---
 
