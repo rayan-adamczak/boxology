@@ -52,6 +52,7 @@ export function ApercuRecherche({
   chargement,
   approchante,
   place,
+  plafond = 480,
   indexActif,
   onSurvol,
   onChoisir,
@@ -65,6 +66,12 @@ export function ApercuRecherche({
   approchante: boolean;
   /** Pixels disponibles sous le champ, mesurés. `null` avant la première mesure. */
   place: number | null;
+  /**
+   * Hauteur maximale du panneau. 480 sous un champ de page, où une liste plus
+   * haute couvrirait tout ce qu'on est en train de lire ; la feuille du
+   * téléphone, elle, n'a rien derrière et prend tout l'écran.
+   */
+  plafond?: number;
   /** -1 quand rien n'est sélectionné : Entrée vaut alors « voir tout ». */
   indexActif: number;
   onSurvol: (index: number) => void;
@@ -117,7 +124,7 @@ export function ApercuRecherche({
         role="listbox"
         aria-label="Résultats de la recherche"
         className="overflow-y-auto overscroll-contain"
-        style={{ maxHeight: Math.min(480, Math.max(160, (place ?? 480) - 52)) }}
+        style={{ maxHeight: Math.min(plafond, Math.max(160, (place ?? plafond) - 52)) }}
       >
         {chargement && elements.length === 0 && (
           /*

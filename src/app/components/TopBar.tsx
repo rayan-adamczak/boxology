@@ -4,6 +4,7 @@ import { ChevronDown, Settings, LogOut, Bookmark, Library, User as UserIcon, Bel
 import { UserAvatar } from "./UserAvatar";
 import { Logo } from "./Logo";
 import { ChampRecherche } from "./ChampRecherche";
+import { FeuilleRecherche } from "./FeuilleRecherche";
 import { apercuNom, connexionGoogle, deconnexion, nomAffiche, useSession } from "../lib/auth";
 import { arobase, cheminProfil } from "../lib/identifiant";
 import { useProfil } from "../lib/profils";
@@ -15,7 +16,7 @@ import { useApercuFilms } from "../lib/recherche-films";
  * Deux états, et ils ne diffèrent pas que par un bouton :
  *
  *   déconnecté   mot-symbole, recherche, Catalogue, Se connecter, S'inscrire
- *   connecté     mot-symbole, recherche, Catalogue, Listes, cloche, compte
+ *   connecté     mot-symbole, recherche, Catalogue, cloche, compte
  *
  * **La recherche est ici parce que l'accueil ne la porte plus toujours** :
  * connecté, l'accueil est un tableau de bord, et sans champ dans le bandeau il
@@ -30,6 +31,8 @@ export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [clocheOuverte, setClocheOuverte] = useState(false);
   const [saisie, setSaisie] = useState("");
+  /** La recherche plein écran du téléphone, ouverte par la loupe. */
+  const [feuilleOuverte, setFeuilleOuverte] = useState(false);
   /*
     Le bandeau n'a pas de grille où poser ses résultats : il apporte donc sa
     propre recherche, là où l'accueil et /catalogue passent celle de leur page.
@@ -108,7 +111,9 @@ export function TopBar() {
         {session && (
           <>
             <div className="hidden min-w-0 flex-1 justify-center lg:flex">
-              <div className="w-full max-w-[420px]">
+              {/* 560 et non 420 depuis le retrait de « Listes » : la place
+                  libérée revient au champ, qui est ce qu'on vient faire ici. */}
+              <div className="w-full max-w-[560px]">
                 <ChampRecherche
                   valeur={saisie}
                   onChange={setSaisie}
@@ -119,20 +124,37 @@ export function TopBar() {
               </div>
             </div>
 
-            <Link
-              to="/catalogue"
+            {/*
+              **La loupe ouvre une feuille, elle n'emmène plus sur
+              `/catalogue`.** Elle y menait, ce qui coûtait une navigation, un
+              chargement de grille et un second geste pour atteindre le champ,
+              là où le même geste sur un écran large ouvre une liste sous le
+              curseur sans quitter la page.
+            */}
+            <button
+              type="button"
+              onClick={() => setFeuilleOuverte(true)}
               aria-label="Rechercher"
-              className="ml-auto flex h-9 w-9 items-center justify-center rounded-full transition hover:brightness-125 lg:hidden"
+              aria-expanded={feuilleOuverte}
+              className="ml-auto flex h-9 w-9 items-center justify-center rounded-full outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] lg:hidden"
               style={{ color: "var(--reel-muted)" }}
             >
               <Search size={20} />
-            </Link>
+            </button>
+
+            {feuilleOuverte && <FeuilleRecherche onFermer={() => setFeuilleOuverte(false)} />}
           </>
         )}
 
         <nav className="ml-auto hidden shrink-0 items-center gap-1 sm:flex lg:ml-0" aria-label="Sections">
           <LienBandeau to="/catalogue">Catalogue</LienBandeau>
-          {session && <LienBandeau to="/lists">Listes</LienBandeau>}
+          {/*
+            **« Listes » a quitté le bandeau**, pour rendre sa largeur au champ
+            de recherche : chercher est le geste courant, ouvrir ses listes ne
+            l'est pas. L'entrée n'est pas enterrée pour autant, « Mes listes »
+            est dans le menu du compte, et la barre du bas la porte sur
+            téléphone.
+          */}
         </nav>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">

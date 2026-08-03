@@ -2735,6 +2735,44 @@ au champ sans la souris. Motif `combobox` avec `aria-activedescendant`, et
 `tabIndex={-1}` sur les lignes : la tabulation ne doit pas entrer dans la
 liste.
 
+#### La même chose sur téléphone, en feuille plein écran
+
+`FeuilleRecherche.tsx`. Sous `lg` le champ du bandeau n'a pas la place et cède
+à une loupe, qui **emmenait sur `/catalogue`** : une navigation, un chargement
+de grille et un second geste pour atteindre le champ, là où le même geste sur
+un écran large ouvre une liste sous le curseur sans quitter la page. La loupe
+ouvre maintenant une feuille, champ en haut, liste dessous, et on revient où on
+était en la refermant.
+
+**Aucun composant de recherche n'est refait pour le téléphone** : c'est le
+`ChampRecherche` du bandeau avec son panneau et son clavier. Une seconde liste
+écrite pour le mobile aurait dérivé de celle du bureau au premier réglage,
+exactement ce que le §7 reproche déjà au corps injecté par le middleware.
+
+Seul le plafond du panneau change, `apercuPlafond`. 480 px sous un champ de
+page, où une liste plus haute couvrirait ce qu'on est en train de lire ; la
+feuille, elle, n'a rien derrière, et à 480 elle laissait les deux tiers de
+l'écran vides sous une liste tronquée.
+
+**Un effet de fermeture sur `location.key` tourne aussi au montage**, piège
+classique et muet : la loupe ouvrait puis refermait dans la même frame, donc il
+ne se passait visiblement rien. L'adresse d'ouverture est mémorisée dans un
+`useRef` et la comparaison tranche.
+
+Échap ne ferme la feuille que si aucune liste n'est ouverte dessous : le champ
+prend la touche en premier pour son panneau, et une seule pression qui ferait
+les deux retirerait la feuille alors qu'on voulait dégager la liste.
+
+#### « Listes » a quitté le bandeau
+
+La place revient au champ, qui passe de 420 à 560 px de plafond : chercher est
+le geste courant, ouvrir ses listes ne l'est pas. Mesuré à 1 920 px de fenêtre,
+le champ atteint bien 560 ; à 1 440 il plafonne à 396, la gouttière valant
+alors 835 px pour tout le bandeau, logo et compte compris.
+
+L'entrée n'est pas enterrée : « Mes listes » est dans le menu du compte, et la
+barre du bas la porte sur téléphone.
+
 ### Pages de regroupement, en place le 31 juillet 2026
 
 78 pages : `/formats`, `/publishers`, `/genres` et leurs 75 entrées.

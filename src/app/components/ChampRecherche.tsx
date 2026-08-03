@@ -36,6 +36,7 @@ export function ChampRecherche({
   onChange,
   onValider,
   apercu,
+  apercuPlafond,
   placeholder = "Rechercher un film…",
   taille = "grand",
   autoFocus = false,
@@ -47,6 +48,8 @@ export function ChampRecherche({
   onValider?: (valeur: string) => void;
   /** Absent = pas de panneau, le champ se comporte comme avant. */
   apercu?: Apercu;
+  /** Hauteur maximale du panneau. La feuille du téléphone la relève, elle n'a rien derrière. */
+  apercuPlafond?: number;
   placeholder?: string;
   /** `grand` pour une page, `compact` pour le bandeau. */
   taille?: "grand" | "compact";
@@ -212,6 +215,7 @@ export function ChampRecherche({
           chargement={apercu.chargement}
           approchante={apercu.approchante}
           place={place}
+          plafond={apercuPlafond}
           indexActif={index}
           onSurvol={setIndex}
           onChoisir={fermer}
