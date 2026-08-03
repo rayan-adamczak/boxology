@@ -11,7 +11,18 @@
 #
 # Ce qui a été relevé avant d'écrire ces valeurs, pour ne pas casser la page :
 #
-#   img-src     deux hôtes et deux seulement, mesurés en base sur les 36 031
+#   img-src     **trois hôtes depuis le 3 août 2026**, et le troisième est
+#               provisoire. Une passe d'import Metaluna a écrit l'URL du
+#               marchand plutôt que celle du miroir : 2 242 éditions pointent
+#               vers cdn.shopify.com, que la CSP refusait, d'où des cartes sans
+#               visuel en production alors que les fichiers répondaient 200.
+#               `cdn.shopify.com` est donc ouvert **le temps de miroiter ces
+#               visuels sur R2** (miroir_metaluna.py dans jaquette-scraping),
+#               après quoi il doit être retiré : le §5 et le §10 ont sorti le
+#               site de toute dépendance à un tiers pour ses images, et un
+#               hotlink vers le CDN d'un revendeur rouvre exactement ça.
+#
+#               Les deux hôtes d'origine, eux, sont mesurés en base sur les 36 031
 #               URL d'`affiche_url`, `backdrop_url`, `image_url` et
 #               `images_secondaires` : img.jaquette.app (19 201) et
 #               image.tmdb.org (16 830). `data:` reste ouvert, les vignettes
@@ -33,7 +44,7 @@
 # Certificates, et l'engagement est difficile à défaire une fois le max-age
 # servi.
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.tmdb.org https://img.jaquette.app; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.tmdb.org https://img.jaquette.app https://cdn.shopify.com; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co
   X-Frame-Options: DENY
   Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
   X-Content-Type-Options: nosniff
