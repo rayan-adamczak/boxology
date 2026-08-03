@@ -447,6 +447,35 @@
 }
 
 /*
+  Bloc en attente de données, pour tenir la place d'un contenu pas encore lu.
+
+  Gris et non tricolore, à l'inverse du panneau de recherche : ces blocs
+  couvrent des pans entiers de page, et trois couleurs répétées sur une
+  quinzaine de rectangles feraient guirlande. Les couleurs du mot-symbole
+  restent pour le geste que l'on vient de faire, l'attente de fond se tait.
+*/
+.reel-attente {
+  background-color: var(--reel-surface-2);
+  animation: reel-attente 1.4s ease-in-out infinite;
+}
+
+@keyframes reel-attente {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reel-attente {
+    animation: none;
+  }
+}
+
+/*
   Gouttière commune à toutes les pages.
 
   Elle remplace une douzaine de `max-w-[1440px] px-4 sm:px-6 lg:px-10` recopiés

@@ -104,6 +104,14 @@
     <body>
 
       <div id="root"></div>
+      <!--
+        Avant le bundle, et après `#root` : le script vide le corps injecté de
+        l'accueil quand le visiteur a une session, sinon on voyait le catalogue
+        en texte céder la place au tableau de bord. Synchrone à dessein, un
+        `defer` le ferait passer après le rendu de React, donc trop tard pour
+        servir à quoi que ce soit.
+      -->
+      <script src="/avant-montage.js"></script>
       <script type="module" src="/src/main.tsx"></script>
 
     </body>

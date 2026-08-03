@@ -52,10 +52,21 @@ export function TableauDeBordPage() {
   const etatProfil = useProfil();
   const profil = etatProfil.statut === "pret" ? etatProfil.profil : null;
   const lienProfil = profil ? cheminProfil(profil.identifiant) : "/profile";
+  /*
+    `null` = pas encore lu, tableau vide = lu et réellement vide. **Les deux
+    étaient confondus**, et le fil annonçait « Rien encore. Ouvrez une fiche
+    film… » à chaque rafraîchissement, à quelqu'un dont la collection est
+    pleine. Le message n'attendait même pas la requête : il paraissait dès le
+    premier rendu et jusqu'à ce que la session soit résolue, ce qui prend
+    jusqu'à deux secondes et demie en production (cf. `Accueil` dans App.tsx).
+
+    Un état de chargement qui ressemble à un état vide est pire qu'un écran
+    d'attente : il affirme quelque chose de faux.
+  */
   const [resume, setResume] = useState<ResumeCollection | null>(null);
-  const [activite, setActivite] = useState<ActiviteLigne[]>([]);
-  const [dernieres, setDernieres] = useState<EditionWithFilm[]>([]);
-  const [aVenir, setAVenir] = useState<EditionWithFilm[]>([]);
+  const [activite, setActivite] = useState<ActiviteLigne[] | null>(null);
+  const [dernieres, setDernieres] = useState<EditionWithFilm[] | null>(null);
+  const [aVenir, setAVenir] = useState<EditionWithFilm[] | null>(null);
 
   useSeo({
     titre: "Mon tableau de bord",
@@ -76,15 +87,22 @@ export function TableauDeBordPage() {
     getResumeCollection()
       .then((r) => { if (!annule) setResume(r); })
       .catch(() => {});
+    /*
+      Chaque `catch` retombe sur le tableau vide plutôt que de laisser `null` :
+      une lecture qui échoue doit rendre la page à son état normal, pas la
+      laisser en attente indéfinie. C'est le §9 mot pour mot, une lecture qui
+      échoue ne doit pas se confondre avec une lecture qui n'a rien trouvé,
+      mais elle ne doit pas non plus bloquer l'écran.
+    */
     getActiviteRecente(10)
       .then((a) => { if (!annule) setActivite(a); })
-      .catch(() => {});
+      .catch(() => { if (!annule) setActivite([]); });
     getDernieresEditions(18)
       .then((e) => { if (!annule) setDernieres(e); })
-      .catch(() => {});
+      .catch(() => { if (!annule) setDernieres([]); });
     getSortiesAVenir(6)
       .then((e) => { if (!annule) setAVenir(e); })
-      .catch(() => {});
+      .catch(() => { if (!annule) setAVenir([]); });
 
     return () => { annule = true; };
   }, [session]);
@@ -193,7 +211,7 @@ export function TableauDeBordPage() {
               un cadre creux : `date_parution` ne vient que de blu-ray.com, les
               autres sources ne datent rien, donc la liste peut se tarir sans
               prévenir. Mesuré le 3 août 2026 : 42 éditions à venir. */}
-  {aVenir.length > 0 && (
+          {aVenir !== null && aVenir.length > 0 && (
             <div>
               <div className="rounded-[14px] px-5 py-5" style={CADRE}>
                 <h2 className="flex items-center gap-2" style={LIBELLE_SECTION}>
@@ -217,7 +235,29 @@ export function TableauDeBordPage() {
             toute la largeur pour trois lignes de texte, et le rail montre des
             jaquettes plus grandes que sur la fiche film. */}
         <main className="min-w-0 flex-1 lg:max-w-[620px]">
-          {dernieres.length > 0 && (
+          {/*
+            Le rail garde sa place pendant la lecture, avec des cartes muettes.
+            Le faire apparaître d'un coup poussait tout le fil vers le bas une
+            fois la requête revenue, et le clic partait sur la mauvaise ligne.
+          */}
+          {dernieres === null && (
+            <section aria-hidden>
+              <h2 style={LIBELLE_SECTION}>Dernières parutions</h2>
+              <div className="mt-4 flex gap-3 overflow-hidden">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className="w-[104px] shrink-0 sm:w-[124px]">
+                    <div
+                      className="reel-attente w-full rounded-[10px]"
+                      style={{ aspectRatio: "2 / 3" }}
+                    />
+                    <div className="reel-attente mt-2 h-3 w-4/5 rounded" />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {dernieres !== null && dernieres.length > 0 && (
             <section>
               <div className="flex items-baseline justify-between gap-4">
                 <h2 style={LIBELLE_SECTION}>Dernières parutions</h2>
@@ -239,7 +279,19 @@ export function TableauDeBordPage() {
 
           <section className="pt-12">
             <h2 style={LIBELLE_SECTION}>Votre activité</h2>
-            {activite.length === 0 ? (
+            {activite === null ? (
+              <ul className="mt-4 flex flex-col gap-2" aria-hidden>
+                {Array.from({ length: 3 }, (_, i) => (
+                  <li key={i} className="flex items-center gap-3 rounded-[12px] px-3 py-3" style={CADRE}>
+                    <div className="reel-attente h-[54px] w-[36px] shrink-0 rounded-[6px]" />
+                    <div className="min-w-0 flex-1">
+                      <div className="reel-attente h-3.5 w-2/5 rounded" />
+                      <div className="reel-attente mt-2 h-3 w-1/4 rounded" />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : activite.length === 0 ? (
               <div className="mt-4 rounded-[12px] px-5 py-6" style={CADRE}>
                 <p style={{ fontSize: "15px", lineHeight: "23px", color: "var(--reel-muted)" }}>
                   Rien encore. Ouvrez une fiche film et marquez une édition comme possédée ou
