@@ -30,12 +30,12 @@ export function CarteEdition({ edition, largeur = "rail" }: { edition: EditionWi
       </span>
       <span
         className="mt-2 line-clamp-2 block text-[var(--reel-text)] transition-colors group-hover:text-[var(--reel-accent-clair)]"
-        style={{ fontSize: "15px", fontWeight: 600, lineHeight: "20px" }}
+        style={{ fontSize: "14px", fontWeight: 600, lineHeight: "19px" }}
       >
         {edition.film?.titre ?? edition.titre}
       </span>
       {formats.length > 0 && (
-        <span className="block" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+        <span className="block" style={{ fontSize: "12px", color: "var(--reel-muted)" }}>
           {formats.join(" · ")}
         </span>
       )}
@@ -43,7 +43,10 @@ export function CarteEdition({ edition, largeur = "rail" }: { edition: EditionWi
   );
 
   return (
-    <div className={largeur === "rail" ? "w-[150px] shrink-0 sm:w-[186px]" : "w-full"}>
+    /* 124 px, 148 sur grand écran, au lieu de 150 et 186 : le rail montrait des
+       jaquettes plus grandes que celles de la grille du catalogue, alors qu'il
+       n'est qu'une rangée d'appel. */
+    <div className={largeur === "rail" ? "w-[124px] shrink-0 sm:w-[148px]" : "w-full"}>
       {lien ? (
         <Link
           to={lien}

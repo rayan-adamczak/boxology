@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Library, Bookmark, Wallet, CalendarClock, ArrowRight } from "lucide-react";
+import { Library, Bookmark, Wallet, CalendarClock, ArrowRight, ListPlus, Settings } from "lucide-react";
 import { UserAvatar } from "../components/UserAvatar";
 import { CarteEdition } from "../components/CarteEdition";
 import { RailHorizontal } from "../components/RailHorizontal";
@@ -87,59 +87,71 @@ export function TableauDeBordPage() {
   return (
     <div className="reel-gouttiere-large w-full pb-24 pt-[100px] md:pb-12">
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-        {/* ---- Colonne de gauche : qui vous êtes, et ce que vous avez ---- */}
-        <aside className="w-full shrink-0 lg:sticky lg:top-[92px] lg:w-[268px]">
-          <div className="rounded-[14px] px-5 py-5" style={CADRE}>
-            <div className="flex items-center gap-3">
-              <UserAvatar name={nomAffiche(session ?? null)} size={44} />
-              <div className="min-w-0">
-                <p className="truncate" style={{ fontSize: "16px", fontWeight: 600, color: "var(--reel-text)" }}>
-                  {nomAffiche(session ?? null)}
-                </p>
-                <p className="truncate" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
-                  {session?.user.email}
-                </p>
-              </div>
-            </div>
+        {/* ---- Colonne de gauche : qui vous êtes, et ce que vous avez ----
 
-            <div className="mt-5 flex flex-col gap-3">
-              <Metrique
-                icone={Library}
-                libelle="Éditions possédées"
-                valeur={resume ? String(resume.possedees) : "—"}
-              />
-              <Metrique
-                icone={Bookmark}
-                libelle="Envies"
-                valeur={resume ? String(resume.envies) : "—"}
-              />
-              {/*
-                La valeur est une estimation par le prix conseillé, jamais une
-                cote : aucune source de prix du marché n'existe (§8). La
-                couverture est donc affichée avec le montant, sinon un total qui
-                ignore les éditions sans prix se lit comme une valeur réelle.
-              */}
-              <Metrique
-                icone={Wallet}
-                libelle="Valeur estimée"
-                valeur={resume ? formaterEuros(resume.valeur) : "—"}
-                note={
-                  resume && resume.possedees > 0
-                    ? `prix éditeur connu sur ${resume.valorisees} des ${resume.possedees}`
-                    : undefined
-                }
-              />
+            Reprise du node Figma 1:558, **à plat** : pas de carte qui enveloppe
+            l'ensemble. Les trois tuiles portent leur propre cadre, le reste est
+            une simple colonne, et l'identité comme les liens sont posés sur le
+            fond de page. Emboîter des cadres dans un cadre épaissit le bord
+            gauche sans rien séparer de plus. */}
+        <aside className="flex w-full shrink-0 flex-col gap-5 lg:sticky lg:top-[92px] lg:w-[248px]">
+          <div className="flex items-center gap-3">
+            <UserAvatar name={nomAffiche(session ?? null)} size={44} />
+            <div className="min-w-0">
+              <p className="truncate" style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)" }}>
+                {nomAffiche(session ?? null)}
+              </p>
+              <p className="truncate" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+                {session?.user.email}
+              </p>
             </div>
+          </div>
 
-            <div className="mt-5 flex flex-col gap-2">
-              <BoutonPanneau to="/profile" icone={Library}>Ma collection</BoutonPanneau>
-              <BoutonPanneau to="/profile?liste=envies" icone={Bookmark}>Mes envies</BoutonPanneau>
-            </div>
+          <div className="flex flex-col gap-2.5">
+            <Tuile icone={Library} libelle="Éditions possédées" valeur={resume ? String(resume.possedees) : "—"} />
+            <Tuile icone={Bookmark} libelle="Envies" valeur={resume ? String(resume.envies) : "—"} />
+            {/*
+              La valeur est une estimation par le prix conseillé, jamais une
+              cote : aucune source de prix du marché n'existe (§8). La couverture
+              est donc écrite sous le montant, seule ligne ajoutée à la maquette,
+              sans quoi un total qui ignore les éditions sans prix se lirait comme
+              une valeur réelle.
+            */}
+            <Tuile
+              icone={Wallet}
+              libelle="Valeur estimée"
+              valeur={resume ? formaterEuros(resume.valeur) : "—"}
+              note={
+                resume && resume.possedees > 0
+                  ? `prix éditeur connu sur ${resume.valorisees} des ${resume.possedees}`
+                  : undefined
+              }
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <LienPanneau to="/profile" icone={Library} actif>Ma collection</LienPanneau>
+            <LienPanneau to="/profile?liste=envies" icone={Bookmark}>Mes envies</LienPanneau>
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--reel-border)" }} />
+
+          {/*
+            La maquette met ici « Following » et « Followers ». Le volet social
+            n'existe pas, et afficher deux compteurs à zéro annoncerait une
+            fonction absente : ces deux lignes mènent donc à ce qui existe.
+          */}
+          <div className="flex flex-col gap-1">
+            <LienPanneau to="/lists" icone={ListPlus}>Mes listes</LienPanneau>
+            <LienPanneau to="/account" icone={Settings}>Mon compte</LienPanneau>
           </div>
         </aside>
 
         {/* ---- Colonne centrale : le fil ---- */}
-        <main className="min-w-0 flex-1">
+        {/* Le fil est borné à 620 px : au-delà, une carte d'activité s'étire sur
+            toute la largeur pour trois lignes de texte, et le rail montre des
+            jaquettes plus grandes que sur la fiche film. */}
+        <main className="min-w-0 flex-1 lg:max-w-[620px]">
           {dernieres.length > 0 && (
             <section>
               <div className="flex items-baseline justify-between gap-4">
@@ -220,8 +232,11 @@ export function TableauDeBordPage() {
   );
 }
 
-/** Une tuile de la colonne de gauche : icône, libellé, valeur, mention. */
-function Metrique({
+/**
+ * Une tuile de statistique : icône et libellé sur une ligne, valeur dessous.
+ * Cadre, rayon et rembourrage repris du node Figma 1:572.
+ */
+function Tuile({
   icone: Icone,
   libelle,
   valeur,
@@ -233,51 +248,52 @@ function Metrique({
   note?: string;
 }) {
   return (
-    <div className="rounded-[10px] px-4 py-3" style={{ backgroundColor: "var(--reel-surface-2)" }}>
+    <div
+      className="rounded-[10px] p-[13px]"
+      style={{ backgroundColor: "var(--reel-surface-2)", border: "1px solid var(--reel-border)" }}
+    >
       <p className="flex items-center gap-1.5" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
-        <Icone size={14} /> {libelle}
+        <Icone size={16} /> {libelle}
       </p>
       <p
-        className="mt-1"
-        style={{
-          fontFamily: "var(--reel-font-titre)",
-          fontSize: "26px",
-          fontWeight: 800,
-          letterSpacing: "-0.02em",
-          color: "var(--reel-text)",
-        }}
+        className="pt-1"
+        style={{ fontSize: "24px", fontWeight: 700, lineHeight: "26.4px", color: "var(--reel-text)" }}
       >
         {valeur}
       </p>
       {note && (
-        <p style={{ fontSize: "12px", lineHeight: "17px", color: "var(--reel-muted)" }}>{note}</p>
+        <p className="pt-0.5" style={{ fontSize: "12px", lineHeight: "17px", color: "var(--reel-muted)" }}>
+          {note}
+        </p>
       )}
     </div>
   );
 }
 
-function BoutonPanneau({
+/** Un lien de la colonne : icône, libellé, fond bleu discret quand il est actif. */
+function LienPanneau({
   to,
   icone: Icone,
+  actif = false,
   children,
 }: {
   to: string;
   icone: typeof Library;
+  actif?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <Link
       to={to}
-      className="flex items-center gap-2 rounded-[10px] px-4 py-2.5 transition hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+      className="flex items-center gap-3 rounded-[8px] px-3 py-2 transition hover:bg-[var(--reel-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
       style={{
-        backgroundColor: "var(--reel-accent-soft)",
-        border: "1px solid var(--reel-border)",
         fontSize: "15px",
-        fontWeight: 600,
-        color: "var(--reel-text)",
+        fontWeight: 500,
+        color: actif ? "var(--reel-accent-clair)" : "var(--reel-text)",
+        backgroundColor: actif ? "var(--reel-accent-soft)" : "transparent",
       }}
     >
-      <Icone size={16} color="var(--reel-accent-clair)" />
+      <Icone size={18} />
       {children}
     </Link>
   );
