@@ -469,23 +469,42 @@ Migration `20260803_signalements.sql`. `cible_user_id`, `auteur_user_id`
 (**nul** pour un visiteur sans compte), `motif`, `commentaire`, `statut`,
 `cree_le`.
 
-**Signaler ne demande pas de compte**, et c'est le point : on tombe sur un
-profil par un lien partagé, exiger une inscription pour dire « ce pseudonyme
-est une injure » reviendrait à ne pas vouloir le savoir. Mais `anon` n'a aucun
-privilège d'écriture depuis le 2 août, et ça ne se négocie pas pour une
-fonctionnalité de confort : l'écriture passe par `signaler_profil`,
-`security definer`, qui décide de ce qu'elle insère.
+**Signaler demande un compte**, depuis `20260803_signalement_compte_requis.sql`.
 
-Elle rend un motif et non un booléen, `enregistre`, `deja`, `soi`, `inconnu`,
-`trop`, chacun ayant sa phrase à l'écran. `inconnu` ne distingue toujours pas
-l'inexistant du masqué.
+La première version l'ouvrait aux visiteurs sans compte, au motif qu'on tombe
+sur un profil par un lien partagé et qu'exiger une inscription reviendrait à ne
+pas vouloir le savoir. **L'argument inverse l'emporte** : sans compte il n'y a
+rien à dédoublonner, donc un seul plafond de flot pour toute défense, et un
+signalement qui n'engage personne se prête au harcèlement d'un profil par
+répétition. Avec un compte, « un signalement par personne et par profil »
+redevient exécutoire.
 
-**Deux garde-fous contre le flot**, et ils ne visent pas le même abus : un
-index unique partiel sur `(cible, auteur)` empêche un compte de signaler deux
-fois, et un plafond de 50 signalements non traités par profil borne ce qu'un
-anonyme peut empiler, faute d'avoir quelque chose à dédoublonner. Attention en
-relisant : `on conflict` ignore les index partiels (§9), la fonction teste donc
-l'existence explicitement.
+`anon` a perdu l'`EXECUTE` : le refus arrive donc en **401**, avant la
+fonction, et se lit comme un refus (§3). Vérifié.
+
+    anon POST rpc/signaler_profil  ->  401 permission denied for function
+
+**`auteur_user_id` reste nullable, et ce n'est pas une négligence.** La colonne
+porte `on delete set null` : qui signale puis efface son compte laisse la ligne
+en place, sans auteur, ce qui est voulu, le signalement porte sur le profil
+visé. La rendre `not null` obligerait à passer la cascade en `delete`, donc à
+perdre ces signalements. L'obligation vit dans la fonction, à l'écriture, pas
+dans le type de la colonne. L'index unique reste partiel pour la même raison,
+deux lignes devenues orphelines sur un même profil ne doivent pas se heurter.
+
+La fonction rend un motif et non un booléen, `enregistre`, `deja`, `soi`,
+`inconnu`, `trop`, `connexion`, chacun ayant sa phrase à l'écran. `inconnu` ne
+distingue toujours pas l'inexistant du masqué.
+
+**Le plafond de 50 non traités reste**, alors que « un par compte » borne déjà
+le flot : il ne vise plus le même abus, il tient contre la création de comptes
+en série, que l'inscription Google rend coûteuse mais pas impossible. Attention
+en relisant : `on conflict` ignore les index partiels (§9), la fonction teste
+donc l'existence explicitement.
+
+**La modale s'ouvre quand même sans session**, et propose la connexion plutôt
+que de laisser remplir un formulaire qui sera refusé. Le retour de Google
+ramène sur le profil.
 
 **Aucun accusé de réception par courriel.** `contact@jaquette.app` ne fait que
 recevoir (§2), il n'y a pas de SMTP pour répondre. Les signalements s'empilent

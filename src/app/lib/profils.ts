@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from "react";
 import { identiteCourante, useSession } from "./auth";
+import { CompteRequis } from "./collections";
 import { clientAuthentifie, supabase } from "./supabase";
 import type { StatutValue } from "./reelio-db";
 
@@ -295,20 +296,26 @@ export const MOTIFS_SIGNALEMENT = [
 export type MotifSignalement = (typeof MOTIFS_SIGNALEMENT)[number]["cle"];
 
 /** Ce que la base répond. Chaque cas mérite une phrase différente à l'écran. */
-export type ResultatSignalement = "enregistre" | "deja" | "soi" | "inconnu" | "trop";
+export type ResultatSignalement =
+  | "enregistre"
+  | "deja"
+  | "soi"
+  | "inconnu"
+  | "trop"
+  | "connexion";
 
 /**
- * Signale un profil. **Ne demande pas de compte.**
+ * Signale un profil. **Demande un compte.**
  *
- * C'est par un lien partagé qu'on tombe sur un profil : exiger une inscription
- * pour dire « ce pseudonyme est une injure » reviendrait à ne pas vouloir le
- * savoir. L'appel part donc en clé anon quand il n'y a pas de session, et avec
- * le jeton sinon, ce qui permet à la base de refuser un second signalement du
- * même compte sur le même profil.
+ * La première version acceptait un signalement anonyme, au motif qu'on tombe
+ * sur un profil par un lien partagé. L'argument inverse l'emporte : sans
+ * compte, il n'y a rien à dédoublonner, donc un seul plafond de flot pour toute
+ * défense, et un signalement qui n'engage personne se prête au harcèlement par
+ * répétition. `anon` n'a plus l'`EXECUTE` sur la fonction, le refus arrive donc
+ * en 401 avant elle.
  *
- * `anon` n'a pour autant aucun privilège d'écriture : c'est une fonction
- * `security definer` qui insère, et elle décide de ce qu'elle insère
- * (cf. `20260803_signalements.sql`).
+ * Lève `CompteRequis`, comme toute action du site qui en demande un
+ * (`lib/collections.ts`) : l'interface a déjà de quoi la présenter.
  */
 export async function signalerProfil(
   identifiant: string,
@@ -316,9 +323,11 @@ export async function signalerProfil(
   commentaire: string,
 ): Promise<ResultatSignalement> {
   const identite = await identiteCourante();
-  const client = identite ? clientAuthentifie(identite.jeton) : supabase;
+  // Contrôlé ici pour éviter un aller-retour dont on connaît la réponse. La
+  // garantie, elle, est le privilège révoqué, pas ce test.
+  if (!identite) throw new CompteRequis();
 
-  const { data, error } = await client.rpc("signaler_profil", {
+  const { data, error } = await clientAuthentifie(identite.jeton).rpc("signaler_profil", {
     p_identifiant: identifiant,
     p_motif: motif,
     p_commentaire: commentaire.trim() || null,

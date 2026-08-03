@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Flag, X } from "lucide-react";
 import { toast } from "sonner";
+import { connexionGoogle, useSession } from "../lib/auth";
 import {
   MOTIFS_SIGNALEMENT,
   signalerProfil,
@@ -12,11 +13,20 @@ import { arobase } from "../lib/identifiant";
 /**
  * Signaler un profil.
  *
- * **Sans compte, et c'est le point.** On tombe sur un profil par un lien
- * partagé ; exiger une inscription pour dire « ce pseudonyme est une injure »
- * reviendrait à ne pas vouloir le savoir. C'est aussi ce qui fait de ce bouton
- * le complément de la liste de mots et non son doublon : une liste attrape ce
- * qu'on a prévu, un signalement apprend le reste.
+ * **Un compte est nécessaire.** La première version l'ouvrait aux visiteurs
+ * sans compte, au motif qu'on tombe sur un profil par un lien partagé.
+ * L'argument inverse l'emporte : sans compte il n'y a rien à dédoublonner, donc
+ * un seul plafond de flot pour toute défense, et un signalement qui n'engage
+ * personne se prête au harcèlement par répétition. Avec un compte, « un
+ * signalement par personne et par profil » redevient exécutoire.
+ *
+ * La modale s'ouvre quand même sans session : elle explique et propose la
+ * connexion, plutôt que de laisser remplir un formulaire qui sera refusé. Le
+ * retour de Google ramène sur le profil, pas sur l'accueil.
+ *
+ * Ce qui reste vrai : ce bouton est le complément de la liste de mots et non
+ * son doublon. Une liste attrape ce qu'on a prévu, un signalement apprend le
+ * reste.
  *
  * Un motif obligatoire, un commentaire facultatif et borné. Le champ libre est
  * la partie la plus exposée de l'écran : sans plafond, c'est une invitation à y
@@ -35,6 +45,7 @@ export function ModaleSignalement({
   identifiant: string;
   onFermer: () => void;
 }) {
+  const session = useSession();
   const [motif, setMotif] = useState<MotifSignalement>("injure");
   const [commentaire, setCommentaire] = useState("");
   const [envoi, setEnvoi] = useState(false);
@@ -108,6 +119,31 @@ export function ModaleSignalement({
           derrière : rien n’est masqué ni supprimé par le seul fait de signaler.
         </p>
 
+        {session === null ? (
+          <div className="flex flex-col items-start gap-3 pt-4">
+            <p style={{ fontSize: "14px", lineHeight: "21px", color: "var(--reel-muted)" }}>
+              Signaler demande un compte. C’est ce qui permet de n’en accepter qu’un par personne et
+              par profil, donc de distinguer un vrai problème d’un même envoi répété.
+            </p>
+            <button
+              type="button"
+              onClick={() => { void connexionGoogle(window.location.pathname); }}
+              className="rounded-full px-4 py-2 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+              style={{
+                fontSize: "14px",
+                fontWeight: 600,
+                backgroundColor: "var(--reel-accent)",
+                color: "#ffffff",
+                border: "1px solid var(--reel-accent)",
+              }}
+            >
+              Se connecter avec Google
+            </button>
+            <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+              Vous reviendrez sur cette page après la connexion.
+            </p>
+          </div>
+        ) : (
         <form onSubmit={envoyer} className="flex flex-col gap-4 pt-4">
           <fieldset className="flex flex-col gap-2">
             <legend className="pb-1" style={{ fontSize: "14px", fontWeight: 600, color: "var(--reel-text)" }}>
@@ -185,6 +221,7 @@ export function ModaleSignalement({
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );
@@ -199,6 +236,7 @@ export function ModaleSignalement({
  */
 const MESSAGES: Record<ResultatSignalement, string> = {
   enregistre: "Signalement enregistré. Merci, nous allons regarder.",
+  connexion: "Signaler demande un compte.",
   deja: "Vous aviez déjà signalé ce profil. Un seul signalement par compte suffit.",
   soi: "C’est votre propre profil. Modifiez-le depuis « Mon compte ».",
   inconnu: "Ce profil n’est plus accessible.",
