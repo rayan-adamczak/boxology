@@ -458,10 +458,44 @@ donc apprendrait à contourner une entrée à la fois. Le message de la base
 distingue en revanche les deux **colonnes**, pour que l'écran sache lequel des
 deux champs montrer en rouge.
 
-**Ce que ça ne fait pas** : une liste de mots est toujours en retard, elle
-attrape le cas courant et pas quelqu'un qui cherche. Ce qui manque et qui
-compte davantage, c'est un **signalement depuis la page de profil**, seul
-mécanisme qui apprenne les mots qu'on n'a pas prévus. À écrire.
+**Une liste de mots est toujours en retard**, elle attrape le cas courant et
+pas quelqu'un qui cherche. C'est pourquoi elle ne va pas seule : le
+signalement, ci-dessous, est le mécanisme qui apprend les mots qu'on n'a pas
+prévus.
+
+### `signalements`, le 3 août 2026
+
+Migration `20260803_signalements.sql`. `cible_user_id`, `auteur_user_id`
+(**nul** pour un visiteur sans compte), `motif`, `commentaire`, `statut`,
+`cree_le`.
+
+**Signaler ne demande pas de compte**, et c'est le point : on tombe sur un
+profil par un lien partagé, exiger une inscription pour dire « ce pseudonyme
+est une injure » reviendrait à ne pas vouloir le savoir. Mais `anon` n'a aucun
+privilège d'écriture depuis le 2 août, et ça ne se négocie pas pour une
+fonctionnalité de confort : l'écriture passe par `signaler_profil`,
+`security definer`, qui décide de ce qu'elle insère.
+
+Elle rend un motif et non un booléen, `enregistre`, `deja`, `soi`, `inconnu`,
+`trop`, chacun ayant sa phrase à l'écran. `inconnu` ne distingue toujours pas
+l'inexistant du masqué.
+
+**Deux garde-fous contre le flot**, et ils ne visent pas le même abus : un
+index unique partiel sur `(cible, auteur)` empêche un compte de signaler deux
+fois, et un plafond de 50 signalements non traités par profil borne ce qu'un
+anonyme peut empiler, faute d'avoir quelque chose à dédoublonner. Attention en
+relisant : `on conflict` ignore les index partiels (§9), la fonction teste donc
+l'existence explicitement.
+
+**Aucun accusé de réception par courriel.** `contact@jaquette.app` ne fait que
+recevoir (§2), il n'y a pas de SMTP pour répondre. Les signalements s'empilent
+dans une table qu'on relit à la main, et le message de confirmation ne promet
+rien d'autre que la prise en compte. Le commentaire est borné à 500 signes à
+l'écran **et** en base : un champ libre sans plafond est une invitation à y
+déverser ce qu'on prétend combattre.
+
+La table ne rend rien à personne, `revoke all` pour `anon` et `authenticated` :
+un signalement nomme quelqu'un, il n'a rien à faire dans une réponse d'API.
 
 ### `bluray_import`, table de transit
 6 201 fiches crawlées, avec statut : `promu` (6 017), `doublon` (184).
@@ -2693,16 +2727,33 @@ fiche film : ni Discord, ni iMessage, ni WhatsApp n'exécutent le JavaScript, et
 un profil partagé s'annonçait « jaquette.app, le catalogue des éditions
 Blu-ray », donc ne disait pas de qui il s'agit.
 
-**En `noindex, follow`, et ce n'est pas un oubli.** Un profil est une grille
-d'affiches déjà servies par les fiches films : mince et redondant, exactement
-ce que le §7 a refusé aux pages éditions. Partageable n'est pas indexable.
-`follow` reste, les liens vers les fiches doivent être suivis, et aucun profil
-n'entre au sitemap. À rouvrir le jour où un profil porte quelque chose qui
-n'existe nulle part ailleurs, une note, un classement, un texte.
+**Indexables depuis le 3 août 2026, après avoir été en `noindex` la journée
+même.** Le motif du `noindex` était le contenu mince, l'argument qui a fait
+écarter les pages éditions : une grille d'affiches déjà servies par les fiches
+films. Il regardait la mauvaise chose. Un profil porte ce qu'aucune fiche ne
+dit, **ce que telle personne possède**, et c'est la seule page du site dans ce
+cas.
 
-**Pas de JSON-LD.** Un `ProfilePage` ou une `Person` décriraient une personne
-réelle à partir d'un nom qu'elle a saisi elle-même, sur une page qu'on demande
-justement de ne pas indexer.
+**Le garde-fou n'a pas disparu, il a changé de place** : seuls les profils
+visibles **et non vides** entrent au sitemap, par `profils_au_sitemap`, comme
+seuls les films rattachés à une édition y entrent. Un profil vide reste servi
+et indexable si un lien y mène, on ne le déclare simplement pas soi-même. Le
+sitemap avale l'échec de cette lecture au lieu de casser le build, à l'inverse
+des films : un sitemap sans fiches désindexerait le site, un sitemap sans
+profils coûte la découverte de quelques pages.
+
+**JSON-LD `ProfilePage` du même jour**, écarté jusque-là au motif qu'on ne
+décrit pas une personne réelle sur une page qu'on demande de ne pas indexer,
+objection tombée avec le `noindex`. Le nœud reste maigre à dessein : le nom
+saisi par l'intéressé, son « @ » en `alternateName`, l'adresse, et le nombre
+d'éditions possédées en `InteractionCounter`. Ni date de naissance, ni
+employeur, ni compte sur un autre réseau, `Person` les invitant tous.
+
+**Ce que l'indexation change à la promesse** : la page n'est plus seulement
+atteignable par qui a le lien, elle est **trouvable** en cherchant le nom
+affiché ou l'identifiant. Politique de confidentialité, sommaire servi par le
+middleware, FAQ, écran de création et réglages du compte le disent tous, mis à
+jour dans le même commit.
 
 **Pas de liste d'éditions dans le corps injecté**, contrairement aux fiches :
 elle coûterait un second aller-retour Supabase pour un texte que personne ne

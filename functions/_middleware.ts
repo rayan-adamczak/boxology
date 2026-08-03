@@ -843,10 +843,6 @@ function injecterListe(
      Bing les lit encore et ils ne coûtent rien. */
   precedent: string | null = null,
   suivant: string | null = null,
-  /* `noindex, follow` pour les pages qui doivent se partager sans s'indexer,
-     les profils publics à ce jour. `index.html` ne porte aucune balise
-     `robots`, donc on l'ajoute plutôt que de la modifier. */
-  robots: string | null = null,
 ) {
   const poserContenu = { element: (el: any) => el.setAttribute("content", meta.description) };
   return new HTMLRewriter()
@@ -865,7 +861,6 @@ function injecterListe(
         }
         if (precedent) el.after(`<link rel="prev" href="${precedent}" />`, { html: true });
         if (suivant) el.after(`<link rel="next" href="${suivant}" />`, { html: true });
-        if (robots) el.after(`<meta name="robots" content="${robots}" />`, { html: true });
       },
     })
     .on("#root", { element: (el: any) => el.setInnerContent(corps, { html: true }) })
@@ -1077,7 +1072,7 @@ const PAGES_LEGALES: Record<
     sections: [
       ["Sans compte", "Aucun traceur, aucune publicité, aucun profilage. La consultation ne demande rien."],
       ["Avec un compte", "L'adresse et l'identifiant Google du compte, plus la liste des éditions marquées. Rien d'autre."],
-      ["Votre page publique", "Votre identifiant ouvre une page présentant votre collection, consultable sans compte. Elle n'affiche jamais votre adresse électronique. Elle se masque depuis la page Mon compte."],
+      ["Votre page publique", "Votre identifiant ouvre une page présentant votre collection, consultable sans compte et indexée par les moteurs de recherche. Elle n'affiche jamais votre adresse électronique. Elle se masque depuis la page Mon compte."],
       ["Ce que le site ne fait pas", "Ni revente, ni partage à des tiers, ni mesure d'audience publicitaire."],
       ["Services tiers", "Google pour la connexion, Supabase pour la base, Cloudflare pour l'hébergement, TMDB pour les métadonnées."],
       ["Vos droits", "Accès, rectification et effacement (RGPD art. 17). La suppression du compte et des listes se fait depuis la page Mon compte."],
@@ -1208,20 +1203,27 @@ async function lireProfil(identifiant: string): Promise<ProfilSeo | null> {
  * Blu-ray » ne dit pas de qui il s'agit. C'est la raison d'être de ce
  * gestionnaire, plus encore que pour les fiches films.
  *
- * **`noindex, follow`, et ce n'est pas un oubli.** Un profil est une grille
- * d'affiches déjà servies par les fiches films : mince et redondant, exactement
- * ce que le §7 a refusé aux pages éditions. Partageable n'est pas indexable.
- * `follow` reste : les liens vers les fiches doivent être suivis. Aucun profil
- * n'entre au sitemap pour la même raison.
+ * **Indexable depuis le 3 août 2026**, après avoir été en `noindex` la journée
+ * même. Le motif du `noindex` était le contenu mince, l'argument qui a fait
+ * écarter les pages éditions au §7 : une grille d'affiches déjà servies par les
+ * fiches films. Position renversée, parce qu'elle regardait la mauvaise chose :
+ * le profil porte ce qu'aucune fiche ne dit, à savoir ce que telle personne
+ * possède.
  *
- * **Pas de JSON-LD.** Un `ProfilePage` ou une `Person` décriraient une personne
- * réelle à partir d'un nom qu'elle a saisi elle-même, sur une page qu'on
- * demande justement de ne pas indexer. Rien à y gagner, une donnée de plus à
- * tenir juste.
+ * **Le garde-fou a changé de place, il n'a pas disparu** : seuls les profils
+ * visibles et **non vides** entrent au sitemap (`profils_au_sitemap`), comme
+ * seuls les films rattachés à une édition y entrent. Un profil vide reste
+ * servi, on ne le déclare simplement pas.
+ *
+ * **JSON-LD `ProfilePage` depuis le même jour.** Il était écarté au motif qu'on
+ * ne décrit pas une personne réelle sur une page qu'on demande de ne pas
+ * indexer ; l'objection tombe avec le `noindex`. Le nœud reste maigre à
+ * dessein : un nom saisi par l'intéressé, son « @ » et l'adresse. Ni date de
+ * naissance, ni réseau social, ni rien qu'on ne nous ait donné.
  *
  * **Pas de liste d'éditions dans le corps injecté**, contrairement aux fiches :
- * elle coûterait un second aller-retour Supabase pour un texte que personne ne
- * lira, la page étant en `noindex` et les aperçus s'arrêtant au `<head>`.
+ * elle coûterait un second aller-retour Supabase, et le texte servi porte déjà
+ * les décomptes. À rouvrir si la Search Console juge la page trop maigre.
  */
 function corpsProfil(profil: ProfilSeo, description: string): string {
   return enveloppe(
@@ -1234,6 +1236,38 @@ function corpsProfil(profil: ProfilSeo, description: string): string {
       `Parcourir le catalogue des éditions physiques</a></p>` +
       liensAxes(),
   );
+}
+
+/**
+ * JSON-LD d'un profil : `ProfilePage` portant une `Person`.
+ *
+ * Volontairement maigre. Une `Person` invite à déclarer une date de naissance,
+ * un employeur, des comptes sur d'autres réseaux ; on n'a rien de tout ça et on
+ * ne le demandera pas. Restent le nom saisi par l'intéressé, son « @ » en
+ * `alternateName`, et l'adresse.
+ *
+ * `interactionStatistic` porte le nombre d'éditions possédées : c'est la seule
+ * mesure que la page avance, et la déclarer évite qu'un moteur la devine à
+ * partir du texte.
+ */
+function donneesProfil(profil: ProfilSeo, canonical: string): string {
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    url: canonical,
+    mainEntity: compacter({
+      "@type": "Person",
+      "@id": `${canonical}#personne`,
+      name: profil.nom,
+      alternateName: `@${profil.identifiant}`,
+      url: canonical,
+      interactionStatistic: {
+        "@type": "InteractionCounter",
+        interactionType: "https://schema.org/CollectAction",
+        userInteractionCount: profil.possedees,
+      },
+    }),
+  }).replace(/</g, "\\u003c");
 }
 
 async function servirProfil(url: URL, next: () => Promise<Response>): Promise<Response> {
@@ -1272,15 +1306,13 @@ async function servirProfil(url: URL, next: () => Promise<Response>): Promise<Re
       description,
     };
 
+    const canonique = `${url.origin}${cheminProfil(identifiant)}`;
     return injecterListe(
       reponse,
       meta,
-      `${url.origin}${cheminProfil(identifiant)}`,
+      canonique,
       corpsProfil(profil, description),
-      null,
-      null,
-      null,
-      "noindex, follow",
+      donneesProfil(profil, canonique),
     );
   } catch {
     /* Même règle que partout ici : le partage se dégrade, la consultation ne

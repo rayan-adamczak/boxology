@@ -195,7 +195,8 @@ function ProfilPublicReglages() {
     <Section titre="Ma page publique">
       <p>
         Votre identifiant donne son adresse à votre page de collection. Elle se consulte sans
-        compte : c’est ce qui la rend partageable.
+        compte, c’est ce qui la rend partageable, et elle est indexée par les moteurs de
+        recherche.
       </p>
 
       <Encadre>

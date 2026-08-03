@@ -122,6 +122,15 @@ export function ConfidentialitePage() {
           disposant du lien.
         </p>
         <p>
+          Depuis le 3 août 2026, cette page est également{" "}
+          <strong style={{ color: "var(--reel-text)" }}>
+            indexée par les moteurs de recherche
+          </strong>{" "}
+          : elle peut donc être trouvée sans qu’on vous ait donné le lien, notamment en cherchant
+          le nom que vous affichez ou votre identifiant. Seules les pages non masquées et portant au
+          moins une édition sont déclarées à notre plan de site.
+        </p>
+        <p>
           Cette page affiche le nom que vous avez saisi, votre identifiant et les éditions que vous
           avez marquées. Elle n’affiche{" "}
           <strong style={{ color: "var(--reel-text)" }}>jamais</strong> votre adresse électronique ni

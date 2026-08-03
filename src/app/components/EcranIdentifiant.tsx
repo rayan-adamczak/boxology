@@ -120,8 +120,9 @@ export function EcranIdentifiant({ session }: { session: Session }) {
           style={{ fontSize: "15px", lineHeight: "24px", color: "var(--reel-muted)" }}
         >
           C’est votre « @ » sur jaquette.app : il donne son adresse à votre page de collection, que
-          vous pourrez partager à qui vous voulez, même sans compte. Il se change ensuite depuis
-          votre compte.
+          vous pourrez partager à qui vous voulez, même sans compte. Cette page est publique et
+          référencée par les moteurs de recherche ; vous pouvez la masquer à tout moment. Le « @ »
+          se change ensuite depuis votre compte.
         </p>
 
         <form onSubmit={valider} className="flex flex-col gap-5 pt-8">

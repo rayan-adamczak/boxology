@@ -280,6 +280,53 @@ export async function profilPublic(identifiant: string): Promise<ProfilPublic | 
   };
 }
 
+/* -------------------------------------------------------------------------- */
+/* Signalement                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export const MOTIFS_SIGNALEMENT = [
+  { cle: "injure", libelle: "Injure ou grossièreté" },
+  { cle: "haine", libelle: "Propos racistes, antisémites, homophobes" },
+  { cle: "usurpation", libelle: "Usurpation d’identité" },
+  { cle: "spam", libelle: "Spam ou publicité" },
+  { cle: "autre", libelle: "Autre" },
+] as const;
+
+export type MotifSignalement = (typeof MOTIFS_SIGNALEMENT)[number]["cle"];
+
+/** Ce que la base répond. Chaque cas mérite une phrase différente à l'écran. */
+export type ResultatSignalement = "enregistre" | "deja" | "soi" | "inconnu" | "trop";
+
+/**
+ * Signale un profil. **Ne demande pas de compte.**
+ *
+ * C'est par un lien partagé qu'on tombe sur un profil : exiger une inscription
+ * pour dire « ce pseudonyme est une injure » reviendrait à ne pas vouloir le
+ * savoir. L'appel part donc en clé anon quand il n'y a pas de session, et avec
+ * le jeton sinon, ce qui permet à la base de refuser un second signalement du
+ * même compte sur le même profil.
+ *
+ * `anon` n'a pour autant aucun privilège d'écriture : c'est une fonction
+ * `security definer` qui insère, et elle décide de ce qu'elle insère
+ * (cf. `20260803_signalements.sql`).
+ */
+export async function signalerProfil(
+  identifiant: string,
+  motif: MotifSignalement,
+  commentaire: string,
+): Promise<ResultatSignalement> {
+  const identite = await identiteCourante();
+  const client = identite ? clientAuthentifie(identite.jeton) : supabase;
+
+  const { data, error } = await client.rpc("signaler_profil", {
+    p_identifiant: identifiant,
+    p_motif: motif,
+    p_commentaire: commentaire.trim() || null,
+  });
+  if (error) throw new Error(`Signalement impossible : ${error.message}`);
+  return data as ResultatSignalement;
+}
+
 /**
  * Les éditions d'une liste publique, du geste le plus récent au plus ancien.
  *

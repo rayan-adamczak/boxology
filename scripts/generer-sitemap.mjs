@@ -176,6 +176,33 @@ for (const [axe, base, slugs, libelles] of AXES_SITEMAP) {
   }
 }
 
+
+/**
+ * Les profils publics, depuis le 3 août 2026.
+ *
+ * `profils_au_sitemap` ne rend que les profils **visibles et non vides** : un
+ * profil sans une seule édition est une page qui ne porte qu'un nom, donc le
+ * contenu mince que le §7 refuse. Il reste servi et indexable si un lien y
+ * mène, on ne le déclare simplement pas soi-même. Même règle que les films,
+ * dont seuls ceux rattachés à une édition entrent ici.
+ *
+ * `stable` côté base, donc PostgREST accepte le GET.
+ *
+ * **L'échec est avalé, à l'inverse des films.** Un catalogue vide casse le
+ * build parce qu'un sitemap sans fiches désindexerait le site ; un sitemap
+ * sans profils ne coûte que la découverte de quelques pages, et faire tomber
+ * un déploiement pour ça serait disproportionné.
+ */
+let identifiants = [];
+try {
+  const reponse = await fetch(`${API}/rpc/profils_au_sitemap`, { headers: entetes });
+  if (!reponse.ok) throw new Error(`HTTP ${reponse.status}`);
+  identifiants = await reponse.json();
+} catch (erreur) {
+  console.warn(`sitemap.xml : profils non listés (${erreur.message})`);
+}
+const urlsProfils = identifiants.map((id) => urlXml(`/u/${id}`, "0.5"));
+
 const pages = [
   urlXml("/", "1.0"),
   // Page de parcours, ouverte le 3 août 2026. Priorité sous l'accueil, qui
@@ -190,6 +217,7 @@ const pages = [
   // reste atteignable depuis le pied de page de tout le site.
   urlXml("/privacy", "0.3"),
   ...urlsRegroupements,
+  ...urlsProfils,
   ...filmIds.map((id) => urlXml(cheminFilm(id), "0.8")),
 ];
 
@@ -200,5 +228,6 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
 writeFileSync(resolve(RACINE, "dist/sitemap.xml"), xml);
 console.log(
   `sitemap.xml : ${pages.length} URL (${filmIds.length} fiches films, ` +
-    `${urlsRegroupements.length} pages de regroupement dont ${pagesSuivantes} paginées)`,
+    `${urlsRegroupements.length} pages de regroupement dont ${pagesSuivantes} paginées, ` +
+    `${urlsProfils.length} profils)`,
 );

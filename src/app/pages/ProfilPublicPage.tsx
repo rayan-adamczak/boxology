@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router";
-import { Loader2, Settings } from "lucide-react";
+import { Flag, Loader2, Settings } from "lucide-react";
 import { Link } from "react-router";
 import { BoutonPartage, ONGLETS, VueProfil, grouper, type Entree } from "../components/VueProfil";
+import { ModaleSignalement } from "../components/ModaleSignalement";
 import { IntrouvablePage } from "./IntrouvablePage";
 import { useSession } from "../lib/auth";
 import { idsParStatut } from "../lib/collections";
@@ -36,10 +37,13 @@ import { useSeo } from "../lib/seo";
  *     alors que les fonctions publiques répondent `null` pour tout le monde.
  *     Sans ça, masquer sa page reviendrait à se la fermer à soi-même.
  *
- * **En `noindex, follow`.** Un profil est une grille d'affiches déjà servies
- * par les fiches films : mince et redondant, c'est-à-dire ce que le §7 a refusé
- * aux pages éditions, pour la même raison. Partageable n'est pas indexable, et
- * les liens vers les fiches doivent rester suivis.
+ * **Indexable depuis le 3 août 2026**, après avoir été en `noindex` la journée
+ * même. Voir le `useSeo` plus bas pour le motif du revirement et pour l'endroit
+ * où le garde-fou contre le contenu mince a été déplacé.
+ *
+ * Signalable par n'importe qui, **sans compte** : on tombe sur un profil par un
+ * lien partagé, et exiger une inscription pour dire « ce pseudonyme est une
+ * injure » reviendrait à ne pas vouloir le savoir.
  */
 
 type Etat =
@@ -58,6 +62,7 @@ export function ProfilPublicPage() {
   const session = useSession();
   const etatProfil = useProfil();
   const [etat, setEtat] = useState<Etat>({ statut: "attente" });
+  const [signalement, setSignalement] = useState(false);
 
   /*
     L'onglet vit dans l'URL, comme avant sur `/profile` : une envie partagée
@@ -127,12 +132,24 @@ export function ProfilPublicPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canonique, identifiant, cestMoi, session === undefined, etatProfil.statut]);
 
+  /*
+    **Indexable depuis le 3 août 2026.** La page était en `noindex, follow` au
+    motif qu'un profil est une grille d'affiches déjà servies par les fiches
+    films, donc mince et redondant, l'argument qui a fait écarter les pages
+    éditions au §7. Position renversée : le profil est le seul endroit du site
+    qui porte quelque chose d'unique, ce que telle personne possède, et c'est
+    précisément ce qu'aucune fiche film ne dit.
+
+    Le garde-fou contre le contenu mince a changé de place, il n'a pas disparu :
+    seuls les profils visibles **et non vides** entrent au sitemap
+    (`profils_au_sitemap`), comme seuls les films rattachés à une édition y
+    entrent. Un profil vide reste servi, on ne le déclare simplement pas.
+  */
   useSeo(
     etat.statut === "pret"
       ? {
           titre: `${etat.nom} (${arobase(etat.identifiant)})`,
           description: descriptionProfil(etat.nom, etat.parStatut),
-          noindex: true,
         }
       : null,
   );
@@ -174,6 +191,7 @@ export function ProfilPublicPage() {
   }
 
   return (
+    <>
     <VueProfil
       nom={etat.nom}
       identifiant={etat.identifiant}
@@ -182,6 +200,8 @@ export function ProfilPublicPage() {
       // pour son propriétaire serait la première divergence.
       actions={
         cestMoi ? (
+          /* Pas de bouton « Signaler » sur son propre profil : la base le
+             refuse déjà, l'écran n'a pas à proposer un geste qui sera rejeté. */
           <>
             {monProfil.visible ? (
               <BoutonPartage identifiant={etat.identifiant} />
@@ -214,7 +234,22 @@ export function ProfilPublicPage() {
             </Link>
           </>
         ) : (
-          <BoutonPartage identifiant={etat.identifiant} />
+          <>
+            <BoutonPartage identifiant={etat.identifiant} />
+            <button
+              type="button"
+              onClick={() => setSignalement(true)}
+              className="flex items-center gap-1.5 rounded-full px-3.5 py-2 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+              style={{
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "var(--reel-muted)",
+                border: "1px solid var(--reel-border)",
+              }}
+            >
+              <Flag size={16} /> Signaler
+            </button>
+          </>
         )
       }
       parStatut={etat.parStatut}
@@ -232,6 +267,13 @@ export function ProfilPublicPage() {
             }
       }
     />
+    {/* Posée à côté de la vue et non dedans : `VueProfil` est une présentation
+        pure, partagée avec le rendu de son propre profil, et elle n'a pas à
+        connaître le signalement. */}
+    {signalement && (
+      <ModaleSignalement identifiant={etat.identifiant} onFermer={() => setSignalement(false)} />
+    )}
+    </>
   );
 }
 
