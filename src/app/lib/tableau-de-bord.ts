@@ -13,6 +13,17 @@ import { prixEnEuros } from "./prix";
  *
  * Chacune échoue pour son compte : une panne sur les sorties à venir ne doit
  * pas vider les compteurs de collection, qui sont la raison d'être de la page.
+ *
+ * **Le catalogue ne se lit jamais avec le jeton de session**, et ce n'est pas
+ * un détail de style : les policies de `films`, `editions` et `edition_films`
+ * sont écrites pour le rôle `anon` seul. Une requête portant un JWT arrive en
+ * rôle `authenticated`, aucune policy ne la couvre, et PostgREST rend **200
+ * avec zéro ligne** — le piège du §3, un refus qui ne ressemble pas à un refus.
+ *
+ * Mesuré le 3 août 2026 : `collections` embarquant `editions(...)` rendait
+ * `editions: null` sur chaque ligne, d'où un fil sans titre ni visuel et une
+ * valeur estimée à zéro. On lit donc les identifiants avec le jeton, puis les
+ * éditions avec le client anon.
  */
 
 /** PostgREST plafonne à 1 000 lignes, cf. §9. */
@@ -58,35 +69,46 @@ export async function getResumeCollection(): Promise<ResumeCollection | null> {
 
   const client = clientAuthentifie(identite.jeton);
   const resume: ResumeCollection = { possedees: 0, envies: 0, valeur: 0, valorisees: 0 };
+  const possedees: number[] = [];
 
   for (let debut = 0; ; debut += PAGE) {
     const { data, error } = await client
       .from("collections")
-      .select("statut, editions(prix_editeur, source)")
+      .select("statut, edition_id")
       .eq("user_id", identite.userId)
       .range(debut, debut + PAGE - 1);
     // Une lecture qui échoue doit se voir, pas rendre du vide (§9).
     if (error) throw new Error(`Résumé de collection indisponible : ${error.message}`);
 
-    const lignes = (data ?? []) as {
-      statut: StatutValue;
-      editions?: { prix_editeur?: string | null; source?: string | null } | null;
-    }[];
+    const lignes = (data ?? []) as { statut: StatutValue; edition_id: number }[];
     for (const ligne of lignes) {
       if (ligne.statut === "possede") {
         resume.possedees += 1;
-        // Les prix Zavvi sont en livres : `prixEnEuros` les écarte plutôt que
-        // de les additionner à des euros, ce qui ne voudrait rien dire.
-        const prix = prixEnEuros(ligne.editions?.prix_editeur, ligne.editions?.source);
-        if (prix !== null) {
-          resume.valeur += prix;
-          resume.valorisees += 1;
-        }
+        possedees.push(ligne.edition_id);
       } else if (ligne.statut === "envie") {
         resume.envies += 1;
       }
     }
     if (lignes.length < PAGE) break;
+  }
+
+  // Les prix se lisent en anon, cf. l'en-tête de fichier.
+  for (let debut = 0; debut < possedees.length; debut += 500) {
+    const { data, error } = await supabase
+      .from("editions")
+      .select("prix_editeur, source")
+      .in("id", possedees.slice(debut, debut + 500));
+    if (error) throw new Error(`Prix des éditions indisponibles : ${error.message}`);
+
+    for (const ligne of (data ?? []) as { prix_editeur: string | null; source: string | null }[]) {
+      // Les prix Zavvi sont en livres : `prixEnEuros` les écarte plutôt que de
+      // les additionner à des euros, ce qui ne voudrait rien dire.
+      const prix = prixEnEuros(ligne.prix_editeur, ligne.source);
+      if (prix !== null) {
+        resume.valeur += prix;
+        resume.valorisees += 1;
+      }
+    }
   }
 
   return resume;
@@ -105,35 +127,45 @@ export async function getActiviteRecente(limite = 12): Promise<ActiviteLigne[]> 
 
   const { data, error } = await clientAuthentifie(identite.jeton)
     .from("collections")
-    .select(
-      "edition_id, statut, cree_le, editions(id, titre, image_url, edition_films(film:films(id, titre, slug, annee, affiche_url)))",
-    )
+    .select("edition_id, statut, cree_le")
     .eq("user_id", identite.userId)
     .order("cree_le", { ascending: false })
     .limit(limite);
   if (error) throw new Error(`Activité indisponible : ${error.message}`);
 
-  type Brut = {
-    edition_id: number;
-    statut: StatutValue;
-    cree_le: string;
-    editions?: {
-      titre?: string | null;
-      image_url?: string | null;
-      edition_films?: { film: ActiviteLigne["film"] }[];
-    } | null;
-  };
+  const lignes = (data ?? []) as { edition_id: number; statut: StatutValue; cree_le: string }[];
+  if (lignes.length === 0) return [];
 
-  return ((data ?? []) as Brut[]).map((ligne) => ({
-    editionId: ligne.edition_id,
-    statut: ligne.statut,
-    creeLe: ligne.cree_le,
-    titre: ligne.editions?.titre ?? null,
-    imageUrl: ligne.editions?.image_url ?? null,
-    // Un coffret porte plusieurs films : le premier suffit à l'illustrer, comme
-    // dans `getDernieresEditions`.
-    film: ligne.editions?.edition_films?.[0]?.film ?? null,
-  }));
+  // Second appel, en anon : le catalogue n'est pas lisible sous le jeton.
+  const { data: editions, error: erreurEditions } = await supabase
+    .from("editions")
+    .select("id, titre, image_url, edition_films(film:films(id, titre, slug, annee, affiche_url))")
+    .in("id", lignes.map((l) => l.edition_id));
+  if (erreurEditions) throw new Error(`Éditions du fil indisponibles : ${erreurEditions.message}`);
+
+  type BrutEdition = {
+    id: number;
+    titre: string | null;
+    image_url: string | null;
+    edition_films?: { film: ActiviteLigne["film"] }[];
+  };
+  const parId = new Map<number, BrutEdition>(
+    ((editions ?? []) as unknown as BrutEdition[]).map((e) => [e.id, e]),
+  );
+
+  return lignes.map((ligne) => {
+    const edition = parId.get(ligne.edition_id);
+    return {
+      editionId: ligne.edition_id,
+      statut: ligne.statut,
+      creeLe: ligne.cree_le,
+      titre: edition?.titre ?? null,
+      imageUrl: edition?.image_url ?? null,
+      // Un coffret porte plusieurs films : le premier suffit à l'illustrer,
+      // comme dans `getDernieresEditions`.
+      film: edition?.edition_films?.[0]?.film ?? null,
+    };
+  });
 }
 
 /**
