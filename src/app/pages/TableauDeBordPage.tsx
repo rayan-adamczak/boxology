@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Library, Bookmark, Wallet, CalendarClock, ArrowRight, ListPlus, Settings, Share2 } from "lucide-react";
+import { Library, Bookmark, Wallet, CalendarClock, ArrowRight, ListPlus, Settings } from "lucide-react";
 import { UserAvatar } from "../components/UserAvatar";
 import { CarteEdition } from "../components/CarteEdition";
 import { RailHorizontal } from "../components/RailHorizontal";
@@ -51,6 +51,7 @@ export function TableauDeBordPage() {
   const session = useSession();
   const etatProfil = useProfil();
   const profil = etatProfil.statut === "pret" ? etatProfil.profil : null;
+  const lienProfil = profil ? cheminProfil(profil.identifiant) : "/profile";
   const [resume, setResume] = useState<ResumeCollection | null>(null);
   const [activite, setActivite] = useState<ActiviteLigne[]>([]);
   const [dernieres, setDernieres] = useState<EditionWithFilm[]>([]);
@@ -166,17 +167,13 @@ export function TableauDeBordPage() {
             />
           </div>
 
+          {/* Vers l'adresse canonique du profil quand elle est connue. Il y
+              avait en plus une entrée « Ma page publique » : c'est la même
+              page depuis que le profil n'a qu'une adresse. `/profile` reste le
+              repli, c'est une forme courte qui redirige. */}
           <div className="flex flex-col gap-1">
-            <LienPanneau to="/profile" icone={Library}>Ma collection</LienPanneau>
-            <LienPanneau to="/profile?liste=envies" icone={Bookmark}>Mes envies</LienPanneau>
-            {/* Le lien de partage n'apparaît que si la page est réellement
-                servie : proposer de partager une adresse qui répond 404 serait
-                pire que ne rien proposer. */}
-            {profil?.visible && (
-              <LienPanneau to={cheminProfil(profil.identifiant)} icone={Share2}>
-                Ma page publique
-              </LienPanneau>
-            )}
+            <LienPanneau to={lienProfil} icone={Library}>Ma collection</LienPanneau>
+            <LienPanneau to={`${lienProfil}?liste=envies`} icone={Bookmark}>Mes envies</LienPanneau>
           </div>
 
           <div style={{ borderTop: "1px solid var(--reel-border)" }} />

@@ -1,72 +1,106 @@
 import { useEffect, useState } from "react";
-import { Navigate, useParams } from "react-router";
-import { Loader2 } from "lucide-react";
+import { Navigate, useParams, useSearchParams } from "react-router";
+import { Loader2, Settings } from "lucide-react";
+import { Link } from "react-router";
 import { BoutonPartage, ONGLETS, VueProfil, grouper, type Entree } from "../components/VueProfil";
 import { IntrouvablePage } from "./IntrouvablePage";
+import { useSession } from "../lib/auth";
+import { idsParStatut } from "../lib/collections";
 import { arobase, cheminProfil, normaliserIdentifiant } from "../lib/identifiant";
-import { editionsDuProfil, profilPublic, type ProfilPublic } from "../lib/profils";
+import { editionsDuProfil, profilPublic, useProfil } from "../lib/profils";
 import { getEditionsByIds, type StatutValue } from "../lib/reelio-db";
 import { useSeo } from "../lib/seo";
 
 /**
- * `/u/<identifiant>` : l'étagère de quelqu'un, lisible sans compte.
+ * `/u/<identifiant>` : **la** page de profil. Il n'y en a pas d'autre.
  *
- * C'est l'adresse qu'on partage, donc **une porte d'entrée depuis l'extérieur,
- * donc un chemin de consultation** : la page est importée dans le bundle
- * initial et non en `lazy()`. Le §9 en garde deux exemples, les pages de
- * regroupement et `/welcome`, où un morceau demandé pendant la propagation
- * d'un déploiement rendait un écran vide. Un lien partagé est précisément ce
- * qu'on ouvre une fois, sans y revenir : un écran vide n'a pas de seconde
- * chance.
+ * Une personne, une adresse. Ce que vous regardez chez vous est littéralement
+ * la page que vous partagez, au même endroit, avec le même slug : `/profile`
+ * n'est plus qu'une forme courte qui redirige ici, comme `/movies/560`
+ * redirige vers l'adresse à slug (§7). Deux adresses pour la même étagère,
+ * c'étaient deux doublons et deux occasions de diverger.
  *
- * Rien ici ne passe par une session. Les listes viennent de
- * `editions_du_profil`, en clé anon, et les éditions du catalogue public : un
- * visiteur connecté et un visiteur de passage voient exactement la même chose.
+ * C'est une porte d'entrée depuis l'extérieur, donc un chemin de consultation :
+ * la page est dans le bundle initial et non en `lazy()`. Le §9 en garde deux
+ * exemples, les pages de regroupement et `/welcome`, où un morceau demandé
+ * pendant la propagation d'un déploiement rendait un écran vide. Un lien
+ * partagé s'ouvre une fois, sans seconde chance.
+ *
+ * **Deux chemins de lecture, choisis sur une seule question : est-ce le
+ * mien ?**
+ *
+ *   - non : `profil_public` et `editions_du_profil`, en clé anon. Un visiteur
+ *     connecté et un visiteur de passage voient exactement la même chose ;
+ *   - oui : `collections` sous jeton de session. C'est ce qui fait qu'un profil
+ *     **masqué reste consultable par son propriétaire** à la même adresse,
+ *     alors que les fonctions publiques répondent `null` pour tout le monde.
+ *     Sans ça, masquer sa page reviendrait à se la fermer à soi-même.
  *
  * **En `noindex, follow`.** Un profil est une grille d'affiches déjà servies
- * par les fiches films : mince et redondant, c'est-à-dire ce que le §7 a
- * refusé aux pages éditions, pour la même raison. Partageable n'est pas
- * indexable, et les liens vers les fiches doivent rester suivis. À rouvrir le
- * jour où un profil porte quelque chose qui n'existe nulle part ailleurs, une
- * note, un classement, un texte.
+ * par les fiches films : mince et redondant, c'est-à-dire ce que le §7 a refusé
+ * aux pages éditions, pour la même raison. Partageable n'est pas indexable, et
+ * les liens vers les fiches doivent rester suivis.
  */
 
 type Etat =
   | { statut: "attente" }
   | { statut: "introuvable" }
   | { statut: "erreur"; message: string }
-  | { statut: "pret"; profil: ProfilPublic; parStatut: Record<StatutValue, Entree[]> };
+  | {
+      statut: "pret";
+      nom: string;
+      identifiant: string;
+      parStatut: Record<StatutValue, Entree[]>;
+    };
 
 export function ProfilPublicPage() {
   const { identifiant = "" } = useParams();
+  const session = useSession();
+  const etatProfil = useProfil();
   const [etat, setEtat] = useState<Etat>({ statut: "attente" });
-  const [statut, setStatut] = useState<StatutValue>("possede");
 
   /*
-    Une adresse en majuscules ou avec un signe interdit désigne au mieux le
-    même profil, au pire aucun : on la ramène à sa forme canonique par une
-    redirection plutôt que d'interroger la base avec, sinon `/u/Rayan` et
-    `/u/rayan` seraient deux adresses pour la même page.
+    L'onglet vit dans l'URL, comme avant sur `/profile` : une envie partagée
+    doit s'ouvrir sur les envies, et `/wishlist` continue d'y mener.
+  */
+  const [params, setParams] = useSearchParams();
+  const statut: StatutValue = params.get("liste") === "envies" ? "envie" : "possede";
+  const setStatut = (s: StatutValue) =>
+    setParams(s === "envie" ? { liste: "envies" } : {}, { replace: true });
+
+  /*
+    Une adresse en majuscules ou ponctuée désigne au mieux le même profil : on
+    la ramène à sa forme canonique par une redirection plutôt que d'interroger
+    la base avec, sinon `/u/Rayan` et `/u/rayan` seraient deux adresses pour la
+    même page. Le middleware fait la même 301 en production ; cette route sert
+    au serveur de développement, où il ne tourne pas.
   */
   const canonique = normaliserIdentifiant(identifiant);
 
+  const monProfil = etatProfil.statut === "pret" ? etatProfil.profil : null;
+  const cestMoi = monProfil !== null && monProfil.identifiant === canonique;
+
   useEffect(() => {
     if (!canonique || canonique !== identifiant) return;
+    // Tant que la session n'est pas tranchée, on ne sait pas encore par quel
+    // chemin lire : attendre coûte un instant, se tromper coûte un 404 sur son
+    // propre profil masqué.
+    if (session === undefined || etatProfil.statut === "attente") return;
 
     let annule = false;
     setEtat({ statut: "attente" });
 
     (async () => {
       try {
-        const profil = await profilPublic(canonique);
+        const nom = cestMoi ? monProfil.nom : (await profilPublic(canonique))?.nom ?? null;
         if (annule) return;
-        if (!profil) { setEtat({ statut: "introuvable" }); return; }
+        if (nom === null) { setEtat({ statut: "introuvable" }); return; }
 
         const listes = await Promise.all(
           ONGLETS.map(async ({ statut: s }) => {
-            const ids = await editionsDuProfil(canonique, s);
+            const ids = cestMoi ? await idsParStatut(s) : await editionsDuProfil(canonique, s);
             const editions = await getEditionsByIds(ids);
-            // `editions_du_profil` rend du plus récent au plus ancien, mais
+            // Les deux sources rendent du plus récent au plus ancien, mais
             // `getEditionsByIds` ne garantit aucun ordre : sans ce rang, le tri
             // « ajout récent » ne voudrait rien dire.
             const rang = new Map(ids.map((id, i) => [id, i]));
@@ -77,7 +111,8 @@ export function ProfilPublicPage() {
         if (!annule) {
           setEtat({
             statut: "pret",
-            profil,
+            nom,
+            identifiant: canonique,
             parStatut: Object.fromEntries(listes) as Record<StatutValue, Entree[]>,
           });
         }
@@ -89,14 +124,14 @@ export function ProfilPublicPage() {
     })();
 
     return () => { annule = true; };
-  }, [canonique, identifiant]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canonique, identifiant, cestMoi, session === undefined, etatProfil.statut]);
 
-  const nom = etat.statut === "pret" ? etat.profil.nom : "";
   useSeo(
     etat.statut === "pret"
       ? {
-          titre: `${nom} (${arobase(etat.profil.identifiant)})`,
-          description: descriptionProfil(nom, etat.profil),
+          titre: `${etat.nom} (${arobase(etat.identifiant)})`,
+          description: descriptionProfil(etat.nom, etat.parStatut),
           noindex: true,
         }
       : null,
@@ -124,7 +159,7 @@ export function ProfilPublicPage() {
     Profil masqué et identifiant inconnu rendent le même écran, et c'est
     délibéré : les distinguer dirait quels comptes existent. La base répond
     déjà `null` dans les deux cas, cet écran ne fait que ne pas défaire ce
-    choix.
+    choix. Le propriétaire, lui, ne passe pas par là : il lit sous session.
   */
   if (etat.statut === "introuvable") return <IntrouvablePage />;
 
@@ -140,28 +175,82 @@ export function ProfilPublicPage() {
 
   return (
     <VueProfil
-      nom={etat.profil.nom}
-      identifiant={etat.profil.identifiant}
-      actions={<BoutonPartage identifiant={etat.profil.identifiant} />}
+      nom={etat.nom}
+      identifiant={etat.identifiant}
+      // L'adresse électronique n'apparaît nulle part, pas même chez soi : la
+      // page est la même pour tout le monde, et une ligne qui n'existe que
+      // pour son propriétaire serait la première divergence.
+      actions={
+        cestMoi ? (
+          <>
+            {monProfil.visible ? (
+              <BoutonPartage identifiant={etat.identifiant} />
+            ) : (
+              <span
+                className="flex items-center gap-1.5 rounded-full px-3.5 py-2"
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "var(--reel-muted)",
+                  border: "1px solid var(--reel-border)",
+                }}
+              >
+                Page masquée
+              </span>
+            )}
+            <Link
+              to="/account"
+              aria-label="Réglages du profil"
+              className="flex items-center gap-1.5 rounded-full px-3.5 py-2 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+              style={{
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "var(--reel-text)",
+                border: "1px solid var(--reel-border)",
+                backgroundColor: "var(--reel-surface)",
+              }}
+            >
+              <Settings size={16} /> Modifier
+            </Link>
+          </>
+        ) : (
+          <BoutonPartage identifiant={etat.identifiant} />
+        )
+      }
       parStatut={etat.parStatut}
       statut={statut}
       onStatut={setStatut}
-      vide={{
-        possede: "Aucune édition dans cette collection pour l’instant.",
-        envie: "Aucune envie affichée pour l’instant.",
-      }}
+      vide={
+        cestMoi
+          ? {
+              possede: "Votre collection est vide. Ajoutez une édition depuis une fiche film.",
+              envie: "Aucune envie pour l’instant.",
+            }
+          : {
+              possede: "Aucune édition dans cette collection pour l’instant.",
+              envie: "Aucune envie affichée pour l’instant.",
+            }
+      }
     />
   );
 }
 
 /**
- * La description de partage. Elle doit dire la même chose que celle du
- * middleware (`corpsProfil`), qui la sert aux aperçus de lien.
+ * La description de partage. Comptée sur les listes chargées et non sur les
+ * compteurs de `profil_public` : c'est la même mesure pour le propriétaire,
+ * qui ne passe pas par cette fonction, et pour un visiteur.
+ *
+ * Elle doit dire la même chose que celle du middleware (`servirProfil`), qui la
+ * sert aux aperçus de lien.
  */
-function descriptionProfil(nom: string, profil: ProfilPublic): string {
+function descriptionProfil(nom: string, parStatut: Record<StatutValue, Entree[]>): string {
+  const compter = (s: StatutValue) =>
+    (parStatut[s] ?? []).reduce((n, e) => n + e.editions.length, 0);
+  const possedees = compter("possede");
+  const envies = compter("envie");
   return (
     `La collection de ${nom} sur jaquette.app : ` +
-    `${profil.possedees} édition${profil.possedees > 1 ? "s" : ""} possédée${profil.possedees > 1 ? "s" : ""}, ` +
-    `${profil.envies} envie${profil.envies > 1 ? "s" : ""}.`
+    `${possedees} édition${possedees > 1 ? "s" : ""} possédée${possedees > 1 ? "s" : ""}, ` +
+    `${envies} envie${envies > 1 ? "s" : ""}.`
   );
 }

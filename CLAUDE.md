@@ -2657,7 +2657,34 @@ qu'il soit régénéré.
 
 ### Profils publics : `/u/<identifiant>`, le 3 août 2026
 
-L'adresse partageable d'un compte. Servie par le middleware comme les fiches :
+L'adresse partageable d'un compte, et **la seule adresse du profil**.
+
+`/profile` a d'abord été une page à part, montrant vos listes sous jeton. Elle
+n'en est plus une : c'est une **forme courte qui redirige**, exactement comme
+`/movies/560` redirige vers la forme à slug. Ce que vous regardez chez vous est
+littéralement la page que vous partagez, au même endroit. Deux adresses pour la
+même étagère, c'étaient deux doublons et deux occasions de diverger.
+
+La redirection garde la chaîne de recherche, qui porte `?liste=envies` : c'est
+par elle que `/wishlist` et `/mes-envies` ouvrent le bon onglet. Vérifié en
+local, sept formes, toutes arrivent sur `/u/rayan` :
+
+    /profile /profile?liste=envies /wishlist /mes-envies
+    /ma-collection /@rayan /u/Rayan
+
+**Le propriétaire ne lit pas sa page par le chemin public.** La question posée
+est « est-ce le mien ? », et elle décide de la source : `collections` sous jeton
+si oui, `profil_public` en clé anon sinon. C'est ce qui fait qu'un profil
+**masqué reste consultable par son propriétaire** à la même adresse, alors que
+les fonctions publiques répondent `null` pour tout le monde. Sans ça, masquer sa
+page reviendrait à se la fermer à soi-même.
+
+Ce qui reste dans `/profile` et n'a pas d'autre endroit où vivre : l'invitation
+d'un visiteur sans compte, qui n'a pas d'identifiant donc pas d'adresse de
+profil, et un écran de panne si le profil ne se lit pas, qui propose de
+retenter plutôt que de laisser une attente sans fin.
+
+Servie par le middleware comme les fiches :
 `<head>` complet, corps injecté, vrai 404 sur un identifiant inconnu ou masqué.
 Le gestionnaire passe **avant** `axeDeChemin`, `u` n'étant pas un axe.
 
@@ -3232,10 +3259,11 @@ si une source neuve comble le trou ou grossit le catalogue à côté.
   site, ce qui est mot pour mot le défaut du 30 juillet 2026 consigné au §9,
   où `auth-js` introuvable bloquait le catalogue entier.
 
-  **`VueProfil` est partagé entre les deux pages.** Ce que vous voyez sur
-  `/profile` est ce que verra quelqu'un qui ouvre votre lien, aux actions près.
-  Deux copies auraient dérivé, et la version publique, celle qu'on partage,
-  aurait été la dernière servie.
+  **Une seule page de profil, une seule adresse**, `/u/<identifiant>` (§7).
+  `/profile` a d'abord été un écran à part avant de devenir une forme courte
+  qui redirige : ce que vous regardez chez vous est la page que vous partagez,
+  au même endroit. Deux écrans auraient dérivé, et la version publique, celle
+  qu'on partage, aurait été la dernière servie.
 
   **Le tableau de bord montre le « @ » à la place de l'adresse électronique.**
   L'adresse ne dit rien qu'on ne sache déjà et vit dans `/account` ; le @, lui,

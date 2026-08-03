@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { ChevronDown, Settings, LogOut, Bookmark, Library, User as UserIcon, Bell, Search, Share2 } from "lucide-react";
+import { ChevronDown, Settings, LogOut, Bookmark, Library, User as UserIcon, Bell, Search } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { Logo } from "./Logo";
 import { ChampRecherche } from "./ChampRecherche";
@@ -32,6 +32,7 @@ export function TopBar() {
   const session = useSession();
   const etatProfil = useProfil();
   const profil = etatProfil.statut === "pret" ? etatProfil.profil : null;
+  const lienProfil = profil ? cheminProfil(profil.identifiant) : "/profile";
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -212,14 +213,20 @@ export function TopBar() {
                           {profil ? arobase(profil.identifiant) : session.user.email}
                         </p>
                       </div>
-                      <MenuItem icon={<UserIcon size={16} />} to="/profile">Mon profil</MenuItem>
-                      {profil?.visible && (
-                        <MenuItem icon={<Share2 size={16} />} to={cheminProfil(profil.identifiant)}>
-                          Ma page publique
-                        </MenuItem>
-                      )}
-                      <MenuItem icon={<Library size={16} />} to="/profile">Ma collection</MenuItem>
-                      <MenuItem icon={<Bookmark size={16} />} to="/profile?liste=envies">Mes envies</MenuItem>
+                      {/*
+                        Une seule entrée de profil, et elle mène à l'adresse
+                        canonique quand on la connaît. Il y avait « Mon profil »
+                        et « Ma page publique » : ce sont la même page depuis
+                        que le profil n'a qu'une adresse, et deux libellés pour
+                        une destination se lisent comme deux destinations.
+                        `/profile` reste le repli tant que l'identifiant n'est
+                        pas lu, c'est une forme courte qui redirige.
+                      */}
+                      <MenuItem icon={<UserIcon size={16} />} to={lienProfil}>Mon profil</MenuItem>
+                      <MenuItem icon={<Library size={16} />} to={lienProfil}>Ma collection</MenuItem>
+                      <MenuItem icon={<Bookmark size={16} />} to={`${lienProfil}?liste=envies`}>
+                        Mes envies
+                      </MenuItem>
                       <MenuItem icon={<Library size={16} />} to="/lists">Mes listes</MenuItem>
                       {/*
                         Vers `/account`, qui porte la suppression du compte. La
