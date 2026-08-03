@@ -11,6 +11,7 @@ import {
   identifiantBienForme,
   normaliserIdentifiant,
 } from "../lib/identifiant";
+import { exporterCollectionCsv, telecharger } from "../lib/export-collection";
 import { etatIdentifiant, majProfil, useProfil, type EtatIdentifiant } from "../lib/profils";
 import { SITE_ORIGIN } from "../lib/seo";
 
@@ -78,6 +79,8 @@ export function ComptePage() {
           </Section>
 
           <ProfilPublicReglages />
+
+          <ExportCollection />
 
           <SuppressionCompte />
         </>
@@ -342,6 +345,61 @@ function normaliser(valeur: string): string {
  * aucune sauvegarde de laquelle revenir, le geste doit demander une intention
  * explicite.
  */
+/**
+ * Export CSV de la collection et des envies.
+ *
+ * **Il est ici, et juste avant la suppression, exprès.** Les deux répondent à
+ * la même question, « et si je veux partir ». Le relevé du 2 août 2026 met la
+ * perte de données au deuxième rang des griefs contre les concurrents : des
+ * collections de sept à neuf cents titres effacées après une mise à jour, sans
+ * récupération. Pouvoir tout emporter avant d'effacer est ce qui rend le
+ * bouton rouge acceptable.
+ *
+ * **Gratuit, et il le restera.** Movie Collector réserve l'export à sa version
+ * Pro. Le grief numéro un dans ces avis n'est pas le fait de payer, c'est le
+ * mur surgi en cours de route : gager l'export retournerait l'argument de
+ * confiance.
+ */
+function ExportCollection() {
+  const [enCours, setEnCours] = useState(false);
+
+  async function exporter() {
+    setEnCours(true);
+    try {
+      const csv = await exporterCollectionCsv(SITE_ORIGIN);
+      if (csv.lignes === 0) {
+        // Télécharger un fichier vide laisserait croire à une panne. On le dit.
+        toast("Vos listes sont vides, il n’y a rien à exporter.");
+        return;
+      }
+      telecharger(csv);
+      toast.success(`${csv.lignes} ligne${csv.lignes > 1 ? "s" : ""} exportée${csv.lignes > 1 ? "s" : ""}.`);
+    } catch {
+      toast.error("L’export a échoué. Réessayez dans un instant.");
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <Section titre="Exporter mes listes">
+      <p>
+        Un fichier CSV de votre collection et de vos envies, à ouvrir dans un tableur. Une ligne
+        par édition, avec le film, l’éditeur, le code-barres et le lien vers la fiche.
+      </p>
+      <div className="pt-1">
+        <Bouton onClick={() => { void exporter(); }} disabled={enCours}>
+          {enCours ? "Préparation…" : "Télécharger le CSV"}
+        </Bouton>
+      </div>
+      <p>
+        L’export est gratuit et le restera. C’est votre sauvegarde : gardez-la avant de supprimer
+        quoi que ce soit.
+      </p>
+    </Section>
+  );
+}
+
 function SuppressionCompte() {
   const [demande, setDemande] = useState(false);
   const [saisie, setSaisie] = useState("");
