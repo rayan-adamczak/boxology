@@ -717,7 +717,12 @@ export function BienvenuePage() {
             {[
               [stats ? nb(stats.films) : "—", "œuvres référencées"],
               [stats ? nb(stats.editions) : "—", "éditions physiques"],
-              ["0", "publicité, 0 traceur"],
+              // « 0 traceur » n'est plus exact depuis les liens affiliés
+              // d'août 2026 : rien n'est déposé au chargement d'une page, mais
+              // un clic sur un prix passe par Awin. Le chiffre porte donc sur
+              // ce qui est mesurable sans le visiteur, la publicité et la
+              // mesure d'audience, et non sur une absence totale de suivi.
+              ["0", "publicité, 0 mesure d’audience"],
             ].map(([valeur, libelle]) => (
               <div key={libelle}>
                 <dt
@@ -856,7 +861,7 @@ export function BienvenuePage() {
               à un vidage de cache et vous suivent d’un appareil à l’autre.
             </p>
             <p>
-              Aucun mot de passe à choisir, aucun traceur, aucune publicité. La page{" "}
+              Aucun mot de passe à choisir, aucune publicité, aucune mesure d’audience. La page{" "}
               <Link to="/account" style={{ color: "var(--reel-accent-clair)" }}>
                 Mon compte
               </Link>{" "}
@@ -912,8 +917,8 @@ export function BienvenuePage() {
             ],
             [
               <ShieldCheck key="i" size={20} />,
-              "Rien n’est à vendre ici",
-              "jaquette.app est informatif : aucune transaction, aucun partenariat commercial à ce jour. Si des liens d’affiliation apparaissaient, ils seraient signalés.",
+              "Rien ne se vend ici",
+              "jaquette.app n’encaisse aucun paiement : les achats se font chez le marchand. Quand un prix porte un nom d’enseigne, c’est un lien affilié, dit comme tel, et il ne change ni le prix que vous payez ni l’ordre du catalogue.",
             ],
           ].map(([icone, titre, texte], i) => (
             <div key={i} className="flex gap-3">

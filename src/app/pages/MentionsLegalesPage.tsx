@@ -1,32 +1,114 @@
 import { PageStatique, Section, Encadre } from "../components/PageStatique";
 
+/**
+ * Identité de l'éditeur, rassemblée ici et nulle part ailleurs.
+ *
+ * Le site est passé en activité professionnelle le 3 août 2026, premier
+ * programme d'affiliation accepté (E.Leclerc via Awin). L'article 6 III de la
+ * LCEN impose alors des mentions que le régime non professionnel dispensait de
+ * publier : adresse de l'établissement, téléphone, numéro d'immatriculation.
+ *
+ * **Un seul endroit à corriger**, parce que ces valeurs se recopient
+ * naturellement dans le corps de la page, dans la FAQ et dans un `og:`, et
+ * qu'une identité légale qui diverge d'un endroit à l'autre est pire que pas
+ * d'identité du tout.
+ *
+ * `TVA` porte la mention de franchise en base : un micro-entrepreneur sous les
+ * seuils ne facture pas la TVA et **doit** l'écrire (art. 293 B du CGI).
+ * Le jour où l'assujettissement arrive, elle est remplacée par le numéro
+ * intracommunautaire.
+ *
+ * **`immatriculation` dit RNE et non RCS, et ce n'est pas un raccourci.**
+ * L'entreprise est inscrite au Registre national des entreprises sous le code
+ * APE 74.10Z, activités spécialisées de design, qui n'est ni commercial ni
+ * artisanal : il n'y a donc ni numéro RCS ni numéro au répertoire des métiers
+ * à publier. L'article 6 III de la LCEN n'exige ces numéros que lorsqu'ils
+ * existent ; écrire « RCS de Nevers » sans inscription au RCS serait une
+ * mention fausse, ce qui est pire que l'absence.
+ */
+const EDITEUR = {
+  nom: "Rayan Adamczak",
+  qualite: "entrepreneur individuel",
+  adresse: "32 D passage privé du Maupas, 58000 Nevers",
+  telephone: "06 19 60 00 63",
+  siren: "852 258 680",
+  siret: "852 258 680 00028",
+  immatriculation: "inscrit au Registre national des entreprises (RNE)",
+  tva: "TVA non applicable, article 293 B du code général des impôts",
+  directeurPublication: "Rayan Adamczak",
+};
+
+/** Vrai tant qu'un champ obligatoire porte encore son marqueur. */
+const IDENTITE_INCOMPLETE = Object.values(EDITEUR).some((v) => v === "À COMPLÉTER");
+
 export function MentionsLegalesPage() {
   return (
     <PageStatique
       titre="Mentions légales"
-      sousTitre="Dernière mise à jour : juillet 2026"
-      description="Éditeur, hébergement, propriété intellectuelle et signalement pour le site Jaquette."
+      sousTitre="Dernière mise à jour : août 2026"
+      description="Éditeur, hébergement, liens affiliés, propriété intellectuelle et signalement pour jaquette.app."
+      /*
+        `noindex, follow` depuis le 3 août 2026, jour où cette page a cessé
+        d'être anonyme : elle porte désormais une adresse personnelle et un
+        numéro de portable, que l'article 6 III de la LCEN oblige à publier.
+
+        **L'obligation est de rendre accessible, pas de faire indexer.** Rien
+        n'impose qu'une adresse de domicile remonte dans les résultats de
+        recherche sur le nom de l'éditeur, et une page atteignable depuis le
+        pied de page de tout le site est accessible au sens de la loi. Google
+        lui-même n'attend pas ces pages dans son index.
+
+        `follow` est conservé : les liens sortants doivent continuer d'être
+        suivis, c'est le même arbitrage que sur la page de résultats de
+        recherche.
+
+        Ce qui **n'est pas** fait, et volontairement : masquer le numéro
+        derrière un bouton, l'écrire en image, ou le composer en JavaScript.
+        Ces trois procédés gênent d'abord les lecteurs d'écran et fragilisent
+        l'accessibilité de la mention, ce qui est exactement ce que la loi
+        exige. Le retrait de l'index est la seule protection qui ne coûte rien
+        à personne.
+      */
+      noindex
     >
       <Section titre="Éditeur du site">
         <p>
-          Jaquette est un site personnel édité par <strong style={{ color: "var(--reel-text)" }}>Rayan
-          Adamczak</strong>, designer, agissant à titre non professionnel.
+          jaquette.app est édité par{" "}
+          <strong style={{ color: "var(--reel-text)" }}>{EDITEUR.nom}</strong>,{" "}
+          {EDITEUR.qualite}.
         </p>
-        <p>
-          Contact : <a href="mailto:contact@jaquette.app" style={{ color: "var(--reel-accent)" }}>
-          contact@jaquette.app</a>
-        </p>
-        <Encadre>
-          Conformément à l’article 6 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans
-          l’économie numérique, une personne physique éditant un site à titre non professionnel peut
-          ne pas rendre publiques ses coordonnées complètes, sous réserve d’avoir communiqué son
-          identité à son hébergeur. Ces mentions seront complétées si le site venait à exercer une
-          activité commerciale.
-        </Encadre>
+        <ul className="flex list-none flex-col gap-1">
+          <li>Adresse : {EDITEUR.adresse}</li>
+          <li>Téléphone : {EDITEUR.telephone}</li>
+          <li>
+            SIREN : {EDITEUR.siren} — SIRET : {EDITEUR.siret}, {EDITEUR.immatriculation}
+          </li>
+          <li>{EDITEUR.tva}</li>
+          <li>
+            Courriel :{" "}
+            <a href="mailto:contact@jaquette.app" style={{ color: "var(--reel-accent)" }}>
+              contact@jaquette.app
+            </a>
+          </li>
+        </ul>
+        {/*
+          Bandeau de garde, jamais destiné à être vu en ligne : il n'apparaît
+          que si un champ obligatoire porte encore son marqueur. Publier des
+          mentions légales trouées est une infraction à l'article 6 VI de la
+          LCEN, et l'omission est silencieuse par nature, une page incomplète
+          ressemblant trait pour trait à une page complète.
+        */}
+        {IDENTITE_INCOMPLETE && (
+          <Encadre>
+            <strong style={{ color: "var(--reel-text)" }}>Mentions incomplètes.</strong> Des
+            informations obligatoires manquent encore sur cette page. Elles seront complétées sans
+            délai ; en attendant, toute demande peut être adressée à contact@jaquette.app.
+          </Encadre>
+        )}
       </Section>
 
       <Section titre="Directeur de la publication">
-        <p>Rayan Adamczak.</p>
+        <p>{EDITEUR.directeurPublication}.</p>
       </Section>
 
       <Section titre="Hébergement">
@@ -103,14 +185,62 @@ export function MentionsLegalesPage() {
 
       <Section titre="Nature du service">
         <p>
-          Jaquette est un catalogue informatif d’éditions physiques de films. Le site ne vend aucun
-          produit et ne réalise aucune transaction.
+          jaquette.app est un catalogue informatif d’éditions physiques de films.{" "}
+          <strong style={{ color: "var(--reel-text)" }}>Le site ne vend aucun produit et
+          n’encaisse aucun paiement.</strong> Il n’est ni un marchand, ni un intermédiaire de
+          vente : toute commande se conclut sur le site du marchand, sous ses propres conditions.
+        </p>
+        <p>
+          La consultation du catalogue est libre et gratuite, sans compte. Elle le restera : la
+          rémunération du site ne repose pas sur l’accès à ses pages.
+        </p>
+      </Section>
+
+      {/*
+        Section ajoutée le 3 août 2026, premier programme d'affiliation accepté.
+
+        **Elle est écrite au présent et nommément.** La rédaction précédente
+        disait « si des liens d'affiliation étaient mis en place, leur présence
+        serait signalée » : une promesse au conditionnel devient un mensonge le
+        jour où le lien existe, et c'est précisément le manquement que
+        l'article L. 121-1 du code de la consommation sanctionne. Nommer la
+        plateforme et le marchand est ce qui rend la mention vérifiable.
+      */}
+      <Section titre="Liens affiliés">
+        <p>
+          Certaines éditions du catalogue affichent un prix accompagné du nom d’un marchand. Ces
+          liens sont des <strong style={{ color: "var(--reel-text)" }}>liens affiliés</strong> :
+          si vous les suivez et effectuez un achat, l’éditeur du site perçoit une commission versée
+          par le marchand.
+        </p>
+        <p>
+          <strong style={{ color: "var(--reel-text)" }}>Le prix que vous payez est le même</strong>,
+          que vous passiez par ce lien ou que vous vous rendiez directement chez le marchand. La
+          commission est prélevée sur la marge du vendeur, jamais ajoutée à votre facture.
+        </p>
+        <p>
+          Ces liens sont gérés par la plateforme{" "}
+          <a href="https://www.awin.com" target="_blank" rel="noreferrer noopener"
+            style={{ color: "var(--reel-accent)" }}>Awin</a>. Marchand partenaire à ce jour :{" "}
+          <strong style={{ color: "var(--reel-text)" }}>E.Leclerc</strong>. Cette liste sera tenue
+          à jour ici.
         </p>
         <Encadre>
-          Le site ne comporte à ce jour aucun lien commercial ni partenariat rémunéré. Si des liens
-          d’affiliation étaient mis en place, leur présence serait signalée de manière claire et
-          visible, conformément aux obligations de transparence applicables.
+          La rémunération n’influence ni le contenu du catalogue, ni l’ordre d’affichage des
+          éditions. Une édition est référencée parce qu’un disque existe, jamais parce qu’elle
+          rapporte : le catalogue a été constitué avant tout partenariat et les éditions sans offre
+          y figurent aux mêmes conditions. Aucun classement, aucune mise en avant n’est vendue.
         </Encadre>
+        <p>
+          Les prix affichés sont relevés automatiquement chez le marchand et datés au survol. Ils
+          peuvent avoir changé depuis :{" "}
+          <strong style={{ color: "var(--reel-text)" }}>seul le prix affiché sur le site du
+          marchand au moment de la commande fait foi.</strong>
+        </p>
+        <p>
+          Les prix présentés sans nom de marchand sont des prix conseillés par l’éditeur du disque,
+          relevés à sa sortie. Ce ne sont pas des offres de vente.
+        </p>
       </Section>
     </PageStatique>
   );

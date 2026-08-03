@@ -77,15 +77,26 @@ export const FAQ: SectionFaq[] = [
         ancre: "who-is-behind",
         question: "Qui est derrière ?",
         reponse: [
-          "Rayan Adamczak, designer, à titre personnel et non professionnel. Le projet est né d’un besoin simple : savoir quelle édition d’un film on possède déjà avant d’en acheter une autre.",
+          "Rayan Adamczak, designer. Le projet est né d’un besoin simple : savoir quelle édition d’un film on possède déjà avant d’en acheter une autre.",
+          "C’est une personne seule, pas une équipe ni une société. Depuis août 2026 le site est déclaré comme activité professionnelle, ce qu’impose le fait de percevoir des commissions d’affiliation ; l’identité complète de l’éditeur figure dans les mentions légales.",
         ],
       },
       {
         ancre: "do-you-sell-anything",
         question: "Vendez-vous quelque chose ?",
         reponse: [
-          "Non. Le site ne vend rien, ne permet aucun achat, et ne comporte à ce jour aucun partenariat commercial.",
-          "Des liens d’affiliation pourraient être ajoutés un jour. Ils seraient signalés clairement, et les prix affichés aujourd’hui sont des prix conseillés par l’éditeur, pas des offres de vente.",
+          "Non. Le site ne vend rien et n’encaisse aucun paiement : tout achat se conclut chez le marchand, sous ses propres conditions.",
+          "Certaines éditions affichent en revanche un prix accompagné du nom d’un marchand, depuis août 2026. Ce sont des liens affiliés : si vous achetez après avoir cliqué, une commission nous est versée. Le prix que vous payez, lui, ne change pas.",
+          "Un prix affiché sans nom de marchand est un prix conseillé par l’éditeur du disque, relevé à sa sortie. Ce n’est pas une offre de vente.",
+        ],
+      },
+      {
+        ancre: "how-is-it-funded",
+        question: "Comment le site est-il financé ?",
+        reponse: [
+          "Par l’affiliation, et par rien d’autre. Aucune publicité, aucun abonnement, aucune donnée revendue.",
+          "La rémunération n’influence ni le contenu du catalogue ni l’ordre des éditions. Une édition est là parce qu’un disque existe, jamais parce qu’elle rapporte : la très grande majorité du catalogue ne porte aucune offre et y figure aux mêmes conditions.",
+          "La consultation restera libre et gratuite, sans compte. C’est la contrepartie de ce modèle : ce qui est gratuit aujourd’hui ne se ferme pas demain.",
         ],
       },
     ],
@@ -268,7 +279,8 @@ export const FAQ: SectionFaq[] = [
         ancre: "trackers",
         question: "Y a-t-il des traqueurs ou de la publicité ?",
         reponse: [
-          "Aucun. Pas de régie publicitaire, pas de mesure d’audience tierce, pas de bandeau de consentement, parce qu’il n’y a rien à consentir.",
+          "Pas de régie publicitaire, pas de mesure d’audience, aucun script tiers chargé quand une page s’affiche. Pas de bandeau de consentement non plus, parce qu’il n’y a rien à consentir pour consulter.",
+          "Un seul cas de suivi existe, et il dépend entièrement de vous : cliquer sur un prix marchand vous fait passer par la plateforme d’affiliation Awin, qui dépose alors un cookie chez elle pour attribuer la vente. Tant que vous ne cliquez pas, rien ne part.",
         ],
       },
     ],

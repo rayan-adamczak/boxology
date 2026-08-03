@@ -183,7 +183,11 @@ const pages = [
   urlXml("/catalogue", "0.8"),
   urlXml("/welcome", "0.7"),
   urlXml("/about", "0.5"),
-  urlXml("/legal", "0.3"),
+  // `/legal` n'y est plus depuis le 3 août 2026 : elle est passée en
+  // `noindex` le jour où elle a dû porter l'adresse et le téléphone de
+  // l'éditeur (LCEN art. 6 III). Demander l'indexation d'une page qui la
+  // refuse est une contradiction que la Search Console signale, et elle
+  // reste atteignable depuis le pied de page de tout le site.
   urlXml("/privacy", "0.3"),
   ...urlsRegroupements,
   ...filmIds.map((id) => urlXml(cheminFilm(id), "0.8")),

@@ -5,15 +5,58 @@ export function ConfidentialitePage() {
   return (
     <PageStatique
       titre="Politique de confidentialité"
-      sousTitre="Dernière mise à jour : juillet 2026"
-      description="Aucun tracker, aucune publicité. Le catalogue se consulte sans compte ; un compte n’est demandé que pour garder des listes."
+      sousTitre="Dernière mise à jour : août 2026"
+      description="Aucune mesure d’audience, aucune publicité. Le catalogue se consulte sans compte ; un compte n’est demandé que pour garder des listes."
     >
       <Section titre="En résumé">
         <Encadre>
           Le catalogue se consulte librement, sans compte et sans que rien ne soit enregistré. Un
           compte, uniquement via Google, n’est demandé que pour garder des listes : votre
-          collection et vos envies. Aucun outil de mesure d’audience, aucun traceur publicitaire.
+          collection et vos envies. Aucun outil de mesure d’audience, aucune régie publicitaire.
+          Certains prix renvoient vers un marchand par un lien affilié : ce lien dépose un cookie
+          de suivi <em>chez le marchand</em>, et seulement si vous cliquez.
         </Encadre>
+      </Section>
+
+      {/*
+        Section ajoutée le 3 août 2026, jour du premier programme d'affiliation
+        accepté (E.Leclerc via Awin).
+
+        **Le déclencheur du dépôt est le clic, et c'est tout l'enjeu.** Un
+        visiteur qui ne clique sur aucun prix ne rencontre jamais Awin : rien
+        n'est chargé depuis leur domaine, la page ne porte aucun script tiers.
+        C'est ce qui fait qu'aucun bandeau de consentement n'est requis ici,
+        là où une régie publicitaire chargée au rendu en exigerait un.
+      */}
+      <Section titre="Liens affiliés">
+        <p>
+          Depuis août 2026, certaines éditions affichent un prix marchand. Ce prix est un lien
+          affilié : si vous cliquez et que vous achetez, une commission nous est versée par le
+          marchand. Le prix que vous payez est identique, avec ou sans ce lien.
+        </p>
+        <p>
+          Ces liens passent par <strong style={{ color: "var(--reel-text)" }}>Awin</strong>, une
+          plateforme d’affiliation, et mènent aujourd’hui à un seul marchand,{" "}
+          <strong style={{ color: "var(--reel-text)" }}>E.Leclerc</strong>.
+        </p>
+        <p>
+          <strong style={{ color: "var(--reel-text)" }}>Rien n’est déposé tant que vous ne
+          cliquez pas.</strong> Aucun script d’Awin n’est chargé par les pages du site, et la
+          simple consultation d’une fiche ne les contacte jamais. Au clic, votre navigateur passe
+          par Awin, qui dépose un cookie permettant au marchand d’attribuer la vente. Ce cookie est
+          déposé par Awin et par le marchand, sous leurs domaines et selon leurs politiques,
+          auxquelles nous n’avons pas accès.
+        </p>
+        <p>
+          Nous ne recevons de leur part aucune donnée personnelle : ni votre identité, ni le détail
+          de vos achats. Seuls des décomptes agrégés de clics et de commissions nous sont
+          communiqués.
+        </p>
+        <p>
+          <strong style={{ color: "var(--reel-text)" }}>Le choix vous appartient</strong> : ne pas
+          cliquer sur un prix suffit, et le catalogue reste entièrement consultable sans jamais en
+          ouvrir un.
+        </p>
       </Section>
 
       <Section titre="Sans compte">
@@ -74,7 +117,11 @@ export function ConfidentialitePage() {
       <Section titre="Ce que le site ne fait pas">
         <ul className="flex list-disc flex-col gap-1 pl-5">
           <li>aucun outil de mesure d’audience ou d’analyse comportementale ;</li>
-          <li>aucun traceur publicitaire ou de réseau social ;</li>
+          <li>aucune régie publicitaire, aucun traceur de réseau social ;</li>
+          <li>
+            aucun script tiers chargé au rendu des pages, y compris pour l’affiliation : le suivi
+            d’un lien affilié ne commence qu’au clic ;
+          </li>
           <li>aucune lettre d’information, aucun message promotionnel ;</li>
           <li>aucun profilage, aucune décision automatisée.</li>
         </ul>
@@ -101,13 +148,24 @@ export function ConfidentialitePage() {
           </li>
           <li>
             <strong style={{ color: "var(--reel-text)" }}>Cloudflare Pages</strong>, hébergement
-            des pages.
+            des pages, et <strong style={{ color: "var(--reel-text)" }}>Cloudflare R2</strong>{" "}
+            (<code style={{ color: "var(--reel-text)" }}>img.jaquette.app</code>) pour les visuels
+            des boîtiers.
           </li>
           <li>
-            <strong style={{ color: "var(--reel-text)" }}>Google Fonts</strong>, polices de
-            caractères.
+            <strong style={{ color: "var(--reel-text)" }}>Awin</strong> et le marchand{" "}
+            <strong style={{ color: "var(--reel-text)" }}>E.Leclerc</strong>, uniquement si vous
+            cliquez sur un prix affiché.
           </li>
         </ul>
+        {/*
+          Google Fonts est sorti de cette liste le 3 août 2026 : les polices
+          sont auto-hébergées depuis `public/fonts` depuis le 31 juillet, et la
+          CSP n'autorise plus que `'self'` en `font-src`. La mention était donc
+          fausse, et c'est exactement le genre de fausseté qui se retourne
+          contre une politique de confidentialité, qui ne vaut que par son
+          exactitude.
+        */}
       </Section>
 
       <Section titre="Vos droits">
@@ -133,8 +191,9 @@ export function ConfidentialitePage() {
 
       <Section titre="Évolutions">
         <p>
-          L’ajout de liens d’affiliation modifierait le traitement des données. Cette politique
-          serait alors mise à jour avant toute mise en service, et le changement signalé sur le site.
+          Cette politique a été mise à jour en août 2026, à l’ouverture des premiers liens
+          affiliés. Tout changement dans le traitement des données sera écrit ici avant sa mise en
+          service, et non après.
         </p>
       </Section>
     </PageStatique>
