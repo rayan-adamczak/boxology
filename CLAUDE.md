@@ -586,6 +586,45 @@ tous. Vérifié par un vrai `INSERT` anon, pas par un `PATCH` sur filtre vide :
 
     42501  permission denied for table offres
 
+### `editions_signalees`, posée le 3 août 2026
+
+Signalement d'un disque absent du catalogue : `user_id`, `ean`, `note`,
+`statut` (`nouveau|traite|refuse|doublon`), `cree_le`. Unicité sur
+`(user_id, ean)`, un même code signalé deux fois par la même personne
+n'apprenant rien. Cascade sur `auth.users`.
+
+**`editions_signalees` et non `signalements`** : ce dernier nom porte déjà les
+signalements de **profil**, et deux notions sans rapport sous un nom proche se
+lisent de travers. Même raison qui a fait nommer `collection_editeur` la
+colonne des séries d'éditeur.
+
+**Barrière de `collections`, pas celle du catalogue.** `revoke all` pour
+`anon` **et** `authenticated`, aucune policy : le refus arrive avant la RLS et
+se lit comme un refus. Vérifié avec la clé anon du bundle :
+
+    GET  editions_signalees        401  42501 permission denied
+    POST rpc/signaler_edition      401  42501 permission denied
+    rpc/mes_signalements_edition   404  pas exposée à anon
+
+**Deux fonctions `security definer`, seules portes.** `signaler_edition`
+porte **toutes** les règles qui décident : forme du code, refus des préfixes
+`2`, quota journalier, présence au catalogue. `mes_signalements_edition` rend
+les siens et rien d'autre.
+
+**Elle rend un motif, jamais un booléen**, comme `etat_identifiant` :
+`enregistre`, `deja_au_catalogue`, `ean_invalide`, `ean_magasin`,
+`quota_atteint`. Les quatre refus ne se corrigent pas de la même façon, et
+l'écran doit pouvoir le dire.
+
+**Le quota est journalier et par compte**, vingt. Sans lui, un envoi
+automatisé remplirait la table en une nuit ; vingt laisse largement la place à
+quelqu'un qui saisit sa collection.
+
+**Ce qui existe en double, et rien d'autre** : la *forme* du code, treize
+chiffres, dans la fonction et dans `lib/signalements.ts`, pour que le champ
+réponde à la frappe sans aller-retour. Exactement le partage retenu pour
+l'identifiant public.
+
 ### Tables de sauvegarde
 `editions_film_id_backup_20260728`, `editions_supprimees_20260728`.
 
@@ -2303,6 +2342,35 @@ Pas de plafond sur la liste des éditions : le film le plus fourni en porte 61 e
 deux seulement dépassent 30. Tronquer coûterait plus en exactitude que ça ne
 gagnerait en octets.
 
+#### Le corps de l'accueil est retiré aux visiteurs connectés
+
+`public/avant-montage.js`, chargé dans `index.html` **avant** le bundle et
+après `#root`.
+
+Le corps injecté est visible tant que le bundle ne s'est pas exécuté. Sur une
+fiche film ça ne se remarque pas, il ressemble à ce que React va rendre. Sur
+`/`, non : connecté, React rend le tableau de bord, donc une liste de films en
+texte paraissait puis cédait la place à un écran sans rapport. C'est la « page
+fantôme » signalée le 3 août 2026.
+
+**Ce n'est toujours pas du cloaking** : on ne distingue pas un robot d'un
+humain, on lit la session **du visiteur**, exactement ce que fait
+`compteProbable()` pour choisir l'écran. Un crawler n'a jamais de session, il
+reçoit le texte intact. Masquer le bloc en CSS, lui, l'aurait fait dévaluer par
+Google, et le servir selon l'agent aurait été du cloaking pour de bon.
+
+**Un fichier servi, pas un script en ligne.** La CSP autorise déjà
+`script-src 'self'` ; un bloc en ligne aurait demandé un `sha256-` à recalculer
+à chaque retouche, qu'une seule espace fait échouer en silence.
+
+La clé de stockage y est écrite en toutes lettres alors que `auth-config.ts` la
+compose : le fichier tourne avant tout module, il ne peut rien importer. Si les
+deux divergent, on retombe sur le clignotement d'avant, rien ne casse.
+
+Mesuré en simulant le corps injecté, session présente : `/` vidé,
+`/catalogue` et `/movies/…` intacts ; sans session, `/` intact ; avec `?code=`
+au retour de Google, vidé ; stockage inaccessible, intact.
+
 **Le corps injecté et `FilmDetailPage` doivent dire la même chose**, et rien ne
 le garantit : le rendre depuis les composants supposerait React dans le Worker.
 Le bloc reste donc volontairement pauvre, pour que la dérive soit lente. Piège
@@ -3362,9 +3430,10 @@ Windows. **Aucun service web français, moderne et gratuit.**
 | suivre la mise à niveau DVD vers 4K | rien, mais tout est en base |
 | prêt de disque, « film prêté » | rien |
 | statistiques de collection | rien |
-| page publique partageable | rien |
+| page publique partageable | **fait le 3 août 2026**, `/u/<identifiant>` |
 | calendrier des sorties et alertes | `date_parution`, incomplet |
-| signaler une édition manquante | rien |
+| **sauvegarde et export** | **fait le 3 août 2026**, CSV depuis `/account` |
+| **signaler une édition manquante** | **fait le 3 août 2026**, `/report` |
 
 **La granularité par édition est l'avantage, et il est structurel.** My Movies
 compte un coffret comme un seul film ; la revue de Movie Collector juge sa
@@ -3586,6 +3655,44 @@ branché sur l'enrichissement dvdfr par code-barres, et les flux marchands.
   l'interface ouvre `ModaleConnexion`. Le site n'écrit plus rien dans
   localStorage : `local-statuts.ts` ne garde que lecture et effacement, pour
   reprendre une fois les listes d'avant à la première connexion.
+- **Export CSV de la collection, le 3 août 2026.** Une section d'`/account`,
+  un fichier des deux listes, une ligne par édition, distinguées par une
+  colonne `statut`. Le relevé du 2 août met la **perte de données au deuxième
+  rang** des griefs contre les concurrents : des collections de sept à neuf
+  cents titres effacées après une mise à jour, sans récupération. Movie
+  Collector réserve l'export à sa version Pro.
+
+  **Il est gratuit et le restera.** Le grief n°1 dans ces avis n'est pas de
+  payer, c'est le mur surgi en cours de route : gager l'export ou la sauvegarde
+  retournerait l'argument de confiance. Il est placé juste avant la suppression
+  du compte, les deux répondant à « et si je veux partir ».
+
+  Quatre choix de format, aucun évident : **point-virgule** et non virgule,
+  Excel en locale française mettant sinon toute la ligne dans une cellule ;
+  **BOM UTF-8**, sans lequel « Amélie » devient « AmÃ©lie » ; **injection de
+  formule neutralisée**, un tableur exécutant une cellule qui commence par
+  `=`, `+`, `-` ou `@`, et nos titres venant de catalogues marchands ; et
+  **l'EAN part tel quel**, Excel l'abîmant en le lisant comme un nombre, la
+  parade `="…"` s'affichant littéralement ailleurs et rouvrant l'injection.
+
+- **Signalement d'édition manquante, le 3 août 2026.** `/report`, lié du pied
+  de page. Le §8 le tient pour la meilleure réponse au trou de source : il ne
+  dépend d'aucune autorisation extérieure, contrairement aux flux Awin, et il
+  ne heurte pas la règle du catalogue, puisqu'il porte sur le disque.
+
+  **On demande un code-barres, pas un titre.** C'est la seule donnée qui
+  identifie un disque sans ambiguïté, là où un titre rouvre tous les pièges du
+  §9. Et c'est ce que la chaîne dvdfr sait reprendre : elle interroge fiche à
+  fiche par EAN et en tire titre, éditeur, support, durée et zone.
+
+  Modèle de données et barrières au §3. Page en `noindex` et en `lazy()` comme
+  `/account` : personne n'y arrive depuis un moteur, la règle du §9 sur les
+  portes d'entrée ne s'applique pas.
+
+  **Reste non vérifié** : le formulaire sous une vraie session. L'état
+  déconnecté, le `noindex`, le lien du pied de page et les trois barrières
+  anon le sont.
+
 - **Identifiant public et profil partageable, le 3 août 2026.** Chaque compte
   choisit un « @ » à la création, modifiable ensuite depuis `/account`, et
   l'adresse `/u/<identifiant>` ouvre sa collection **sans compte**. C'est la
@@ -5175,6 +5282,11 @@ Ce qui a évité le plus d'erreurs :
   (`list-privacy`, plus une entrée `public-profile`) mis à jour dans le même
   commit. Une promesse qui ne correspond plus au code est pire que pas de
   promesse.
+- **Portabilité (RGPD art. 20) tenue par l'export CSV** d'`/account`, posé le
+  3 août 2026. L'article demande un format « structuré, couramment utilisé et
+  lisible par machine » : un CSV des deux listes le satisfait, et il est
+  gratuit, ce que l'article impose aussi. Il porte le code-barres et le lien
+  vers la fiche, donc il reste exploitable ailleurs.
 - **Effacement (RGPD art. 17)** tenu par `public.supprimer_mon_compte()`,
   atteignable depuis `/compte`, lui-même lié depuis le menu du bandeau et
   depuis la politique de confidentialité, laquelle annonçait déjà la
