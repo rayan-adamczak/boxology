@@ -1,20 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router";
-import { Search, Loader2, Library, Bookmark, Disc3 } from "lucide-react";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { useEffect, useState } from "react";
+import { Library, Bookmark, Disc3 } from "lucide-react";
 import { RailHorizontal } from "../components/RailHorizontal";
 import { ModaleConnexion } from "../components/ModaleConnexion";
+import { CarteEdition } from "../components/CarteEdition";
+import { ChampRecherche } from "../components/ChampRecherche";
+import { GrilleFilms, PucesRegroupement } from "../components/GrilleFilms";
 import { useSession } from "../lib/auth";
-import {
-  searchFilms,
-  getDernieresEditions,
-  splitList,
-  type Film,
-  type EditionWithFilm,
-} from "../lib/reelio-db";
+import { getDernieresEditions, type EditionWithFilm } from "../lib/reelio-db";
+import { useRechercheFilms } from "../lib/recherche-films";
 import { useSeo } from "../lib/seo";
-import { lienFilm } from "../lib/liens";
-import { suggestionsPour } from "../lib/suggestions";
 
 /**
  * Chiffres du catalogue, écrits en dur et arrondis vers le bas.
@@ -84,41 +78,35 @@ const ARGUMENTS_COMPTE = [
 ];
 
 export function BrowsePage() {
-  const [parametres, setParametres] = useSearchParams();
-  const qUrl = parametres.get("q") ?? "";
-
   const session = useSession();
   const [modaleOuverte, setModaleOuverte] = useState(false);
-
-  const [query, setQuery] = useState(qUrl);
-  const [films, setFilms] = useState<Film[]>([]);
-  // Les résultats viennent du repli par trigrammes, la frappe ne correspondait à
-  // aucun titre. Il faut le dire : sans un mot, « Intrestellar » rendrait
-  // *Interstellar* sans que l'utilisateur sache que sa saisie était fautive.
-  const [approchante, setApprochante] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [dernieres, setDernieres] = useState<EditionWithFilm[]>([]);
+
+  /*
+    Recherche, temporisation et règle d'historique vivent dans
+    `useRechercheFilms`, partagé avec la page Catalogue : deux copies auraient
+    dérivé au premier réglage.
+  */
+  const recherche = useRechercheFilms();
+  const terme = recherche.query.trim();
 
   /*
     Une recherche est dans l'URL, `/?q=steelbook`.
 
     Ce n'est pas pour le référencement : Google a **supprimé la sitelinks
-    searchbox en novembre 2023**, donc une `SearchAction` ne produirait plus
-    rien. C'est pour l'usage : une recherche s'envoie, se met en favori, et le
-    bouton retour cesse de faire quitter le site.
+    searchbox en novembre 2023**. C'est pour l'usage : une recherche s'envoie,
+    se met en favori, et le bouton retour cesse de faire quitter le site.
 
     D'où le `noindex` : une page de résultats de recherche interne est du
-    contenu généré à la volée, et Google demande explicitement de ne pas les
-    faire indexer. `follow` reste, les liens vers les fiches doivent être
-    suivis. Le canonical, lui, est calculé depuis le seul `pathname`
-    (cf. `lib/seo.ts`), donc il vaut `/` quelle que soit la recherche.
+    contenu généré à la volée, et Google demande explicitement de ne pas la
+    faire indexer. `follow` reste. Le canonical est calculé depuis le seul
+    `pathname` (cf. `lib/seo.ts`), donc il vaut `/` quelle que soit la frappe.
   */
   useSeo(
-    qUrl
+    terme
       ? {
-          titre: `Recherche : ${qUrl}`,
-          description: `Résultats pour « ${qUrl} » dans le catalogue des éditions physiques.`,
+          titre: `Recherche : ${terme}`,
+          description: `Résultats pour « ${terme} » dans le catalogue des éditions physiques.`,
           noindex: true,
         }
       : {
@@ -130,78 +118,19 @@ export function BrowsePage() {
   );
 
   /*
-    L'URL redevient la source quand elle change sans qu'on ait tapé : retour
-    arrière, lien collé, onglet rouvert. Sans ça, le bouton retour changerait
-    l'adresse sans rien changer à l'écran.
-  */
-  useEffect(() => {
-    setQuery((actuel) => (actuel === qUrl ? actuel : qUrl));
-  }, [qUrl]);
-
-  /*
-    On empile une entrée d'historique quand la recherche s'ouvre ou se ferme,
-    et on remplace tant qu'on l'affine. Empiler à chaque frappe rendrait le
-    bouton retour inutilisable ; toujours remplacer ferait quitter le site
-    depuis une recherche.
-  */
-  const avaitUneRecherche = useRef(qUrl !== "");
-
-  // Recherche par titre, temporisée. Le même délai porte la requête et l'URL.
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    const t = setTimeout(async () => {
-      if (query !== qUrl) {
-        const bascule = avaitUneRecherche.current !== (query !== "");
-        setParametres(query ? { q: query } : {}, { replace: !bascule });
-        avaitUneRecherche.current = query !== "";
-      }
-      try {
-        const resultat = await searchFilms(query);
-        if (!cancelled) {
-          setFilms(resultat.films);
-          setApprochante(resultat.approchante);
-        }
-      } catch (e) {
-        console.error(e);
-        if (!cancelled) setError(e instanceof Error ? e.message : "Erreur inconnue");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }, 250);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [query]);
-
-  /*
     Les dernières éditions ne dépendent pas de la recherche : chargées une fois,
     elles restent en place pendant qu'on tape. L'échec est silencieux, c'est un
     bandeau d'illustration, pas une raison de barrer la page d'un message rouge.
   */
   useEffect(() => {
-    let cancelled = false;
+    let annule = false;
     getDernieresEditions(18)
-      .then((eds) => {
-        if (!cancelled) setDernieres(eds);
-      })
+      .then((eds) => { if (!annule) setDernieres(eds); })
       .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return () => { annule = true; };
   }, []);
 
-  const recherche = query.trim().length > 0;
 
-  /*
-    Éditeurs, formats et genres ne sont pas des films : ils ne peuvent pas
-    sortir de la même requête. Ils sont lus dans la table générée au build, donc
-    sans requête du tout, et se calculent à chaque frappe sans temporisation,
-    contrairement aux résultats. C'est ce qui les fait apparaître avant eux.
-  */
-  const suggestions = recherche ? suggestionsPour(query) : [];
   // `undefined` = session en cours de résolution. On n'affiche l'invitation
   // qu'une fois la réponse connue, sinon elle apparaît puis disparaît sous les
   // yeux d'un visiteur déjà connecté.
@@ -219,7 +148,10 @@ export function BrowsePage() {
       <section className="relative overflow-hidden">
         <MosaiqueAffiches editions={dernieres} />
 
-        <div className="reel-gouttiere relative pb-16 pt-[124px] sm:pb-24 sm:pt-[152px]">
+        {/* Héros centré depuis le 3 août 2026 : la mosaïque d'affiches occupe
+            toute la largeur, un bloc de texte aligné à gauche la déséquilibrait
+            en laissant la moitié droite sans rien. */}
+        <div className="reel-gouttiere relative flex flex-col items-center pb-16 pt-[124px] text-center sm:pb-24 sm:pt-[152px]">
           <h1
             className="max-w-[720px]"
             style={{
@@ -244,33 +176,9 @@ export function BrowsePage() {
             {CATALOGUE.codesBarres} codes-barres.
           </p>
 
-          {/* `reel-anneau-logo` remplace le `focus:ring-2` bleu : au focus, le
-              champ prend les trois couleurs du mot-symbole (cf. theme.css). */}
-          <label className="reel-anneau-logo relative mt-9 block w-full max-w-[680px]">
-            <span className="sr-only">Rechercher un film par titre</span>
-            <Search
-              size={22}
-              className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2"
-              color="var(--reel-muted)"
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher un film…"
-              /* Ni `relative` ni `z-*` ici : l'input passerait au-dessus de la
-                 loupe, qui est en `absolute` sans contexte d'empilement à elle,
-                 et son fond opaque l'effacerait. L'anneau est hors de la boîte,
-                 il n'a besoin d'aucun empilement. */
-              className="w-full rounded-full py-4 pl-14 pr-5 outline-none transition"
-              style={{
-                backgroundColor: "var(--reel-surface)",
-                border: "1px solid var(--reel-border)",
-                color: "var(--reel-text)",
-                fontSize: "17px",
-              }}
-            />
-          </label>
+          <div className="mt-9 w-full max-w-[680px]">
+            <ChampRecherche valeur={recherche.query} onChange={recherche.setQuery} />
+          </div>
         </div>
       </section>
 
@@ -279,7 +187,7 @@ export function BrowsePage() {
           Pendant une recherche, tout le reste s'efface : quelqu'un qui tape un
           titre veut son résultat, pas une page d'accueil autour.
         */}
-        {!recherche && (
+        {!recherche.active && (
           <>
             {dernieres.length > 0 && (
               <section className="pt-10">
@@ -341,94 +249,22 @@ export function BrowsePage() {
           se clique. Elle porte donc l'état de survol que les badges d'édition
           n'ont pas (cf. la règle du §8).
         */}
-        {suggestions.length > 0 && (
+        {recherche.suggestions.length > 0 && (
           <section className="pt-12">
             <h2 style={LIBELLE_SECTION}>Parcourir</h2>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {suggestions.map((s) => (
-                <Link
-                  key={s.href}
-                  to={s.href}
-                  className="rounded-full px-3.5 py-2 transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] focus-visible:outline-none"
-                  style={{
-                    backgroundColor: "var(--reel-surface-2)",
-                    border: "1px solid var(--reel-border)",
-                    fontSize: "13px",
-                    color: "var(--reel-text)",
-                  }}
-                >
-                  <span style={{ color: "var(--reel-muted)" }}>{s.intitule}</span>
-                  {" · "}
-                  {s.libelle}
-                </Link>
-              ))}
-            </div>
+            <PucesRegroupement suggestions={recherche.suggestions} />
           </section>
         )}
 
         <section className="pt-12">
-          <h2 style={LIBELLE_SECTION}>
-            {recherche ? "Résultats" : "Parcourir le catalogue"}
-          </h2>
-
-          {error && (
-            <p className="mt-4" style={{ fontSize: "15px", color: "#ff6b6b" }}>
-              {error}
-            </p>
-          )}
-
-          {/*
-            Le repli approchant se dit, il ne se devine pas. Rendre *Interstellar*
-            sur « Intrestellar » sans un mot laisse croire que le titre s'écrit
-            ainsi, et l'utilisateur refera la faute la fois suivante.
-          */}
-          {!loading && approchante && films.length > 0 && (
-            <p className="mt-4" style={{ fontSize: "15px", color: "var(--reel-muted)" }}>
-              Aucun titre ne correspond exactement à «&nbsp;{query.trim()}&nbsp;». Voici les plus
-              proches.
-            </p>
-          )}
-
-          {loading ? (
-            <div className="mt-5 flex items-center gap-2" style={{ color: "var(--reel-muted)" }}>
-              <Loader2 size={18} className="animate-spin" />
-              <span style={{ fontSize: "15px" }}>Chargement…</span>
-            </div>
-          ) : films.length === 0 ? (
-            <p className="mt-5" style={{ fontSize: "15px", color: "var(--reel-muted)" }}>
-              Aucun film trouvé.
-            </p>
-          ) : (
-            <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {films.map((film) => (
-                <Link
-                  key={film.id}
-                  to={lienFilm(film)}
-                  className="group block rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
-                >
-                  <div
-                    className="relative w-full overflow-hidden rounded-[8px]"
-                    style={{ aspectRatio: "2 / 3", backgroundColor: "var(--reel-surface-2)" }}
-                  >
-                    <ImageWithFallback
-                      src={film.affiche_url ?? ""}
-                      alt={`Affiche de ${film.titre}`}
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04] group-hover:brightness-110"
-                    />
-                  </div>
-                  <p
-                    className="mt-2 line-clamp-2"
-                    style={{ fontSize: "14px", fontWeight: 500, color: "var(--reel-text)" }}
-                  >
-                    {film.titre}
-                  </p>
-                  {film.annee && (
-                    <p style={{ fontSize: "12px", color: "var(--reel-muted)" }}>{film.annee}</p>
-                  )}
-                </Link>
-              ))}
-            </div>
-          )}
+          <h2 style={LIBELLE_SECTION}>{recherche.active ? "Résultats" : "Parcourir le catalogue"}</h2>
+          <GrilleFilms
+            films={recherche.films}
+            chargement={recherche.chargement}
+            erreur={recherche.erreur}
+            approchante={recherche.approchante}
+            query={recherche.query}
+          />
         </section>
       </div>
     </div>
@@ -488,53 +324,6 @@ function MosaiqueAffiches({ editions }: { editions: EditionWithFilm[] }) {
             "linear-gradient(to bottom, rgba(16,23,32,0.85) 0%, rgba(16,23,32,0.55) 40%, var(--reel-bg) 100%)",
         }}
       />
-    </div>
-  );
-}
-
-/** Une jaquette du rail : le visuel du boîtier, le titre du film, les formats. */
-function CarteEdition({ edition }: { edition: EditionWithFilm }) {
-  const formats = splitList(edition.formats_extraits).slice(0, 2);
-  const lien = lienFilm(edition.film);
-
-  const contenu = (
-    <>
-      <span
-        className="relative block w-full overflow-hidden rounded-[10px] ring-1 ring-transparent transition group-hover:ring-[var(--reel-accent-clair)]"
-        style={{ aspectRatio: "2 / 3", backgroundColor: "var(--reel-surface-2)" }}
-      >
-        <ImageWithFallback
-          src={edition.image_url ?? edition.film?.affiche_url ?? ""}
-          alt={edition.titre ?? "Édition"}
-          className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
-        />
-      </span>
-      <span
-        className="mt-2 line-clamp-2 block text-[var(--reel-text)] transition-colors group-hover:text-[var(--reel-accent-clair)]"
-        style={{ fontSize: "15px", fontWeight: 600, lineHeight: "20px" }}
-      >
-        {edition.film?.titre ?? edition.titre}
-      </span>
-      {formats.length > 0 && (
-        <span className="block" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
-          {formats.join(" · ")}
-        </span>
-      )}
-    </>
-  );
-
-  return (
-    <div className="w-[150px] shrink-0 sm:w-[186px]">
-      {lien ? (
-        <Link
-          to={lien}
-          className="group block rounded-[10px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
-        >
-          {contenu}
-        </Link>
-      ) : (
-        <div className="group block">{contenu}</div>
-      )}
     </div>
   );
 }

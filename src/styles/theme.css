@@ -400,3 +400,35 @@
     padding-inline: 0;
   }
 }
+
+/*
+  Gouttière large, pour les écrans d'application et non de lecture.
+
+  Le tableau de bord porte trois colonnes ; dans les 58 % de la gouttière
+  ordinaire, soit 835 px à 1 440, il reste 215 px au fil une fois les deux
+  panneaux posés. La mesure de lecture qui justifie 58 % ne s'applique pas ici :
+  on n'y lit pas un paragraphe, on y balaie des tuiles.
+
+  Le plancher et le plafond suivent la même logique que l'autre : 880 px pour
+  qu'à 1 024 le contenu ne se referme pas, 1 720 px pour qu'un très grand écran
+  n'étire pas les colonnes indéfiniment.
+*/
+.reel-gouttiere-large {
+  margin-inline: auto;
+  width: 100%;
+  padding-inline: 20px;
+}
+
+@media (min-width: 640px) {
+  .reel-gouttiere-large {
+    padding-inline: 32px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .reel-gouttiere-large {
+    width: clamp(880px, 84%, 1720px);
+    max-width: none;
+    padding-inline: 0;
+  }
+}

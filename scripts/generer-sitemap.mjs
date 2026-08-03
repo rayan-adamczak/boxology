@@ -178,6 +178,9 @@ for (const [axe, base, slugs, libelles] of AXES_SITEMAP) {
 
 const pages = [
   urlXml("/", "1.0"),
+  // Page de parcours, ouverte le 3 août 2026. Priorité sous l'accueil, qui
+  // reste la porte principale ; /lists n'y est pas, elle est en noindex.
+  urlXml("/catalogue", "0.8"),
   urlXml("/welcome", "0.7"),
   urlXml("/about", "0.5"),
   urlXml("/legal", "0.3"),

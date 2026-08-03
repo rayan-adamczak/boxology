@@ -1,13 +1,44 @@
-import { useState } from "react";
-import { Link } from "react-router";
-import { ChevronDown, Settings, LogOut, Bookmark, Library, User as UserIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { ChevronDown, Settings, LogOut, Bookmark, Library, User as UserIcon, Bell, Search } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { Logo } from "./Logo";
+import { ChampRecherche } from "./ChampRecherche";
 import { connexionGoogle, deconnexion, nomAffiche, useSession } from "../lib/auth";
 
+/**
+ * Bandeau, refait le 3 août 2026.
+ *
+ * Deux états, et ils ne diffèrent pas que par un bouton :
+ *
+ *   déconnecté   mot-symbole, recherche, Catalogue, Se connecter, S'inscrire
+ *   connecté     mot-symbole, recherche, Catalogue, Listes, cloche, compte
+ *
+ * **La recherche est ici parce que l'accueil ne la porte plus toujours** :
+ * connecté, l'accueil est un tableau de bord, et sans champ dans le bandeau il
+ * n'y aurait plus aucune entrée de recherche à l'écran. Elle emmène vers
+ * `/catalogue`, la page de parcours.
+ *
+ * Elle valide à **Entrée** et non à chaque frappe : naviguer à la volée
+ * changerait de page sous les doigts, et la temporisation de la recherche
+ * appartient à la page de destination, pas au bandeau.
+ */
 export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [clocheOuverte, setClocheOuverte] = useState(false);
+  const [saisie, setSaisie] = useState("");
   const session = useSession();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Le champ du bandeau se vide en changeant de page : il sert à partir, pas à
+  // garder l'état d'une recherche, que l'URL de /catalogue porte déjà.
+  useEffect(() => setSaisie(""), [location.pathname]);
+
+  const chercher = (valeur: string) => {
+    const terme = valeur.trim();
+    navigate(terme ? `/catalogue?q=${encodeURIComponent(terme)}` : "/catalogue");
+  };
 
   return (
     <header
@@ -19,122 +50,209 @@ export function TopBar() {
       }}
     >
       <div className="reel-gouttiere flex items-center gap-4">
-        {/* Logo */}
-        <Link
-          to="/"
-          className="flex shrink-0 items-center gap-2"
-          aria-label="Accueil jaquette.app"
-        >
+        <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="Accueil jaquette.app">
           {/* Le mot-symbole reste visible à toute taille : c'est lui qui porte
-              l'identité sur petit écran, où le nom écrit peut céder la place. */}
-          {/* 24 px. La griffe a d'abord été calée sur la capitale plus
-              descendante du nom, 20,7 px pour un corps de 24 ; le nom est passé
-              à 27 et la griffe est montée avec, à la main. Elle dépasse donc un
-              peu ce calage, à dessein : trois tranches lues comme un motif
-              tiennent une taille de plus qu'une lettre. Le favicon, lui, ne
-              suit pas, son cadrage est le sien. */}
+              l'identité sur petit écran, où le nom écrit cède la place. */}
           <Logo hauteur={24} />
           <span
-            /* 27 px. Le nom a grossi trois fois, 18 puis 21 puis 24, sans que
-               la griffe suive au dernier cran : elle reste à 21 px, calée sur
-               la capitale plus descendante d'un corps de 24. Le nom la dépasse
-               donc désormais, à dessein, c'est lui qui porte la marque. */
-            style={{ fontFamily: "var(--reel-font-titre)", fontSize: "27px", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--reel-text)" }}
+            /* 27 px, et caché sous `sm` : à 375 px, le nom, la recherche et les
+               actions ne tiennent pas ensemble, et c'est la marque qui cède
+               puisque le mot-symbole reste. */
+            className="hidden sm:inline"
+            style={{
+              fontFamily: "var(--reel-font-titre)",
+              fontSize: "27px",
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+              color: "var(--reel-text)",
+            }}
           >
             jaquette.app
           </span>
         </Link>
 
-        {/*
-          Pas de champ de recherche ici : la page d'accueil porte déjà le sien,
-          branché sur `searchFilms`. En doubler un dans le bandeau donnait deux
-          entrées côte à côte sur `/`, dont une qui ne cherchait rien.
-        */}
+        {/* Recherche. Cachée sous `md`, où la loupe la remplace et mène à la
+            page qui en porte une vraie. */}
+        <div className="ml-2 hidden min-w-0 max-w-[420px] flex-1 md:block">
+          <ChampRecherche
+            valeur={saisie}
+            onChange={setSaisie}
+            onValider={chercher}
+            taille="compact"
+          />
+        </div>
 
-        {/* Right cluster */}
-        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+        <Link
+          to="/catalogue"
+          aria-label="Rechercher"
+          className="ml-auto flex h-9 w-9 items-center justify-center rounded-full transition hover:brightness-125 md:hidden"
+          style={{ color: "var(--reel-muted)" }}
+        >
+          <Search size={20} />
+        </Link>
+
+        <nav className="ml-auto hidden shrink-0 items-center gap-1 md:flex" aria-label="Sections">
+          <LienBandeau to="/catalogue">Catalogue</LienBandeau>
+          {session && <LienBandeau to="/lists">Listes</LienBandeau>}
+        </nav>
+
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {/*
             Trois états, pas deux : tant que la session n'est pas résolue on
             n'affiche rien à cet endroit, sinon un visiteur déjà connecté verrait
-            « Connexion » clignoter à chaque chargement de page.
+            « Se connecter » clignoter à chaque chargement de page.
           */}
-          {session === undefined && <div style={{ width: 56, height: 34 }} aria-hidden="true" />}
+          {session === undefined && <div style={{ width: 96, height: 34 }} aria-hidden="true" />}
 
           {session === null && (
-            <button
-              type="button"
-              onClick={() => { void connexionGoogle(); }}
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
-              style={{
-                fontSize: "13px",
-                fontWeight: 600,
-                backgroundColor: "var(--reel-accent)",
-                color: "#ffffff",
-                border: "1px solid var(--reel-accent)",
-              }}
-            >
-              Connexion
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => { void connexionGoogle(); }}
+                className="hidden rounded-full px-3 py-1.5 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] sm:block"
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "var(--reel-text)",
+                  border: "1px solid var(--reel-border)",
+                }}
+              >
+                Se connecter
+              </button>
+              <button
+                type="button"
+                onClick={() => { void connexionGoogle(); }}
+                className="rounded-full px-3.5 py-1.5 outline-none transition hover:brightness-105 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  backgroundColor: "var(--reel-accent)",
+                  color: "#ffffff",
+                  border: "1px solid var(--reel-accent)",
+                }}
+              >
+                S’inscrire
+              </button>
+            </>
           )}
 
           {session && (
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              aria-label="Menu du compte"
-              className="flex items-center gap-1 rounded-full p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
-            >
-              <UserAvatar name={nomAffiche(session)} size={34} />
-              <ChevronDown size={16} color="var(--reel-muted)" />
-            </button>
-            {menuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setMenuOpen(false)}
-                  aria-hidden="true"
-                />
-                <div
-                  role="menu"
-                  className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-[10px] py-1 shadow-xl"
-                  style={{
-                    backgroundColor: "var(--reel-surface)",
-                    border: "1px solid var(--reel-border)",
-                  }}
+            <>
+              {/*
+                La cloche est posée vide, et le dit. Un bouton qui n'ouvre rien
+                se lit comme une panne ; celui-ci ouvre un panneau qui annonce
+                qu'il n'y a rien, ce qui est une information.
+              */}
+              <Cloche ouverte={clocheOuverte} onBascule={() => setClocheOuverte((v) => !v)} />
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  aria-label="Menu du compte"
+                  className="flex items-center gap-1 rounded-full p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
                 >
-                  <div className="px-3 py-2" style={{ borderBottom: "1px solid var(--reel-border)" }}>
-                    <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--reel-text)" }}>
-                      {nomAffiche(session)}
-                    </p>
-                    <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>{session.user.email}</p>
-                  </div>
-                  <MenuItem icon={<UserIcon size={16} />} to="/profile">Mon profil</MenuItem>
-                  <MenuItem icon={<Library size={16} />} to="/profile">Ma collection</MenuItem>
-                  <MenuItem icon={<Bookmark size={16} />} to="/profile?liste=envies">Mes envies</MenuItem>
-                  {/*
-                    Vers `/compte`, qui porte la suppression du compte. La
-                    politique de confidentialité annonce que l'effacement est
-                    accessible dans les réglages : sans ce lien, la page n'était
-                    atteignable que depuis cette politique.
-                  */}
-                  <MenuItem icon={<Settings size={16} />} to="/account">Mon compte</MenuItem>
-                  <MenuItem
-                    icon={<LogOut size={16} />}
-                    onClick={() => { setMenuOpen(false); void deconnexion(); }}
-                  >
-                    Déconnexion
-                  </MenuItem>
-                </div>
-              </>
-            )}
-          </div>
+                  <UserAvatar name={nomAffiche(session)} size={34} />
+                  <ChevronDown size={16} color="var(--reel-muted)" />
+                </button>
+                {menuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+                    <div
+                      role="menu"
+                      className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-[10px] py-1 shadow-xl"
+                      style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
+                    >
+                      <div className="px-3 py-2" style={{ borderBottom: "1px solid var(--reel-border)" }}>
+                        <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--reel-text)" }}>
+                          {nomAffiche(session)}
+                        </p>
+                        <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>{session.user.email}</p>
+                      </div>
+                      <MenuItem icon={<UserIcon size={16} />} to="/profile">Mon profil</MenuItem>
+                      <MenuItem icon={<Library size={16} />} to="/profile">Ma collection</MenuItem>
+                      <MenuItem icon={<Bookmark size={16} />} to="/profile?liste=envies">Mes envies</MenuItem>
+                      <MenuItem icon={<Library size={16} />} to="/lists">Mes listes</MenuItem>
+                      {/*
+                        Vers `/account`, qui porte la suppression du compte. La
+                        politique de confidentialité annonce que l'effacement est
+                        accessible dans les réglages : sans ce lien, la page n'était
+                        atteignable que depuis cette politique.
+                      */}
+                      <MenuItem icon={<Settings size={16} />} to="/account">Mon compte</MenuItem>
+                      <MenuItem
+                        icon={<LogOut size={16} />}
+                        onClick={() => { setMenuOpen(false); void deconnexion(); }}
+                      >
+                        Déconnexion
+                      </MenuItem>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
     </header>
+  );
+}
+
+/** Un lien de section du bandeau, surligné quand on y est. */
+function LienBandeau({ to, children }: { to: string; children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  const actif = pathname === to || pathname.startsWith(`${to}/`);
+
+  return (
+    <Link
+      to={to}
+      aria-current={actif ? "page" : undefined}
+      className="rounded-full px-3 py-1.5 transition hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+      style={{
+        fontSize: "15px",
+        fontWeight: 600,
+        color: actif ? "var(--reel-text)" : "var(--reel-muted)",
+        backgroundColor: actif ? "var(--reel-surface-2)" : "transparent",
+      }}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function Cloche({ ouverte, onBascule }: { ouverte: boolean; onBascule: () => void }) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onBascule}
+        aria-haspopup="dialog"
+        aria-expanded={ouverte}
+        aria-label="Notifications"
+        className="flex h-9 w-9 items-center justify-center rounded-full outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+        style={{ color: "var(--reel-muted)" }}
+      >
+        <Bell size={19} />
+      </button>
+      {ouverte && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={onBascule} aria-hidden="true" />
+          <div
+            role="dialog"
+            aria-label="Notifications"
+            className="absolute right-0 z-50 mt-2 w-64 rounded-[10px] px-4 py-3 shadow-xl"
+            style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
+          >
+            <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--reel-text)" }}>Notifications</p>
+            <p className="mt-1" style={{ fontSize: "13px", lineHeight: "20px", color: "var(--reel-muted)" }}>
+              Rien pour l’instant. Les alertes de sortie et de baisse de prix arriveront ici.
+            </p>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

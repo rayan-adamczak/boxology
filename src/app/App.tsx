@@ -34,6 +34,17 @@ import { redirectionDe } from "./lib/chemins";
  * demandé son morceau pendant la propagation.
  */
 import { BienvenuePage } from "./pages/BienvenuePage";
+/*
+ * Catalogue et tableau de bord, embarqués eux aussi.
+ *
+ * `/catalogue` est la page de parcours, atteignable du bandeau depuis n'importe
+ * où : c'est un chemin de consultation. Le tableau de bord, lui, **est**
+ * l'accueil une fois connecté, et un accueil qui dépend d'un `import()` est
+ * précisément ce que le §9 interdit.
+ */
+import { CataloguePage } from "./pages/CataloguePage";
+import { TableauDeBordPage } from "./pages/TableauDeBordPage";
+import { useSession } from "./lib/auth";
 
 /*
  * Pages chargées à la demande : rarement visitées, les embarquer dans le bundle
@@ -50,6 +61,30 @@ const ComptePage = lazy(() =>
   import("./pages/ComptePage").then((m) => ({ default: m.ComptePage })));
 const ProfilPage = lazy(() =>
   import("./pages/ProfilPage").then((m) => ({ default: m.ProfilPage })));
+// Annonce d'une fonctionnalité à venir, en `noindex` : personne n'y arrive par
+// un moteur, elle peut se charger à la demande.
+const ListesPage = lazy(() =>
+  import("./pages/ListesPage").then((m) => ({ default: m.ListesPage })));
+
+/**
+ * L'accueil, qui n'est pas le même selon qu'on a un compte.
+ *
+ * Déconnecté, c'est le catalogue illustré : c'est **lui** qui est indexé, qui
+ * reçoit le trafic des moteurs et qui porte le héros. Un crawler n'a jamais de
+ * session, il voit donc toujours cette version, et le `noindex` du tableau de
+ * bord ne fait que doubler cette garantie.
+ *
+ * Connecté, c'est le tableau de bord : collection, activité, sorties à venir.
+ * Le parcours du catalogue a sa page, `/catalogue`, dans le bandeau.
+ *
+ * `undefined` = session non résolue. On rend le catalogue pendant ce temps
+ * plutôt qu'un écran vide : c'est la version qui vaut pour un visiteur de
+ * passage, et elle disparaît d'elle-même si une session existe.
+ */
+function Accueil() {
+  const session = useSession();
+  return session ? <TableauDeBordPage /> : <BrowsePage />;
+}
 
 /**
  * Position de défilement de chaque entrée d'historique, par `location.key`.
@@ -181,7 +216,9 @@ export default function App() {
       <GestionDefilement />
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/" element={<BrowsePage />} />
+          <Route path="/" element={<Accueil />} />
+          <Route path="/catalogue" element={<CataloguePage />} />
+          <Route path="/lists" element={<ListesPage />} />
           {/* L'adresse canonique porte le slug ; la forme nue reste servie
               parce qu'elle a été indexée et qu'un lien peut ne connaître que
               l'id. La Pages Function redirige la seconde vers la première en

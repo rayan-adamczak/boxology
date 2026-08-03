@@ -667,7 +667,9 @@ export function BienvenuePage() {
       <header className="relative overflow-hidden">
         <MosaiqueHero affiches={affiches} />
 
-        <div className="relative mx-auto max-w-[1100px] px-6 pb-20 pt-20 sm:pb-32 sm:pt-32">
+        {/* Centré comme le héros de l'accueil : les deux pages ouvrent le site
+            et ne peuvent pas annoncer deux compositions. */}
+        <div className="relative mx-auto flex max-w-[1100px] flex-col items-center px-6 pb-20 pt-20 text-center sm:pb-32 sm:pt-32">
           <h1
             className="max-w-[760px]"
             style={{
@@ -691,7 +693,7 @@ export function BienvenuePage() {
             éditions d’un même titre avant d’en acheter une de plus.
           </p>
 
-          <div className="flex flex-wrap items-center gap-3 pt-10">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-10">
             {connecte ? (
               <>
                 <BoutonSecondaire to="/">

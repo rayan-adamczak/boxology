@@ -29,7 +29,9 @@ export function Layout() {
    * maintenant aux vraies pages.
    */
   const CHEMINS: Record<MobileTab, string> = {
-    home: "/",
+    // Vers /catalogue et non / : connecté, l'accueil est le tableau de bord,
+    // et l'onglet s'intitule « Catalogue ».
+    home: "/catalogue",
     collection: "/profile",
     wishlist: "/profile?liste=envies",
     profile: "/profile",
@@ -48,7 +50,7 @@ export function Layout() {
       : mobileTab === "collection" || mobileTab === "profile"
       ? mobileTab
       : "profile"
-    : location.pathname === "/"
+    : location.pathname === "/" || location.pathname === "/catalogue"
     ? "home"
     : mobileTab;
 
