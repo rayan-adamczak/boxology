@@ -23,6 +23,7 @@ export function CarteEdition({ edition, largeur = "rail" }: { edition: EditionWi
       >
         <ImageWithFallback
           src={edition.image_url ?? edition.film?.affiche_url ?? ""}
+          secours={edition.film?.affiche_url}
           alt={edition.titre ?? "Édition"}
           className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
         />

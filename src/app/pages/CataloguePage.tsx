@@ -1,6 +1,9 @@
+import { X } from "lucide-react";
 import { ChampRecherche } from "../components/ChampRecherche";
 import { GrilleFilms, PucesRegroupement } from "../components/GrilleFilms";
 import { useRechercheFilms } from "../lib/recherche-films";
+import { DECENNIES, NOTES, type Filtres } from "../lib/catalogue-filtres";
+import { EDITEURS, FORMATS, GENRES } from "../lib/regroupements";
 import { useSeo } from "../lib/seo";
 
 /**
@@ -28,7 +31,7 @@ const LIBELLE_SECTION = {
 } as const;
 
 export function CataloguePage() {
-  const recherche = useRechercheFilms();
+  const recherche = useRechercheFilms(true);
 
   /*
     Même règle que sur l'accueil : une page de résultats de recherche interne
@@ -36,12 +39,18 @@ export function CataloguePage() {
     `follow` reste, les liens vers les fiches doivent être suivis. Le canonical
     est calculé depuis le seul `pathname`, donc il vaut `/catalogue` quelle que
     soit la frappe.
+
+    **Une vue filtrée ne s'indexe pas davantage** : c'est la même combinatoire
+    de contenu généré à la volée, et les axes qui méritent une page ont déjà la
+    leur, /formats, /publishers et /genres, écrites pour ça (§7).
   */
   useSeo(
-    recherche.query.trim()
+    recherche.query.trim() || recherche.nbFiltres > 0
       ? {
-          titre: `Recherche : ${recherche.query.trim()}`,
-          description: `Résultats pour « ${recherche.query.trim()} » dans le catalogue des éditions physiques.`,
+          titre: recherche.query.trim() ? `Recherche : ${recherche.query.trim()}` : "Catalogue filtré",
+          description: recherche.query.trim()
+            ? `Résultats pour « ${recherche.query.trim()} » dans le catalogue des éditions physiques.`
+            : "Sélection filtrée du catalogue des éditions physiques.",
           noindex: true,
         }
       : {
@@ -74,6 +83,20 @@ export function CataloguePage() {
         <ChampRecherche valeur={recherche.query} onChange={recherche.setQuery} />
       </div>
 
+      <BarreFiltres
+        filtres={recherche.filtres}
+        setFiltre={recherche.setFiltre}
+        effacer={recherche.effacerFiltres}
+        nb={recherche.nbFiltres}
+      />
+
+      {recherche.tronque && (
+        <p className="mt-4" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+          Ce filtre porte sur plus de mille éditions : la liste ci-dessous n’en montre qu’une
+          partie.
+        </p>
+      )}
+
       {recherche.suggestions.length > 0 && (
         <section className="pt-8">
           <h2 style={LIBELLE_SECTION}>Parcourir</h2>
@@ -82,7 +105,9 @@ export function CataloguePage() {
       )}
 
       <section className="pt-10">
-        <h2 style={LIBELLE_SECTION}>{recherche.active ? "Résultats" : "Tous les films"}</h2>
+        <h2 style={LIBELLE_SECTION}>
+          {recherche.active || recherche.nbFiltres > 0 ? "Résultats" : "Tous les films"}
+        </h2>
         <GrilleFilms
           films={recherche.films}
           chargement={recherche.chargement}
@@ -92,5 +117,134 @@ export function CataloguePage() {
         />
       </section>
     </div>
+  );
+}
+
+/**
+ * La barre de filtres.
+ *
+ * Des `<select>` natifs et non des menus dessinés : ils portent la navigation
+ * au clavier, la recherche à la frappe et, sur téléphone, la roue du système,
+ * trois choses qu'un menu maison rate presque toujours.
+ *
+ * Les valeurs viennent de `regroupements.ts`, la table générée au build : les
+ * mêmes libellés que les pages /formats, /publishers et /genres, sans une
+ * requête de plus.
+ */
+function BarreFiltres({
+  filtres,
+  setFiltre,
+  effacer,
+  nb,
+}: {
+  filtres: Filtres;
+  setFiltre: <K extends keyof Filtres>(cle: K, valeur: Filtres[K]) => void;
+  effacer: () => void;
+  nb: number;
+}) {
+  return (
+    <div className="mt-5 flex flex-wrap items-center gap-2">
+      <Selecteur
+        libelle="Décennie"
+        valeur={filtres.decennie ? String(filtres.decennie) : ""}
+        onChange={(v) => setFiltre("decennie", v ? Number(v) : undefined)}
+        options={DECENNIES.map((d) => ({ valeur: String(d), libelle: `Années ${d}` }))}
+      />
+      <Selecteur
+        libelle="Genre"
+        valeur={filtres.genre ?? ""}
+        onChange={(v) => setFiltre("genre", v || undefined)}
+        options={GENRES.map((g) => ({ valeur: g.libelle, libelle: g.libelle }))}
+      />
+      <Selecteur
+        libelle="Éditeur"
+        valeur={filtres.editeur ?? ""}
+        onChange={(v) => setFiltre("editeur", v || undefined)}
+        options={EDITEURS.map((e) => ({ valeur: e.libelle, libelle: e.libelle }))}
+      />
+      <Selecteur
+        libelle="Format"
+        valeur={filtres.format ?? ""}
+        onChange={(v) => setFiltre("format", v || undefined)}
+        options={FORMATS.map((f) => ({ valeur: f.libelle, libelle: f.libelle }))}
+      />
+      <Selecteur
+        libelle="Note"
+        valeur={filtres.noteMin ? String(filtres.noteMin) : ""}
+        onChange={(v) => setFiltre("noteMin", v ? Number(v) : undefined)}
+        options={NOTES.map((n) => ({ valeur: String(n), libelle: `${n} et plus` }))}
+      />
+      <Selecteur
+        libelle="Type"
+        valeur={filtres.type ?? ""}
+        onChange={(v) => setFiltre("type", (v || undefined) as Filtres["type"])}
+        options={[
+          { valeur: "film", libelle: "Films" },
+          { valeur: "serie", libelle: "Séries" },
+        ]}
+      />
+
+      {nb > 0 && (
+        <button
+          type="button"
+          onClick={effacer}
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 transition hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+          style={{
+            fontSize: "13px",
+            color: "var(--reel-accent-clair)",
+            border: "1px solid var(--reel-border)",
+          }}
+        >
+          <X size={14} /> Tout effacer
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Selecteur({
+  libelle,
+  valeur,
+  onChange,
+  options,
+}: {
+  libelle: string;
+  valeur: string;
+  onChange: (valeur: string) => void;
+  options: { valeur: string; libelle: string }[];
+}) {
+  const actif = valeur !== "";
+
+  return (
+    <label className="relative inline-flex">
+      <span className="sr-only">{libelle}</span>
+      <select
+        value={valeur}
+        onChange={(e) => onChange(e.target.value)}
+        className="appearance-none rounded-full py-2 pl-3.5 pr-8 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+        style={{
+          fontSize: "13px",
+          color: actif ? "var(--reel-text)" : "var(--reel-muted)",
+          backgroundColor: actif ? "var(--reel-accent-soft)" : "var(--reel-surface)",
+          border: `1px solid ${actif ? "var(--reel-accent-clair)" : "var(--reel-border)"}`,
+        }}
+      >
+        <option value="">{libelle}</option>
+        {options.map((o) => (
+          <option key={o.valeur} value={o.valeur}>
+            {o.libelle}
+          </option>
+        ))}
+      </select>
+      {/* Le chevron du système disparaît avec `appearance-none` : on le
+          redessine, sinon rien ne dit que la capsule s'ouvre. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+        style={{ fontSize: "10px", color: "var(--reel-muted)" }}
+      >
+        ▾
+      </span>
+    </label>
   );
 }

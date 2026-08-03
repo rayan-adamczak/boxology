@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { searchFilms, type Film } from "./reelio-db";
 import { suggestionsPour } from "./suggestions";
+import {
+  chercherCatalogue,
+  ecrireFiltres,
+  lireFiltres,
+  filtresActifs,
+  type Filtres,
+} from "./catalogue-filtres";
 
 /**
  * La recherche de films, partagée par l'accueil et la page Catalogue.
@@ -29,9 +36,22 @@ export interface Recherche {
   erreur: string | null;
   /** Éditeurs, formats et genres qui correspondent à la frappe, sans requête. */
   suggestions: ReturnType<typeof suggestionsPour>;
+  /** Filtres lus dans l'URL. Vides sur les pages qui n'en proposent pas. */
+  filtres: Filtres;
+  /** Pose ou retire un filtre, et le reporte dans l'URL. */
+  setFiltre: <K extends keyof Filtres>(cle: K, valeur: Filtres[K]) => void;
+  effacerFiltres: () => void;
+  nbFiltres: number;
+  /** Le filtre par édition a buté sur le plafond de 1 000 lignes de PostgREST. */
+  tronque: boolean;
 }
 
-export function useRechercheFilms(): Recherche {
+/**
+ * @param avecFiltres la page porte-t-elle la barre de filtres ? L'accueil ne
+ * l'a pas : ses paramètres d'URL ne doivent pas se mettre à filtrer sa grille
+ * parce qu'un lien collé traînait un `?genre=`.
+ */
+export function useRechercheFilms(avecFiltres = false): Recherche {
   const [parametres, setParametres] = useSearchParams();
   const qUrl = parametres.get("q") ?? "";
 
@@ -40,6 +60,13 @@ export function useRechercheFilms(): Recherche {
   const [approchante, setApprochante] = useState(false);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [tronque, setTronque] = useState(false);
+
+  const filtres = avecFiltres ? lireFiltres(parametres) : {};
+  const nbFiltres = filtresActifs(filtres);
+  // Sérialisés pour servir de dépendance d'effet : un objet neuf à chaque rendu
+  // relancerait la requête en boucle.
+  const cleFiltres = JSON.stringify(filtres);
 
   /*
     L'URL redevient la source quand elle change sans qu'on ait tapé : retour
@@ -63,10 +90,13 @@ export function useRechercheFilms(): Recherche {
         avaitUneRecherche.current = query !== "";
       }
       try {
-        const resultat = await searchFilms(query);
+        const resultat = avecFiltres
+          ? await chercherCatalogue(query, filtres)
+          : { ...(await searchFilms(query)), tronque: false };
         if (!annule) {
           setFilms(resultat.films);
           setApprochante(resultat.approchante);
+          setTronque(resultat.tronque);
         }
       } catch (e) {
         console.error(e);
@@ -79,7 +109,7 @@ export function useRechercheFilms(): Recherche {
       annule = true;
       clearTimeout(t);
     };
-  }, [query]);
+  }, [query, cleFiltres]);
 
   const active = query.trim().length > 0;
 
@@ -88,9 +118,21 @@ export function useRechercheFilms(): Recherche {
     sans requête, et se recalculent à chaque frappe sans temporisation : c'est
     ce qui les fait apparaître avant les films.
   */
+  const setFiltre: Recherche["setFiltre"] = (cle, valeur) => {
+    // `replace` : affiner un filtre n'est pas une nouvelle page, et empiler une
+    // entrée par sélection rendrait le bouton retour inutilisable, même règle
+    // que pour la frappe.
+    setParametres(ecrireFiltres({ ...filtres, [cle]: valeur }, query.trim()), { replace: true });
+  };
+
   return {
     query,
     setQuery,
+    filtres,
+    setFiltre,
+    effacerFiltres: () => setParametres(ecrireFiltres({}, query.trim()), { replace: true }),
+    nbFiltres,
+    tronque,
     active,
     films,
     approchante,
