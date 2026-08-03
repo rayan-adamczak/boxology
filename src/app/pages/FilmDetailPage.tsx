@@ -22,7 +22,7 @@ import { ModaleConnexion } from "../components/ModaleConnexion";
 import { useSession } from "../lib/auth";
 import { useSeo, extrait, type Seo } from "../lib/seo";
 import { lienFilm } from "../lib/liens";
-import { formaterPrix } from "../lib/prix";
+import { formaterMontant, formaterPrix } from "../lib/prix";
 
 /* ---- helpers ---- */
 
@@ -1160,21 +1160,69 @@ export function FilmDetailPage() {
                             « conseillé » est écrit parce que c'est un prix de
                             sortie, pas une cote.
                           */}
-                          {(formaterPrix(ed.prix_editeur, ed.source) ??
-                            formaterPrix(ed.prix_fnac_extrait, ed.source)) && (
-                            <p className="flex items-baseline gap-1.5">
-                              <span
-                                className="tabular-nums"
-                                style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)", lineHeight: "22.5px" }}
-                              >
-                                {formaterPrix(ed.prix_editeur, ed.source) ??
-                                  formaterPrix(ed.prix_fnac_extrait, ed.source)}
-                              </span>
-                              {formaterPrix(ed.prix_editeur, ed.source) && (
-                                <span style={{ fontSize: "12px", color: "var(--reel-muted)" }}>conseillé</span>
-                              )}
-                            </p>
-                          )}
+                          {/*
+                            **Une offre réelle chasse le prix conseillé**, elle
+                            ne s'affiche pas à côté. Deux prix sur la même ligne
+                            demanderaient au lecteur de deviner lequel il paie,
+                            et le conseillé est justement celui qu'on ne paie
+                            pas : c'est un prix de sortie, parfois vieux de dix
+                            ans.
+
+                            `rel="sponsored"` n'est pas un ornement : un lien
+                            d'affiliation non déclaré est un montage de liens
+                            aux yeux de Google, et la sanction porte sur le
+                            site entier. `noopener noreferrer` suit la règle des
+                            autres `target="_blank"` du site.
+
+                            La date du relevé est en `title` plutôt qu'à
+                            l'écran : un prix se date, mais l'écrire sur chaque
+                            ligne d'un film à soixante éditions noierait la
+                            valeur qu'on vient chercher.
+                          */}
+                          {(() => {
+                            const offre = (ed.offres ?? []).find((o) => formaterMontant(o.prix, o.devise));
+                            if (offre) {
+                              const montant = formaterMontant(offre.prix, offre.devise);
+                              const jour = new Date(offre.releve_le).toLocaleDateString("fr-FR");
+                              return (
+                                <p className="flex items-baseline gap-1.5">
+                                  <a
+                                    href={offre.url}
+                                    target="_blank"
+                                    rel="sponsored noopener noreferrer"
+                                    title={`Prix relevé le ${jour}`}
+                                    className="flex items-baseline gap-1.5 hover:underline"
+                                    style={{ color: "var(--reel-accent-clair)" }}
+                                  >
+                                    <span
+                                      className="tabular-nums"
+                                      style={{ fontSize: "15px", fontWeight: 600, lineHeight: "22.5px" }}
+                                    >
+                                      {montant}
+                                    </span>
+                                    <span style={{ fontSize: "12px" }}>chez {offre.marchand}</span>
+                                  </a>
+                                </p>
+                              );
+                            }
+                            const conseille =
+                              formaterPrix(ed.prix_editeur, ed.source) ??
+                              formaterPrix(ed.prix_fnac_extrait, ed.source);
+                            if (!conseille) return null;
+                            return (
+                              <p className="flex items-baseline gap-1.5">
+                                <span
+                                  className="tabular-nums"
+                                  style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)", lineHeight: "22.5px" }}
+                                >
+                                  {conseille}
+                                </span>
+                                {formaterPrix(ed.prix_editeur, ed.source) && (
+                                  <span style={{ fontSize: "12px", color: "var(--reel-muted)" }}>conseillé</span>
+                                )}
+                              </p>
+                            );
+                          })()}
 
                         </div>
 
@@ -1208,6 +1256,32 @@ export function FilmDetailPage() {
                   );
                 })}
               </div>
+            )}
+
+            {/*
+              Mention d'affiliation, obligatoire dès qu'un lien rémunéré est
+              affiché : la transparence sur la nature commerciale d'un lien
+              relève des pratiques commerciales trompeuses (art. L. 121-1 du
+              code de la consommation), et Google traite un lien d'affiliation
+              non déclaré comme un montage de liens.
+
+              **Elle n'apparaît que si une offre est affichée.** Une mention
+              posée sur toutes les fiches parlerait de liens qui n'existent pas
+              sur 96 % du catalogue, ce qui est l'inverse d'informer.
+
+              Sous la liste et non au-dessus : elle qualifie ce qu'on vient de
+              lire, et elle ne doit pas s'interposer entre le lecteur et les
+              éditions, qui sont le sujet de la page.
+            */}
+            {filteredEditions.some((ed) => (ed.offres ?? []).length > 0) && (
+              <p
+                className="mt-6"
+                style={{ fontSize: "12px", lineHeight: "18px", color: "var(--reel-muted)" }}
+              >
+                Les prix marchands sont des liens affiliés : une commission peut nous être
+                versée si vous achetez, sans que le prix change pour vous. Prix relevés à la
+                date indiquée au survol, seul le site marchand fait foi.
+              </p>
             )}
           </div>
         )}

@@ -102,6 +102,34 @@ export interface Edition {
    * visionneuse, qui les enchaîne après l'image principale.
    */
   images_secondaires: string[] | null;
+  /**
+   * Offres marchandes de cette édition, jointes depuis `offres`.
+   *
+   * Vide sur l'immense majorité du catalogue : 724 éditions seulement en
+   * portent une au 3 août 2026, celles dont l'EAN tombe dans le flux Awin
+   * d'E.Leclerc. Une édition sans offre n'est pas une édition introuvable,
+   * c'est une édition dont aucun de nos partenaires ne publie de prix.
+   */
+  offres?: Offre[] | null;
+}
+
+/**
+ * Une offre marchande : un prix **réel**, daté, avec son lien de tracking.
+ *
+ * À ne pas confondre avec `Edition.prix_editeur`, qui est un prix conseillé
+ * figé à la sortie du disque et dont la devise dépend de la source. Ici le
+ * prix est celui du jour du relevé, et il se périme : d'où `releve_le`, que
+ * l'affichage doit pouvoir montrer.
+ */
+export interface Offre {
+  marchand: string;
+  prix: number | null;
+  devise: string;
+  disponible: boolean | null;
+  /** Lien de tracking Awin. Jamais l'URL marchande nue, sans quoi la visite
+      n'est pas attribuée et la commission n'existe pas. */
+  url: string;
+  releve_le: string;
 }
 
 export interface PisteAudio {
@@ -435,7 +463,10 @@ export async function getEditionsForFilm(filmId: number): Promise<Edition[]> {
   // il doit donc apparaître sur la fiche de chacun d'eux.
   const { data, error } = await supabase
     .from("editions")
-    .select("*, edition_films!inner(film_id)")
+    // `offres(...)` est une jointure à gauche : une édition sans offre revient
+    // avec un tableau vide, elle ne disparaît pas de la liste. C'est le cas
+    // de 96 % du catalogue, donc ce n'est pas un détail.
+    .select("*, edition_films!inner(film_id), offres(marchand,prix,devise,disponible,url,releve_le)")
     .eq("edition_films.film_id", filmId)
     .order("id", { ascending: true });
   if (error) throw new Error(`Erreur lors du chargement des éditions du film ${filmId}: ${error.message}`);

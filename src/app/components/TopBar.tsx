@@ -31,9 +31,6 @@ export function TopBar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // L'accueil connecté est le tableau de bord ; c'est le seul écran large.
-  const surTableauDeBord = location.pathname === "/" && Boolean(session);
-
   // Le champ du bandeau se vide en changeant de page : il sert à partir, pas à
   // garder l'état d'une recherche, que l'URL de /catalogue porte déjà.
   useEffect(() => setSaisie(""), [location.pathname]);
@@ -52,14 +49,11 @@ export function TopBar() {
         borderBottom: "1px solid var(--reel-border)",
       }}
     >
-      {/*
-        Le bandeau prend la gouttière **large** sur l'accueil connecté, qui est
-        le seul écran à trois colonnes : sinon le mot-symbole tombait 132 px à
-        gauche de la colonne de gauche sur un écran de 2 560, et c'est
-        exactement le décalage que la gouttière commune avait été créée pour
-        supprimer (§8).
-      */}
-      <div className={`${surTableauDeBord ? "reel-gouttiere-large" : "reel-gouttiere"} flex items-center gap-4`}>
+      {/* Une seule gouttière pour tout le site, connecté ou non : deux largeurs
+          selon la session faisaient sauter la page d'un état à l'autre, et le
+          §8 rappelle que c'est précisément le décalage qu'elle existe pour
+          supprimer. */}
+      <div className="reel-gouttiere flex items-center gap-4">
         <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="Accueil jaquette.app">
           {/* Le mot-symbole reste visible à toute taille : c'est lui qui porte
               l'identité sur petit écran, où le nom écrit cède la place. */}

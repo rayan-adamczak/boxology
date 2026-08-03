@@ -35,18 +35,28 @@ export function devise(source: string | null | undefined): "EUR" | "GBP" {
   return source && SOURCES_LIVRES.has(source) ? "GBP" : "EUR";
 }
 
-/** `24,99 €` ou `9,99 £`. Rend `null` quand il n'y a pas de prix lisible. */
-export function formaterPrix(brut: unknown, source: string | null | undefined): string | null {
-  const nombre = prixNumerique(brut);
-  if (nombre === null) return null;
+/**
+ * Met en forme un montant dont on connaît déjà la devise.
+ *
+ * Séparé de `formaterPrix` parce que les offres marchandes (`public.offres`)
+ * portent leur devise en colonne, là où `prix_editeur` la fait deviner d'après
+ * la source. Deux façons de savoir, une seule façon d'écrire.
+ */
+export function formaterMontant(nombre: number | null | undefined, code: string): string | null {
+  if (typeof nombre !== "number" || !Number.isFinite(nombre) || nombre <= 0) return null;
   return nombre.toLocaleString("fr-FR", {
     style: "currency",
-    currency: devise(source),
+    currency: code || "EUR",
     // `narrowSymbol` sans quoi la locale française écrit « 8,99 £GB », la livre
     // n'étant pas sa monnaie : elle la désambiguïse par le code pays.
     currencyDisplay: "narrowSymbol",
     maximumFractionDigits: 2,
   });
+}
+
+/** `24,99 €` ou `9,99 £`. Rend `null` quand il n'y a pas de prix lisible. */
+export function formaterPrix(brut: unknown, source: string | null | undefined): string | null {
+  return formaterMontant(prixNumerique(brut), devise(source));
 }
 
 /**

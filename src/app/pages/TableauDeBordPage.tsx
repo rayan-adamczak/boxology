@@ -85,11 +85,15 @@ export function TableauDeBordPage() {
   }, [session]);
 
   return (
-    <div className="reel-gouttiere-large w-full pb-24 pt-[100px] md:pb-12">
-      {/* `justify-center` : entre lg et xl le panneau de droite disparaît, et sans
-          cette ligne les deux colonnes restantes se collaient au bord gauche du
-          conteneur. */}
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-center">
+    <div className="reel-gouttiere w-full pb-24 pt-[100px] md:pb-12">
+      {/*
+        Deux colonnes et non trois, depuis le 3 août 2026 : la page partage
+        désormais la gouttière du reste du site, 58 % de la fenêtre, soit 835 px
+        à 1 440. Trois colonnes n'y laissaient que deux cents pixels au fil. Les
+        sorties à venir passent donc sous le panneau de gauche, où six lignes
+        tiennent sans peine.
+      */}
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
         {/* ---- Colonne de gauche : qui vous êtes, et ce que vous avez ----
 
             Reprise du node Figma 1:558, **à plat** : pas de carte qui enveloppe
@@ -148,6 +152,29 @@ export function TableauDeBordPage() {
             <LienPanneau to="/lists" icone={ListPlus}>Mes listes</LienPanneau>
             <LienPanneau to="/account" icone={Settings}>Mon compte</LienPanneau>
           </div>
+
+          {/* Les sorties à venir, sous les liens plutôt qu'en troisième colonne.
+              Le panneau disparaît quand la liste est vide plutôt que d'afficher
+              un cadre creux : `date_parution` ne vient que de blu-ray.com, les
+              autres sources ne datent rien, donc la liste peut se tarir sans
+              prévenir. Mesuré le 3 août 2026 : 42 éditions à venir. */}
+  {aVenir.length > 0 && (
+            <div>
+              <div className="rounded-[14px] px-5 py-5" style={CADRE}>
+                <h2 className="flex items-center gap-2" style={LIBELLE_SECTION}>
+                  <CalendarClock size={15} /> Sorties à venir
+                </h2>
+                <ul className="mt-4 flex flex-col gap-3">
+                  {aVenir.map((ed) => (
+                    <LigneSortie key={ed.id} edition={ed} />
+                  ))}
+                </ul>
+                <p className="mt-4" style={{ fontSize: "12px", lineHeight: "18px", color: "var(--reel-muted)" }}>
+                  Dates de parution relevées chez nos sources, sur les éditions qui en publient une.
+                </p>
+              </div>
+            </div>
+          )}
         </aside>
 
         {/* ---- Colonne centrale : le fil ---- */}
@@ -201,35 +228,6 @@ export function TableauDeBordPage() {
           </section>
         </main>
 
-        {/* ---- Colonne de droite : ce qui arrive ----
-
-            Deux conditions, et elles ne disent pas la même chose. Le panneau
-            **disparaît** quand la liste est vide, plutôt que d'afficher un cadre
-            creux : `date_parution` ne vient que de blu-ray.com, les autres
-            sources ne datent rien, donc la liste peut se tarir sans prévenir.
-            Mesuré le 3 août 2026 : 42 éditions à venir, jusqu'à début octobre.
-
-            Il est par ailleurs **caché entre `lg` et `xl`**, tout en restant
-            visible en pile sur téléphone : à 1 024 px la gouttière ne laisse que
-            840 px, dont 268 pour la colonne de gauche, et une troisième colonne
-            réduirait le fil à moins de deux cents pixels. */}
-        {aVenir.length > 0 && (
-          <aside className="w-full shrink-0 lg:hidden xl:sticky xl:top-[92px] xl:block xl:w-[288px]">
-            <div className="rounded-[14px] px-5 py-5" style={CADRE}>
-              <h2 className="flex items-center gap-2" style={LIBELLE_SECTION}>
-                <CalendarClock size={15} /> Sorties à venir
-              </h2>
-              <ul className="mt-4 flex flex-col gap-3">
-                {aVenir.map((ed) => (
-                  <LigneSortie key={ed.id} edition={ed} />
-                ))}
-              </ul>
-              <p className="mt-4" style={{ fontSize: "12px", lineHeight: "18px", color: "var(--reel-muted)" }}>
-                Dates de parution relevées chez nos sources, sur les éditions qui en publient une.
-              </p>
-            </div>
-          </aside>
-        )}
       </div>
     </div>
   );
