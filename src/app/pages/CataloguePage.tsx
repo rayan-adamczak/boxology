@@ -164,8 +164,26 @@ function BarreFiltres({
       Deux colonnes égales rangent ça sans rien tronquer d'utile : le libellé
       fermé est court, ce sont les options ouvertes qui sont longues, et elles
       s'affichent dans la roue du système, pas dans la capsule.
+
+      Sur écran large, même principe : les six capsules se partagent la ligne à
+      parts égales (`flex-1 basis-0`), plutôt que de prendre chacune la largeur
+      de sa plus longue option. Une rangée de capsules de six tailles
+      différentes se lisait comme six contrôles de natures différentes, alors
+      qu'ils font tous la même chose.
     */
     <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+      {/*
+        `contents` : sur téléphone cette enveloppe s'efface et les six capsules
+        redeviennent des cellules de la grille à deux colonnes. Au-dessus de
+        `sm` elle devient la rangée, sur toute la largeur, ce qui met le bouton
+        d'effacement **sous** elle et non dedans.
+
+        Mesuré avant d'en arriver là : en gardant le bouton dans la rangée, les
+        capsules tombaient à 104 px à 1 280, dont 56 de rembourrage, et les
+        libellés s'affichaient « Déc… », « Édite… », « Stee… ». Une capsule qui
+        ne peut plus dire ce qu'elle filtre ne filtre plus rien.
+      */}
+      <div className="contents sm:flex sm:w-full sm:gap-2">
       <Selecteur
         libelle="Décennie"
         valeur={filtres.decennie ? String(filtres.decennie) : ""}
@@ -205,6 +223,7 @@ function BarreFiltres({
           { valeur: "serie", libelle: "Séries" },
         ]}
       />
+      </div>
 
       {nb > 0 && (
         <button
@@ -212,7 +231,7 @@ function BarreFiltres({
           onClick={effacer}
           /* Toute la largeur sur téléphone, et sur sa propre rangée : ce n'est
              pas un filtre de plus, c'est ce qui les défait tous. */
-          className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2.5 transition hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] sm:col-span-1"
+          className="col-span-2 inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full px-3 py-2.5 transition hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] sm:col-span-1"
           style={{
             fontSize: "14px",
             color: "var(--reel-accent-clair)",
@@ -240,15 +259,17 @@ function Selecteur({
   const actif = valeur !== "";
 
   return (
-    /* `w-full` sur téléphone pour remplir sa cellule de grille, largeur libre
-       au-delà : c'est la capsule qui doit s'adapter à la rangée, pas la rangée
-       à la plus longue option d'un menu fermé. */
-    <label className="relative flex w-full sm:inline-flex sm:w-auto">
+    /* `w-full` sur téléphone pour remplir sa cellule de grille, part égale de
+       la ligne au-delà : c'est la capsule qui doit s'adapter à la rangée, pas
+       la rangée à la plus longue option d'un menu fermé. `min-w-0` est ce qui
+       autorise le rétrécissement, un élément de flex refusant par défaut de
+       passer sous la largeur de son contenu. */
+    <label className="relative flex w-full sm:min-w-0 sm:flex-1 sm:basis-0">
       <span className="sr-only">{libelle}</span>
       <select
         value={valeur}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none truncate rounded-full py-2.5 pl-4 pr-10 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] sm:w-auto"
+        className="w-full appearance-none truncate rounded-full py-2.5 pl-4 pr-10 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
         style={{
           fontSize: "14px",
           fontWeight: actif ? 600 : 400,
