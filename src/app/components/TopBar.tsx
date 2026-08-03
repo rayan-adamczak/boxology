@@ -75,27 +75,48 @@ export function TopBar() {
           </span>
         </Link>
 
-        {/* Recherche. Cachée sous `md`, où la loupe la remplace et mène à la
-            page qui en porte une vraie. */}
-        <div className="ml-2 hidden min-w-0 max-w-[420px] flex-1 md:block">
-          <ChampRecherche
-            valeur={saisie}
-            onChange={setSaisie}
-            onValider={chercher}
-            taille="compact"
-          />
-        </div>
+        {/*
+          Recherche **réservée aux comptes**, et centrée dans le bandeau.
 
-        <Link
-          to="/catalogue"
-          aria-label="Rechercher"
-          className="ml-auto flex h-9 w-9 items-center justify-center rounded-full transition hover:brightness-125 md:hidden"
-          style={{ color: "var(--reel-muted)" }}
-        >
-          <Search size={20} />
-        </Link>
+          Déconnecté, elle n'y est pas : l'accueil porte déjà son grand champ,
+          et les deux se répondaient en double sur la page d'entrée du site.
+          Connecté, l'accueil est le tableau de bord, il n'a plus de champ, donc
+          le bandeau devient la seule entrée de recherche.
 
-        <nav className="ml-auto hidden shrink-0 items-center gap-1 md:flex" aria-label="Sections">
+          **Centrée dans la place libre, et non sur l'axe du bandeau.** Le
+          centrage absolu a été essayé et mesuré : à 1 440 px, le mot-symbole
+          finit à 493 et la navigation commence à 851, alors que l'axe est à
+          720. Un champ vraiment centré ne pouvait donc pas dépasser 230 px sans
+          passer sous « Catalogue », le bloc de droite étant plus large que le
+          mot-symbole. Le champ occupe donc l'espace entre les deux, centré
+          dedans, plafonné à 420 px. Cachée sous `lg`, où la place manque, la
+          loupe prenant le relais.
+        */}
+        {session && (
+          <>
+            <div className="hidden min-w-0 flex-1 justify-center lg:flex">
+              <div className="w-full max-w-[420px]">
+                <ChampRecherche
+                  valeur={saisie}
+                  onChange={setSaisie}
+                  onValider={chercher}
+                  taille="compact"
+                />
+              </div>
+            </div>
+
+            <Link
+              to="/catalogue"
+              aria-label="Rechercher"
+              className="ml-auto flex h-9 w-9 items-center justify-center rounded-full transition hover:brightness-125 lg:hidden"
+              style={{ color: "var(--reel-muted)" }}
+            >
+              <Search size={20} />
+            </Link>
+          </>
+        )}
+
+        <nav className="ml-auto hidden shrink-0 items-center gap-1 sm:flex lg:ml-0" aria-label="Sections">
           <LienBandeau to="/catalogue">Catalogue</LienBandeau>
           {session && <LienBandeau to="/lists">Listes</LienBandeau>}
         </nav>
