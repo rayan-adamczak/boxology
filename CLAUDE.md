@@ -230,6 +230,17 @@ number de Criterion n'est publié par aucune de nos sources, et Le Chat qui
 fume numérote son `sku` de 013 à 271 en y mêlant la revue *Nitrate* et les
 badges : c'est une référence de boutique, pas un rang de collection.
 
+**`distributeur` et `editeur_source`, ajoutées les 2 et 3 août 2026.**
+La première porte le distributeur du disque, relevé chez dvdfr et nulle part
+ailleurs : TMDB ne le publie pas, et `production_companies` liste les sociétés
+de production, qui ne le sont que par coïncidence. Elle qualifie le **disque**,
+d'où sa place à côté d'`editeur` : Studiocanal presse, Universal distribue.
+
+La seconde garde le libellé d'éditeur tel que la source l'a écrit, `editeur`
+portant désormais la forme canonique. Même montage qu'`image_url_source` en
+face d'`image_url` : la normalisation est réversible et vérifiable ligne à
+ligne. 2 794 lignes renseignées.
+
 **`date_parution` (date), ajoutée le 31 juillet 2026.** Migration
 `20260731_dates_et_popularite.sql`, index décroissant, remplie par
 `dates_editions.py`, **2 543 dates converties, zéro échec**.
@@ -2570,6 +2581,21 @@ piège à chaque déploiement qui l'introduit**, parce qu'il suffit d'une visite
 pendant la propagation. Le risque ne concerne pas les morceaux déjà en ligne,
 dont le nom ne change pas.
 
+**Les libellés d'éditeur ont été normalisés le 3 août 2026**, et c'est une
+correction de cette section : une page est générée par libellé distinct, donc
+Warner était éclaté en trois pages de 492, 474 et 16 éditions au lieu d'une de
+982, Studiocanal en deux à une majuscule près, Paramount en quatre. Du contenu
+mince fabriqué par une variation d'écriture, exactement ce que cette section
+s'emploie à éviter ailleurs.
+
+478 libellés pour 70 familles, 2 794 éditions normalisées par
+`normaliser_editeurs.py`, et **les pages d'éditeur tombent de 208 à 142**.
+
+**La table est explicite, jamais une racine calculée.** Le rapprochement par
+racine a servi à trouver les familles, pas à décider : il fusionnait
+`TF1 Vidéo` et `TF1 Studio`, deux entités distinctes du même groupe, sans que
+rien ne le signale.
+
 **Les éditions illustrées remontent en tête sur les pages de format**,
 `order=image_url.asc.nullslast`. Ce n'est pas de la coquetterie : les visuels
 sont chez editioncollector et les specs chez blu-ray.com sans recouvrement (§3),
@@ -3894,6 +3920,24 @@ Documentés parce qu'ils se reproduiront.
   y compris une figurine Amiibo et No Man's Sky. Inexploitable. `supports`
   (Blu-ray, 4K) est fiable quand il est renseigné, mais vide sur des disques
   réels : croiser avec un vocabulaire de formats relevé dans le titre.
+- **Un libellé qui varie fabrique des pages, pas seulement du bruit.** 478
+  écritures d'éditeur pour 70 familles : `Warner Bros.`, `Warner Bros
+  Entertainment France`, `Warner Bros`, soit trois pages `/publishers` au lieu
+  d'une. Le §7 se garde du contenu mince partout ailleurs et en produisait ici
+  sans le voir. La normalisation en a retiré 66.
+
+  **Trouver les familles par une racine calculée, décider à la main.** La
+  racine fusionnait `TF1 Vidéo` et `TF1 Studio`, deux entités distinctes du
+  même groupe, et aucune mesure ne l'aurait signalé : le libellé est la seule
+  donnée disponible, il n'y a rien à confronter. Une table relue famille par
+  famille est le seul garde-fou.
+- **Un désaccord peut n'être qu'une différence de granularité.** Sur 995
+  divergences d'éditeur entre dvdfr et blu-ray.com, la quasi-totalité étaient
+  la même maison écrite autrement, `Universal Studios` contre `Universal
+  Pictures Home Entertainment`. Même chose pour `disques` : 1 614 désaccords
+  bruts, **trois** une fois lus les nombres écrits en toutes lettres,
+  `Blu-ray Disc Three-disc set` contre `3`. Compter avant de normaliser
+  invente un problème et masque le vrai, qui était l'éclatement des pages.
 - **Deux colonnes du même nom ne mesurent pas forcément la même chose.**
   `editions.pays` dit le marché du disque, `films.pays` le pays de production
   de l'œuvre. Reprendre le `Pays` de dvdfr dans la première aurait écrit
