@@ -133,7 +133,7 @@ export function TableauDeBordPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <LienPanneau to="/profile" icone={Library} actif>Ma collection</LienPanneau>
+            <LienPanneau to="/profile" icone={Library}>Ma collection</LienPanneau>
             <LienPanneau to="/profile?liste=envies" icone={Bookmark}>Mes envies</LienPanneau>
           </div>
 
@@ -273,28 +273,29 @@ function Tuile({
   );
 }
 
-/** Un lien de la colonne : icône, libellé, fond bleu discret quand il est actif. */
+/**
+ * Un lien de la colonne : icône et libellé, rien de plus.
+ *
+ * **Aucun état actif**, alors que la maquette en montre un sur « My
+ * Collection » : le fond bleu se lisait comme « vous êtes sur cette page »,
+ * alors qu'on est sur le tableau de bord et que le lien mène ailleurs. Un état
+ * actif ne se pose que sur une navigation qui reflète l'écran courant, comme
+ * celle du bandeau.
+ */
 function LienPanneau({
   to,
   icone: Icone,
-  actif = false,
   children,
 }: {
   to: string;
   icone: typeof Library;
-  actif?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <Link
       to={to}
       className="flex items-center gap-3 rounded-[8px] px-3 py-2 transition hover:bg-[var(--reel-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
-      style={{
-        fontSize: "15px",
-        fontWeight: 500,
-        color: actif ? "var(--reel-accent-clair)" : "var(--reel-text)",
-        backgroundColor: actif ? "var(--reel-accent-soft)" : "transparent",
-      }}
+      style={{ fontSize: "15px", fontWeight: 500, color: "var(--reel-text)" }}
     >
       <Icone size={18} />
       {children}
