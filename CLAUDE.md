@@ -273,7 +273,7 @@ possible : les ids 33994 à 36539 ont été attribués aux fiches blu-ray.com pa
 la séquence, et un id de fiche récente tomberait dedans. Les nouvelles lignes
 laissent la séquence décider et rangent l'id source dans `source_id`.
 
-### `edition_films`, 17 513 liens
+### `edition_films`, 21 055 liens
 Relation plusieurs-à-plusieurs : un coffret appartient à chacun de ses films.
 `edition_id`, `film_id`, `source`.
 
@@ -1311,34 +1311,44 @@ lit comme un scan négatif :
 - **le Dublin Core ne rend pas l'EAN** alors que la notice le porte en `001`
   ou `073`.
 
-### dvdfr.com : écarté, et pourquoi
+### dvdfr.com, enrichissement par code-barres, 3 août 2026
 
-Mesuré le 1er août 2026. Le site couvre pile notre marché et donnerait des
-dates de parution françaises, des zones et des pistes audio par édition.
-**Aucun chemin ne rend un volume utile.**
+**Écarté deux fois, puis retenu pour ce qu'il sait faire.** Le sujet avait été
+clos en juillet 2026 : leur API XML est morte, `\/api/search.php` rendant le 404
+par défaut d'Express, et le crawl de leur listing est fermé là où il faudrait
+qu'il ouvre, les facettes `?code_support`, `?formats` et `?sousformats` étant en
+`Disallow`.
 
-**Leur API XML est morte.** Tellico et Filmotech l'appellent encore, sur
-`\/api/search.php?gencode=` et `\/api/dvd.php?id=`, mais les six URL sondées,
-deux schémas, UA de navigateur, rendent toutes :
+Ce qui a rouvert le dossier n'est pas le listing mais **l'interrogation par
+code-barres**, une fiche à la fois, à partir des EAN déjà en base. Elle donne
+ce que personne d'autre ne publie :
 
-    404  Cannot GET /9056/search.php
+    Distributeur      TMDB ne le publie pas, cf. §8
+    Date de parution  française, là où blu-ray.com date en anglais
+    Zone              absente de la plupart du catalogue
+    Format Cinéma     le ratio de projection
 
-C'est le 404 par défaut d'**Express** : le préfixe `\/api/` est aujourd'hui
-réécrit vers un service Node qui ne connaît aucune de ces routes. Le corps
-d'erreur, 154 octets en anglais, diffère de leur vrai 404, 98 967 octets en
-français : c'est ce qui prouve que la couche a changé, pas que l'URL est mal
-écrite. **Ne pas rouvrir sur la foi du code de Tellico**, qui date de 2010.
+**Elle n'apporte aucune édition nouvelle, et c'est mesuré** : une fiche ne
+liste pas les autres éditions du même film, et leurs pages éditeur sont vides
+côté HTML. Elle enrichit l'existant, elle ne l'élargit pas, donc **le trou de
+source du §8 reste entier**.
 
-Et le quota d'alors la rendait de toute façon inutilisable en masse :
-**200 fiches par utilisateur et par semaine**, réinitialisable trois fois, 800
-au plus, les consultations de jaquette comprises. Nos 5 460 EAN auraient
-demandé six semaines et demie dans le meilleur cas.
+Résultat du 3 août 2026 : 5 440 codes interrogés, **4 967 fiches trouvées**,
+473 inconnues chez eux, **zéro erreur**, et 4 951 éditions enrichies.
 
-**Le crawl HTML est fermé là où il faudrait qu'il ouvre.** Les facettes de
-`listeliv.php` sont en `Disallow`, `?code_support`, `?formats`,
-`?sousformats` : c'est exactement ce qui permettrait de n'énumérer que le
-Blu-ray. Sans elles il faut balayer un fonds DVD de 1998 à `Crawl-delay: 5`
-pour en tirer une fraction inconnue.
+**Le crawl tourne sur la machine, l'écriture sur GitHub.** Voir le §9 :
+2 720 erreurs sur 2 720 depuis un runner, zéro depuis une connexion
+domestique. `crawl_dvdfr_local.sh` collecte par créneaux et dépose son fichier
+dans R2 ; `dvdfr.yml` le reprend et n'adresse aucune requête à dvdfr.
+
+**Enrichir, jamais corriger.** Une colonne déjà remplie n'est pas touchée. Le
+compte des désaccords est affiché, et il est trop gros pour être du bruit :
+
+    pays 4 529 | region 3 765 | disques 1 614 | editeur 1 161 | ratio 891
+
+Une des deux sources se trompe systématiquement. Piste à vérifier, non
+tranchée : blu-ray.com décrit souvent l'édition **américaine** d'un titre là
+où dvdfr décrit la française.
 
 **Trois politiques contradictoires sur le même site**, ce qui fait qu'aucune
 ne se lit comme leur position :
@@ -1349,19 +1359,17 @@ ne se lit comme leur position :
 | application | **429** à tout UA contenant `bot`, `curl/8` passe |
 | `robots.txt`, nommément | `ClaudeBot`, `GPTBot`, `CCBot`… en `Disallow: /` |
 
-Le filtre applicatif récompense donc le mensonge, ce qui le range du côté de
-la mesure technique et non de la décision éditoriale (§5). La seule règle sans
-ambiguïté est le `Disallow: /` nommant `ClaudeBot`, et elle tient : un
-assistant ne récupère aucune de leurs pages.
+La seule règle sans ambiguïté est le `Disallow: /` nommant `ClaudeBot`, et
+elle tient : un assistant ne récupère aucune de leurs pages, et ne déclenche
+pas non plus un workflow qui le ferait. Le crawl se lance à la main.
 
 Leur `Content-Signal: search=yes,ai-train=no,use=reference` vaut par ailleurs
 réservation de droits au titre de l'article 4 de la directive 2019/790, la
 même que celle que nous posons (§10).
 
-Sondes conservées dans `jaquette-scraping/dvdfr/`, corps bruts compris :
-`diag_dvdfr.py` (matrice chemins × UA), `api_vivante.sh`, `sonde_dvdfr.py`.
-Le premier sondage a rendu **zéro partout**, et c'était un scan cassé, pas un
-catalogue vide : 404 à **zéro octet**, signature d'un chemin qui n'existe pas.
+**Le quota de leur ancienne API n'a plus d'objet** : 200 fiches par semaine et
+par utilisateur, 800 au plus. L'interrogation par code-barres passe par les
+pages publiques, à cinq secondes l'unité.
 
 ### Les trois comparateurs de prix : écartés, et pourquoi
 
@@ -1533,6 +1541,7 @@ Sept secrets : `SUPABASE_SERVICE_ROLE_KEY`, `TMDB_READ_TOKEN`, les quatre
 | `maj-ec.yml` | vendredi 7 h UTC | énumérer le delta, trier, résoudre, écrire |
 | `publier.yml` | appelé par les passes | hook Cloudflare, puis vérifie le sitemap servi |
 | `recapituler.yml` | appelé par les passes | ouvre une issue de récapitulatif |
+| `maj-ec.yml` | vendredi 7 h UTC | énumérer le delta, trier, résoudre, écrire |
 | `dvdfr.yml` | à la main | enrichit par code-barres, **n'élargit rien** |
 
 **Les cinq passes n'ont pas tourné du 2 août 14 h 04 au 3 août**, et rien ne
@@ -1558,9 +1567,20 @@ test sur `event_name`.
 Un jour par passe : elles écrivent toutes en base et se disputeraient le
 verrou `ecriture-base` sans rien y gagner.
 
-**Une seule chose reste sur la machine, et une seule raison la retient.**
+**Deux collectes restent sur la machine, et une seule raison les retient.**
 `crawl_bluray_local.sh`, posé par `app.jaquette.bluray.plist` le mercredi
-10 h : blu-ray.com refuse l'IP des runners GitHub, voir §9. Il énumère,
+10 h, et `crawl_dvdfr_local.sh`, lancé à la main : les deux sites refusent
+l'IP des runners GitHub, voir §9.
+
+`crawl_dvdfr_local.sh` prend un nombre de **minutes** et non un rang de fiche :
+sur une machine qu'on veut récupérer à une heure donnée, c'est le temps qu'on
+connaît, pas le compte. Les 5 440 codes ont été faits en trois créneaux, 4 h,
+2 h 20 et 5 min, le fichier étant vidé à chaque ligne.
+
+`etat_r2.py recuperer` **refuse d'écraser un local plus avancé** que R2, en
+comparant les tailles. Une passe tuée en route, Mac refermé, laisse un local
+en avance faute d'avoir atteint son étape de dépôt ; télécharger par-dessus
+effacerait ce travail sans rien dire. Il énumère,
 crawle le delta, dépose l'état dans R2, et la passe du jeudi reprend cet état
 sans jamais adresser une requête à blu-ray.com.
 
@@ -4171,6 +4191,18 @@ Documentés parce qu'ils se reproduiront.
   n'avait jamais été comparée.
 
 ### Infrastructure
+- **dvdfr refuse aussi l'IP des runners, et la mesure est sans appel.** Le run
+  du 2 août 2026 a demandé 2 720 fiches depuis un runner : `trouvés 0 |
+  inconnus 0 | erreurs 2720`, une `HTTPError` sur chacune dès la première.
+  Trois heures quarante-huit pour rien, et un job sorti **vert**. Le lendemain,
+  même code, même délai, mêmes en-têtes, depuis la machine de l'éditeur :
+  **5 440 codes, zéro erreur.** Deux sources sur deux, même verdict.
+
+  Le compteur d'erreurs existait déjà mais personne ne le lisait avant la fin,
+  les logs d'un job en cours n'étant pas consultables. `crawl_dvdfr.py` a
+  désormais les garde-fous de `crawl_zavvi.py` : arrêt à cent fiches sans un
+  seul succès, soit cinq cents secondes au lieu de sept heures, puis au-delà
+  d'un cinquième d'échecs.
 - **blu-ray.com refuse l'IP des runners GitHub, et ce n'est pas un 403.**
   Mesuré le 2 août 2026 : après une vingtaine de minutes d'énumération
   réussie, page 97 des coffrets, `<urlopen error [Errno 111] Connection
@@ -4263,6 +4295,13 @@ Documentés parce qu'ils se reproduiront.
 
       if: ${{ !cancelled() && needs.amont.result != 'failure' }}
 
+- **Déclarer un bloc `permissions` remplace le jeu entier**, tout ce qui n'y
+  figure pas tombant à `none`. Un `permissions: issues: write` posé pour le
+  récapitulatif retirait donc `contents: read`, et `actions/checkout` échouait
+  sur « Repository not found », message qui se lit comme un dépôt supprimé
+  alors qu'il ne dit qu'un droit manquant. La règle vaut **à chaque niveau**,
+  chez l'appelant comme dans le workflow appelé : le corriger d'un seul côté
+  ne suffit pas.
 - **Un workflow réutilisable ne peut pas demander plus de droits que son
   appelant, et GitHub refuse alors *au démarrage*.** `recapituler.yml` déclare
   `permissions: issues: write` pour ouvrir son issue ; l'appelant, lui, n'en
