@@ -2211,23 +2211,57 @@ permanente dans la Search Console est un passif : elle masquerait les vraies
 erreurs plus tard. **L'EAN reste dans le texte du corps injecté**, donc lisible
 par un moteur, ce qui préserve l'essentiel.
 
-**La condition est levée depuis le 3 août 2026, et le chantier est ouvert.** Le
-programme E.Leclerc est accepté, `public.offres` porte 724 offres réelles sur
-658 films, donc `offers` cesse d'être le champ qu'on ne peut pas remplir
-honnêtement. Le nœud redevient valide sur ces 658 films, et sur eux seulement :
-les autres restent sans `Product`, faute d'offre, et c'est la bonne réponse.
+### Les nœuds `Product` sont rétablis, et Google les valide
 
-`gtin13` reste ce qui nous distingue, ni TMDB ni SensCritique ne le publiant.
+**Le 3 août 2026, même journée que l'acceptation d'E.Leclerc.** Le programme
+accepté, `public.offres` porte 724 offres réelles sur 658 films, donc `offers`
+cesse d'être le champ qu'on ne peut pas remplir honnêtement.
 
-Détail à ne pas reperdre : une édition doit porter **deux types**, `Product` et
-`CreativeWork`, le second étant ce qui autorise `exampleOfWork` pour la
-rattacher à l'œuvre. `isRelatedTo` attend un `Product` ou un `Service` et ne
-peut pas désigner un film.
+**Un nœud par édition qui porte une offre, et par elle seule.** Les autres n'en
+ont aucun, plutôt qu'un nœud incomplet qui laisserait une erreur permanente
+dans la Search Console : c'est l'erreur du 31 juillet qu'on ne refait pas.
 
-Second détail, neuf : le middleware devra joindre `offres` pour écrire `price`,
-`priceCurrency`, `availability` et `priceValidUntil`. Déclarer un prix sans le
-dater est ce que Google sanctionne, et c'est aussi ce que la loi demande côté
-consommateur (§10).
+Mesuré par le test de résultats enrichis sur une fiche à trois offres, ce qui
+est le renversement exact du 31 juillet :
+
+    Extraits de produits   3 éléments valides    (« non valides » le 31 juillet)
+    Fiches de marchand     3 éléments valides
+    Fils d'Ariane          1 élément valide
+    Films                  1 élément valide
+    Extraits d'avis        1 élément valide
+
+**Les deux seuls avertissements sont `review` et `aggregateRating`, marqués
+facultatifs**, et ce sont précisément les deux qu'on refuse : on n'a pas d'avis,
+et la note TMDB porte sur l'œuvre, l'accrocher à un disque serait faux. Ne pas
+« corriger » ces avertissements, les combler serait mentir.
+
+Bonus non anticipé : les **fiches de marchand** valident aussi, ce qui est un
+second type de résultat enrichi obtenu sans rien écrire de plus.
+
+Couverture des nœuds, mesurée sur les 724 : **zéro sans EAN**, zéro sans titre,
+onze sans image. `gtin13` est donc sur tous, et c'est ce qui nous distingue, ni
+TMDB ni SensCritique ne le publiant.
+
+Trois choix qui ne se relisent pas dans le diff :
+
+- **deux types, `Product` et `CreativeWork`.** Le second autorise
+  `exampleOfWork` pour rattacher le disque à l'œuvre ; `isRelatedTo` n'accepte
+  qu'un `Product` ou un `Service` et ne peut pas désigner un film. Vérifié au
+  test, `exampleOfWork` résout bien vers le nœud `Movie` ;
+- **`offers.url` est la fiche du site, jamais le lien d'affiliation.** Celui-ci
+  est déclaré `rel="sponsored"` dans la page ; un balisage lu par une machine
+  n'a pas à passer par une redirection de tracking ;
+- **`priceValidUntil` vaut le relevé plus un jour**, la passe tournant
+  quotidiennement (§6). Annoncer plus long serait une promesse qu'on ne tient
+  pas, et Google traite une offre périmée comme une erreur. C'est aussi ce que
+  la loi demande côté consommateur (§10).
+
+Un prix nul est refusé à l'entrée : `offres.prix` est nullable et un `Offer`
+sans `price` est invalide. **Mieux vaut aucun nœud qu'un nœud faux.**
+
+**Le middleware lit Supabase à la requête, pas au build.** Un prix neuf est donc
+servi sans redéployer, seul le cache de périphérie s'interpose. Ce qui demande
+un déploiement, c'est une modification du code du middleware.
 
 **Ce que le test valide aujourd'hui**, sur une fiche film :
 
