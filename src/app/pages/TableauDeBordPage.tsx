@@ -86,7 +86,10 @@ export function TableauDeBordPage() {
 
   return (
     <div className="reel-gouttiere-large w-full pb-24 pt-[100px] md:pb-12">
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+      {/* `justify-center` : entre lg et xl le panneau de droite disparaît, et sans
+          cette ligne les deux colonnes restantes se collaient au bord gauche du
+          conteneur. */}
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-center">
         {/* ---- Colonne de gauche : qui vous êtes, et ce que vous avez ----
 
             Reprise du node Figma 1:558, **à plat** : pas de carte qui enveloppe

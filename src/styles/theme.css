@@ -427,7 +427,18 @@
 
 @media (min-width: 1024px) {
   .reel-gouttiere-large {
-    width: clamp(880px, 84%, 1720px);
+    /*
+      Une largeur en pixels et non une proportion, contrairement à l'autre
+      gouttière, et c'est la correction du 3 août 2026 : à 84 % de fenêtre, le
+      conteneur faisait 1 612 px sur un écran de 1 920 quand ses trois colonnes
+      n'en occupent que 1 220. Le bloc était bien centré, mais son contenu
+      s'entassait à gauche en laissant quatre cents pixels de vide à droite, ce
+      qui se lit comme une page cassée.
+
+      1 240 px, soit la somme des colonnes et de leurs gouttières, plus une
+      marge. Le `min()` garde le comportement fluide en dessous.
+    */
+    width: min(100%, 1240px);
     max-width: none;
     padding-inline: 0;
   }
