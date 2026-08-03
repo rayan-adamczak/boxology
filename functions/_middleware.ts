@@ -45,6 +45,10 @@ import { BASE_FILMS, redirectionDe } from "../src/app/lib/chemins";
 /* Le contenu de `/about`. Même module que la page React, donc le corps servi
    et ce qu'elle affiche ne peuvent pas diverger. */
 import { FAQ, toutesLesQuestions } from "../src/app/lib/faq";
+/* La forme de l'identifiant public et l'adresse qu'il ouvre. Même module que
+   l'application, pour que `/u/<identifiant>` désigne ici exactement ce qu'elle
+   sait résoudre. */
+import { cheminProfil, normaliserIdentifiant } from "../src/app/lib/identifiant";
 
 /* Types minimaux : @cloudflare/workers-types n'est pas installé, et le
    `tsconfig.json` ne couvre pas ce dossier. Ce qui est déclaré ici est le peu
@@ -740,6 +744,10 @@ function injecterListe(
      Bing les lit encore et ils ne coûtent rien. */
   precedent: string | null = null,
   suivant: string | null = null,
+  /* `noindex, follow` pour les pages qui doivent se partager sans s'indexer,
+     les profils publics à ce jour. `index.html` ne porte aucune balise
+     `robots`, donc on l'ajoute plutôt que de la modifier. */
+  robots: string | null = null,
 ) {
   const poserContenu = { element: (el: any) => el.setAttribute("content", meta.description) };
   return new HTMLRewriter()
@@ -758,6 +766,7 @@ function injecterListe(
         }
         if (precedent) el.after(`<link rel="prev" href="${precedent}" />`, { html: true });
         if (suivant) el.after(`<link rel="next" href="${suivant}" />`, { html: true });
+        if (robots) el.after(`<meta name="robots" content="${robots}" />`, { html: true });
       },
     })
     .on("#root", { element: (el: any) => el.setInnerContent(corps, { html: true }) })
@@ -969,6 +978,7 @@ const PAGES_LEGALES: Record<
     sections: [
       ["Sans compte", "Aucun traceur, aucune publicité, aucun profilage. La consultation ne demande rien."],
       ["Avec un compte", "L'adresse et l'identifiant Google du compte, plus la liste des éditions marquées. Rien d'autre."],
+      ["Votre page publique", "Votre identifiant ouvre une page présentant votre collection, consultable sans compte. Elle n'affiche jamais votre adresse électronique. Elle se masque depuis la page Mon compte."],
       ["Ce que le site ne fait pas", "Ni revente, ni partage à des tiers, ni mesure d'audience publicitaire."],
       ["Services tiers", "Google pour la connexion, Supabase pour la base, Cloudflare pour l'hébergement, TMDB pour les métadonnées."],
       ["Vos droits", "Accès, rectification et effacement (RGPD art. 17). La suppression du compte et des listes se fait depuis la page Mon compte."],
@@ -1032,6 +1042,152 @@ async function servirBienvenue(url: URL, next: () => Promise<Response>): Promise
   );
 
   return injecterListe(reponse, meta, canonical, corps, null);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Profils publics                                                            */
+/* ------------------------------------------------------------------------ */
+
+interface ProfilSeo {
+  identifiant: string;
+  nom: string;
+  possedees: number;
+  envies: number;
+}
+
+/**
+ * `decodeURIComponent` qui ne lève pas.
+ *
+ * Il jette `URIError` sur une séquence tronquée, `/u/%zz` par exemple, et
+ * l'appel se fait hors de tout `try` : une adresse malformée dans une barre de
+ * navigation suffirait à rendre 500 sur un chemin de consultation. Le repli
+ * rend la chaîne telle quelle, qui sera de toute façon écartée par la
+ * normalisation.
+ */
+function decoder(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+/**
+ * Lit un profil public, ou rend `null`.
+ *
+ * `profil_public` est déclarée `stable`, donc PostgREST accepte le **GET** avec
+ * les arguments en chaîne de requête. C'est ce qui permet le cache de
+ * périphérie : en POST, la réponse ne serait jamais mise en cache, et chaque
+ * aperçu de lien déclencherait une requête Supabase.
+ *
+ * La fonction rend `null` aussi bien pour un identifiant inconnu que pour un
+ * profil masqué, et cette indistinction est voulue : elle empêche l'adresse de
+ * devenir un oracle qui dit quels comptes existent. Le middleware ne la défait
+ * pas, il répond 404 dans les deux cas.
+ */
+async function lireProfil(identifiant: string): Promise<ProfilSeo | null> {
+  const url =
+    `https://${PROJET}.supabase.co/rest/v1/rpc/profil_public` +
+    `?p_identifiant=${encodeURIComponent(identifiant)}`;
+
+  const reponse = await fetch(url, {
+    headers: { apikey: CLE_ANON, Authorization: `Bearer ${CLE_ANON}` },
+    cf: { cacheTtl: CACHE_SECONDES, cacheEverything: true },
+  } as RequestInit);
+
+  if (!reponse.ok) throw new Error(`profil ${identifiant} : HTTP ${reponse.status}`);
+  const donnees = (await reponse.json()) as ProfilSeo | null;
+  return donnees && donnees.identifiant ? donnees : null;
+}
+
+/**
+ * `/u/<identifiant>` : la page qu'on partage.
+ *
+ * Elle sert un `<head>` complet parce que **c'est tout ce que lit un aperçu de
+ * lien** : ni Discord, ni iMessage, ni WhatsApp n'exécutent le JavaScript, et
+ * un profil partagé qui s'annonce « jaquette.app, le catalogue des éditions
+ * Blu-ray » ne dit pas de qui il s'agit. C'est la raison d'être de ce
+ * gestionnaire, plus encore que pour les fiches films.
+ *
+ * **`noindex, follow`, et ce n'est pas un oubli.** Un profil est une grille
+ * d'affiches déjà servies par les fiches films : mince et redondant, exactement
+ * ce que le §7 a refusé aux pages éditions. Partageable n'est pas indexable.
+ * `follow` reste : les liens vers les fiches doivent être suivis. Aucun profil
+ * n'entre au sitemap pour la même raison.
+ *
+ * **Pas de JSON-LD.** Un `ProfilePage` ou une `Person` décriraient une personne
+ * réelle à partir d'un nom qu'elle a saisi elle-même, sur une page qu'on
+ * demande justement de ne pas indexer. Rien à y gagner, une donnée de plus à
+ * tenir juste.
+ *
+ * **Pas de liste d'éditions dans le corps injecté**, contrairement aux fiches :
+ * elle coûterait un second aller-retour Supabase pour un texte que personne ne
+ * lira, la page étant en `noindex` et les aperçus s'arrêtant au `<head>`.
+ */
+function corpsProfil(profil: ProfilSeo, description: string): string {
+  return enveloppe(
+    `<h1 style="font-family:var(--reel-font-titre,inherit);font-size:38px;margin:0 0 8px">` +
+      `${echapper(profil.nom)}</h1>` +
+      `<p style="margin:0 0 20px;font-family:ui-monospace,monospace;` +
+      `color:var(--reel-accent-clair,#6ea8ff)">@${echapper(profil.identifiant)}</p>` +
+      `<p style="margin:0 0 28px">${echapper(description)}</p>` +
+      `<p style="margin:0"><a href="/" style="color:var(--reel-accent-clair,#6ea8ff)">` +
+      `Parcourir le catalogue des éditions physiques</a></p>` +
+      liensAxes(),
+  );
+}
+
+async function servirProfil(url: URL, next: () => Promise<Response>): Promise<Response> {
+  const segments = url.pathname.split("/").filter(Boolean);
+  // `/u`, `/u/a/b` : rien d'autre que `/u/<identifiant>` n'existe.
+  if (segments.length !== 2) return pageIntrouvable(next);
+
+  const demande = segments[1];
+  const identifiant = normaliserIdentifiant(decoder(demande));
+  if (!identifiant) return pageIntrouvable(next);
+  /* Une adresse en majuscules ou ponctuée désigne le même profil : on la ramène
+     à sa forme canonique, sinon `/u/Rayan` et `/u/rayan` seraient deux
+     adresses pour la même page. */
+  if (identifiant !== demande) {
+    return Response.redirect(`${url.origin}${cheminProfil(identifiant)}${url.search}`, 301);
+  }
+
+  try {
+    const profil = await lireProfil(identifiant);
+    if (!profil) return pageIntrouvable(next);
+
+    const reponse = await next();
+    if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
+
+    /* Doit dire la même chose que `descriptionProfil` dans
+       `ProfilPublicPage.tsx` : les deux textes sont écrits séparément, comme le
+       corps d'une fiche film et son composant, donc ils restent volontairement
+       simples pour que la dérive soit lente. */
+    const description =
+      `La collection de ${profil.nom} sur ${SITE_NOM} : ` +
+      `${profil.possedees} édition${profil.possedees > 1 ? "s" : ""} ` +
+      `possédée${profil.possedees > 1 ? "s" : ""}, ` +
+      `${profil.envies} envie${profil.envies > 1 ? "s" : ""}.`;
+    const meta = {
+      titre: `${profil.nom} (@${profil.identifiant}) | ${SITE_NOM}`,
+      description,
+    };
+
+    return injecterListe(
+      reponse,
+      meta,
+      `${url.origin}${cheminProfil(identifiant)}`,
+      corpsProfil(profil, description),
+      null,
+      null,
+      null,
+      "noindex, follow",
+    );
+  } catch {
+    /* Même règle que partout ici : le partage se dégrade, la consultation ne
+       s'arrête pas. React rendra la page côté client. */
+    return next();
+  }
 }
 
 /**
@@ -1218,6 +1374,25 @@ async function servir(context: Contexte): Promise<Response> {
    */
   const ancienne = redirectionDe(url.pathname);
   if (ancienne) return Response.redirect(`${url.origin}${ancienne}${url.search}`, 301);
+
+  /*
+   * `/@rayan` vers `/u/rayan`.
+   *
+   * C'est la forme qu'on écrit à la main, celle qu'on tape après avoir lu un
+   * « @ » quelque part. L'adresse canonique reste `/u/<identifiant>` : un
+   * arobase dans un chemin se fait percent-encoder par une partie des clients,
+   * et une adresse qui se copie sous deux formes n'en est pas une.
+   */
+  if (url.pathname.startsWith("/@")) {
+    const identifiant = normaliserIdentifiant(decoder(url.pathname.slice(2)));
+    if (identifiant) {
+      return Response.redirect(`${url.origin}${cheminProfil(identifiant)}${url.search}`, 301);
+    }
+  }
+
+  if (url.pathname === "/u" || url.pathname.startsWith("/u/")) {
+    return servirProfil(url, next);
+  }
 
   /* Les deux pages d'entrée. Comme partout ici, toute erreur retombe sur
      `next()` : mieux vaut une page sans texte injecté qu'une page morte. */

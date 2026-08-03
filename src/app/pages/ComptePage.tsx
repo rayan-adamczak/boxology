@@ -1,7 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { toast } from "sonner";
 import { PageStatique, Section, Encadre } from "../components/PageStatique";
 import { connexionGoogle, deconnexion, nomAffiche, supprimerCompte, useSession } from "../lib/auth";
+import {
+  IDENTIFIANT_MAX,
+  IDENTIFIANT_MIN,
+  arobase,
+  cheminProfil,
+  identifiantBienForme,
+  normaliserIdentifiant,
+} from "../lib/identifiant";
+import { etatIdentifiant, majProfil, useProfil, type EtatIdentifiant } from "../lib/profils";
+import { SITE_ORIGIN } from "../lib/seo";
 
 /**
  * Réglages du compte, et surtout sa suppression.
@@ -66,10 +77,229 @@ export function ComptePage() {
             </p>
           </Section>
 
+          <ProfilPublicReglages />
+
           <SuppressionCompte />
         </>
       )}
     </PageStatique>
+  );
+}
+
+/**
+ * L'identifiant, le nom affiché et la visibilité de la page publique.
+ *
+ * Les trois vivent dans la même section parce qu'ils décrivent une seule
+ * chose : ce que voit quelqu'un qui ouvre votre lien. Les séparer aurait
+ * dispersé le consentement, alors que c'est précisément ce qui doit se lire
+ * d'un coup d'œil.
+ *
+ * **Changer d'identifiant casse les liens déjà partagés**, et rien ne les
+ * répare : il n'y a pas d'id stable derrière comme sur une fiche film, où le
+ * slug est décoratif (§7). C'est écrit à l'écran plutôt que découvert après
+ * coup, et c'est aussi pourquoi l'ancien identifiant redevient libre : le
+ * garder en réserve n'aiderait personne et priverait les autres d'un mot.
+ */
+function ProfilPublicReglages() {
+  const etat = useProfil();
+  const profil = etat.statut === "pret" ? etat.profil : null;
+
+  const [identifiant, setIdentifiant] = useState("");
+  const [nom, setNom] = useState("");
+  const [verdict, setVerdict] = useState<EtatIdentifiant | "attente" | null>(null);
+  const [enCours, setEnCours] = useState(false);
+
+  // Le formulaire part de la valeur en base, et s'y réaligne quand elle change,
+  // par exemple après un enregistrement réussi.
+  useEffect(() => {
+    if (!profil) return;
+    setIdentifiant(profil.identifiant);
+    setNom(profil.nom);
+  }, [profil?.identifiant, profil?.nom]);
+
+  // Même temporisation que l'écran de création : une requête par frappe
+  // interrogerait la base huit fois pour un identifiant de huit signes.
+  useEffect(() => {
+    if (!profil || identifiant === profil.identifiant) { setVerdict(null); return; }
+    if (!identifiantBienForme(identifiant)) { setVerdict("invalide"); return; }
+
+    let annule = false;
+    setVerdict("attente");
+    const minuteur = setTimeout(() => {
+      etatIdentifiant(identifiant)
+        .then((e) => { if (!annule) setVerdict(e); })
+        .catch(() => { if (!annule) setVerdict(null); });
+    }, 400);
+
+    return () => { annule = true; clearTimeout(minuteur); };
+  }, [identifiant, profil?.identifiant]);
+
+  if (etat.statut === "attente") {
+    return (
+      <Section titre="Ma page publique">
+        <p>Chargement…</p>
+      </Section>
+    );
+  }
+
+  // Profil absent ou illisible : on n'invente pas un formulaire vide qui
+  // échouerait à l'envoi. Le garde-fou du Layout demandera l'identifiant à la
+  // prochaine page.
+  if (!profil) {
+    return (
+      <Section titre="Ma page publique">
+        <p>
+          Votre identifiant n’a pas encore été choisi, ou n’a pas pu être lu. Rechargez la page :
+          l’écran de choix s’ouvrira.
+        </p>
+      </Section>
+    );
+  }
+
+  const nomPropre = nom.trim();
+  const modifie = identifiant !== profil.identifiant || nomPropre !== profil.nom;
+  const valide =
+    identifiantBienForme(identifiant) &&
+    nomPropre.length > 0 &&
+    verdict !== "pris" &&
+    verdict !== "reserve" &&
+    verdict !== "invalide";
+
+  async function enregistrer() {
+    if (!profil) return;
+    setEnCours(true);
+    try {
+      await majProfil({ identifiant, nom: nomPropre });
+      toast.success("Profil mis à jour.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Enregistrement impossible.");
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  async function basculerVisibilite() {
+    if (!profil) return;
+    setEnCours(true);
+    try {
+      const suite = await majProfil({ visible: !profil.visible });
+      toast.success(suite.visible ? "Votre page est publique." : "Votre page est masquée.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Enregistrement impossible.");
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <Section titre="Ma page publique">
+      <p>
+        Votre identifiant donne son adresse à votre page de collection. Elle se consulte sans
+        compte : c’est ce qui la rend partageable.
+      </p>
+
+      <Encadre>
+        <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
+          {SITE_ORIGIN.replace("https://", "")}
+          {cheminProfil(profil.identifiant)}
+        </span>
+        <br />
+        {profil.visible ? (
+          <Link to={cheminProfil(profil.identifiant)} style={{ color: "var(--reel-accent-clair)" }}>
+            Ouvrir ma page
+          </Link>
+        ) : (
+          <span>Masquée : cette adresse répond comme une page inexistante.</span>
+        )}
+      </Encadre>
+
+      <label className="flex flex-col gap-2 pt-1">
+        <span style={{ color: "var(--reel-text)", fontWeight: 600 }}>Identifiant</span>
+        <span className="flex items-center gap-1">
+          <span aria-hidden="true" style={{ fontFamily: "ui-monospace, monospace" }}>@</span>
+          <input
+            type="text"
+            value={identifiant}
+            onChange={(e) => setIdentifiant(normaliserIdentifiant(e.target.value))}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            disabled={enCours}
+            className="w-full max-w-[320px] rounded-[8px] px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
+            style={{
+              backgroundColor: "var(--reel-surface)",
+              border: "1px solid var(--reel-border)",
+              color: "var(--reel-text)",
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontSize: "14px",
+            }}
+          />
+        </span>
+        <span
+          aria-live="polite"
+          style={{
+            fontSize: "13px",
+            color:
+              verdict === "libre"
+                ? "#4ade80"
+                : verdict === "pris" || verdict === "reserve" || verdict === "invalide"
+                ? "#ef6b6b"
+                : "var(--reel-muted)",
+          }}
+        >
+          {verdict === "attente"
+            ? "Vérification…"
+            : verdict === "libre"
+            ? "Disponible."
+            : verdict === "pris"
+            ? "Cet identifiant est déjà pris."
+            : verdict === "reserve"
+            ? "Cet identifiant est réservé."
+            : verdict === "invalide"
+            ? `Entre ${IDENTIFIANT_MIN} et ${IDENTIFIANT_MAX} signes : lettres, chiffres et « _ ».`
+            : `Les liens déjà partagés vers ${arobase(profil.identifiant)} cesseront de fonctionner si vous le changez.`}
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-2">
+        <span style={{ color: "var(--reel-text)", fontWeight: 600 }}>Nom affiché</span>
+        <input
+          type="text"
+          value={nom}
+          onChange={(e) => setNom(e.target.value.slice(0, 60))}
+          autoComplete="off"
+          disabled={enCours}
+          className="w-full max-w-[320px] rounded-[8px] px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
+          style={{
+            backgroundColor: "var(--reel-surface)",
+            border: "1px solid var(--reel-border)",
+            color: "var(--reel-text)",
+            fontSize: "14px",
+          }}
+        />
+        <span style={{ fontSize: "13px" }}>
+          Ce nom paraît sur votre page publique. Votre adresse électronique, elle, n’y paraît jamais.
+        </span>
+      </label>
+
+      <div className="flex flex-wrap gap-2 pt-1">
+        <Bouton
+          disabled={!modifie || !valide || enCours}
+          onClick={() => { void enregistrer(); }}
+        >
+          {enCours ? "Enregistrement…" : "Enregistrer"}
+        </Bouton>
+        <Bouton disabled={enCours} onClick={() => { void basculerVisibilite(); }}>
+          {profil.visible ? "Masquer ma page" : "Rendre ma page publique"}
+        </Bouton>
+      </div>
+
+      <p>
+        Masquée, la page répond comme une page inexistante, et non « profil masqué » : un visiteur ne
+        peut donc pas déduire de son adresse que le compte existe. Vos listes restent visibles pour
+        vous, et vos gestes sur les fiches films ne changent pas.
+      </p>
+    </Section>
   );
 }
 

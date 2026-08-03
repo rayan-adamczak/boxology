@@ -361,6 +361,50 @@ parenthèses, ce qui abîme un bloc `$$ ... $$`. Le tableau de bord annonce
 « destructive operations » pour les `drop policy if exists` que le script
 recrée trois lignes plus bas.
 
+### `profils`, appliquée le 3 août 2026
+
+Un identifiant public par compte, et la page qu'il ouvre. `user_id` (clé
+primaire, cascade sur `auth.users`), `identifiant`, `nom`, `visible`,
+`cree_le`, `maj_le`. Migration `20260803_profils.sql`, appliquée par le serveur
+MCP Supabase et non par l'éditeur SQL, contrairement à ce que dit le §3 plus
+haut : la connexion MCP existe depuis, et le fichier reste la source.
+
+**L'identifiant est stocké en minuscules**, imposé par un déclencheur et non
+par une contrainte, parce qu'il doit *corriger* la valeur : c'est ce qui rend
+l'index unique suffisant. Forme `^[a-z0-9_]{3,20}$`, pas de tiret, il se
+confond avec le souligné à l'oral et un @ se dicte.
+
+**Le nom affiché est une colonne de `profils`, pas une lecture d'`auth.users`.**
+Deux raisons, et la seconde est la vraie : `anon` ne peut pas lire
+`auth.users`, et surtout personne ne doit être obligé de publier son état civil
+pour avoir une page. Il est recopié de Google à la création, puis modifiable.
+
+**`anon` ne reçoit aucun privilège, ni sur `profils` ni sur `collections`.** La
+lecture publique passe par deux fonctions `security definer` :
+
+    profil_public(identifiant)                  -> jsonb, ou null
+    editions_du_profil(identifiant, statut, …)  -> setof bigint
+
+Elles sont la seule porte, y compris pour un compte connecté, donc `visible`
+n'est testé qu'à un endroit. Vérifié le 3 août 2026 avec la clé anon du
+bundle : `GET /profils` rend **401**, `INSERT` aussi, `rpc/etat_identifiant`
+**401**, et les deux fonctions publiques 200 avec `null` et `[]`.
+
+**Un identifiant inconnu et un profil masqué rendent la même chose.** Les
+distinguer ferait de l'adresse un oracle disant quels comptes existent. La
+fonction rend `null` dans les deux cas, le middleware répond 404 dans les deux
+cas, et l'écran de réglages le dit en toutes lettres.
+
+`etat_identifiant` rend un motif (`libre`, `pris`, `reserve`, `invalide`) et
+non un booléen : les trois refus ne se corrigent pas de la même façon. Réservée
+à `authenticated`. **La liste des identifiants réservés n'existe qu'en SQL**,
+dans `identifiant_reserve` : le front interroge la fonction et affiche le motif
+rendu, une seconde copie en TypeScript aurait dérivé au premier ajout.
+
+Ce qui existe en double, et rien d'autre : la **forme** de l'identifiant, dans
+la contrainte de table et dans `src/app/lib/identifiant.ts`, pour que le champ
+réponde à la frappe sans un aller-retour.
+
 ### `bluray_import`, table de transit
 6 201 fiches crawlées, avec statut : `promu` (6 017), `doublon` (184).
 Invisible du site, aucune policy anon.
@@ -583,6 +627,13 @@ version « surface HTTP » du §9, un scan cassé se lit comme un scan négatif 
 - **quatre avis Supabase en `INFO`**, « RLS activée sans policy » sur les tables
   fermées : c'est l'état voulu depuis qu'elles sont en `revoke all`, le linter
   ne sait pas que la barrière est ailleurs ;
+- **cinq avis `WARN` « Can Execute SECURITY DEFINER Function » depuis le 3 août
+  2026**, sur `profil_public`, `editions_du_profil`, `etat_identifiant` et
+  `supprimer_mon_compte`. C'est leur raison d'être : ces fonctions *sont* la
+  porte contrôlée, et le linter signale la catégorie, pas un défaut. Chacune
+  filtre ce qu'elle rend, et `profils` comme `collections` restent en
+  `revoke all` pour `anon` (§3). Ce qu'il faudra vraiment relire un jour, c'est
+  leur corps, pas leur existence ;
 - **`supprimer_mon_compte` reste exécutable par `authenticated`**, c'est sa
   raison d'être, et son garde-fou n'est toujours pas éprouvé sous une vraie
   session, voir juste au-dessus ;
@@ -2445,6 +2496,61 @@ Limite restante : le sitemap enferme les effectifs au moment du build, donc une
 page suivante peut disparaître entre deux déploiements et rendre 404 le temps
 qu'il soit régénéré.
 
+### Profils publics : `/u/<identifiant>`, le 3 août 2026
+
+L'adresse partageable d'un compte. Servie par le middleware comme les fiches :
+`<head>` complet, corps injecté, vrai 404 sur un identifiant inconnu ou masqué.
+Le gestionnaire passe **avant** `axeDeChemin`, `u` n'étant pas un axe.
+
+**Le `<head>` est la raison d'être du gestionnaire**, plus encore que sur une
+fiche film : ni Discord, ni iMessage, ni WhatsApp n'exécutent le JavaScript, et
+un profil partagé s'annonçait « jaquette.app, le catalogue des éditions
+Blu-ray », donc ne disait pas de qui il s'agit.
+
+**En `noindex, follow`, et ce n'est pas un oubli.** Un profil est une grille
+d'affiches déjà servies par les fiches films : mince et redondant, exactement
+ce que le §7 a refusé aux pages éditions. Partageable n'est pas indexable.
+`follow` reste, les liens vers les fiches doivent être suivis, et aucun profil
+n'entre au sitemap. À rouvrir le jour où un profil porte quelque chose qui
+n'existe nulle part ailleurs, une note, un classement, un texte.
+
+**Pas de JSON-LD.** Un `ProfilePage` ou une `Person` décriraient une personne
+réelle à partir d'un nom qu'elle a saisi elle-même, sur une page qu'on demande
+justement de ne pas indexer.
+
+**Pas de liste d'éditions dans le corps injecté**, contrairement aux fiches :
+elle coûterait un second aller-retour Supabase pour un texte que personne ne
+lira, la page étant en `noindex` et les aperçus s'arrêtant au `<head>`.
+
+**`og:image` reste le visuel du site.** Composer une mosaïque par profil
+supposerait un rendu à la demande dans un Worker, écarté au §8 pour les fiches
+films et pour les mêmes raisons.
+
+Deux redirections, mesurées sous `wrangler` le 3 août 2026, un saut chacune :
+
+    /@Rayan.Adam   ->  301  /u/rayan_adam
+    /u/ZZ_Inconnu  ->  301  /u/zz_inconnu
+
+`/@<identifiant>` est la forme qu'on écrit à la main ; la canonique reste
+`/u/<identifiant>`, un arobase dans un chemin se faisant percent-encoder par
+une partie des clients. La règle vaut aussi côté application, `App.tsx` portant
+la même redirection pour le serveur de développement, où le middleware ne
+tourne pas.
+
+**`decodeURIComponent` lève sur une séquence tronquée**, `/u/%zz`, et l'appel
+se fait hors de tout `try` : sans le repli `decoder()`, une adresse malformée
+dans une barre de navigation rendait 500 sur un chemin de consultation. Elle
+rend maintenant 301 puis 404.
+
+**L'identifiant n'a pas d'id derrière lui**, contrairement à une fiche film où
+le slug est décoratif. Le changer change donc l'adresse pour de bon : les liens
+partagés cessent de fonctionner et l'ancien identifiant redevient libre.
+`/account` l'écrit avant le champ, pas après l'enregistrement.
+
+`ProfilPublicPage` **n'est pas en `lazy()`** : c'est une porte d'entrée depuis
+l'extérieur, donc un chemin de consultation, et le §9 interdit qu'un tel chemin
+dépende d'un `import()`. Un lien partagé s'ouvre une fois, sans seconde chance.
+
 ### Adresses en anglais, le 1er août 2026
 
     /films/<slug>/<id>   ->  /movies/<slug>/<id>
@@ -2947,6 +3053,40 @@ si une source neuve comble le trou ou grossit le catalogue à côté.
   l'interface ouvre `ModaleConnexion`. Le site n'écrit plus rien dans
   localStorage : `local-statuts.ts` ne garde que lecture et effacement, pour
   reprendre une fois les listes d'avant à la première connexion.
+- **Identifiant public et profil partageable, le 3 août 2026.** Chaque compte
+  choisit un « @ » à la création, modifiable ensuite depuis `/account`, et
+  l'adresse `/u/<identifiant>` ouvre sa collection **sans compte**. C'est la
+  ligne « page publique partageable » du relevé du 2 août, qui était à « rien ».
+  Modèle de données au §3, adresses et référencement au §7.
+
+  **Le choix de l'identifiant est un passage obligé**, posé par `Layout` à la
+  place de la page demandée tant que le profil manque, et non une bannière
+  qu'on repousse : un compte sans @ n'a pas de page, et une invitation
+  repoussable produit exactement ça. Quatre chemins y échappent, `/account`
+  d'abord, parce qu'on ne doit pas avoir à choisir un pseudonyme public pour
+  effacer ses données (RGPD art. 17), puis `/about`, `/legal` et `/privacy`,
+  qu'on peut vouloir lire avant de décider.
+
+  **Seul « profil absent » déclenche l'écran, jamais « lecture en échec ».**
+  `lib/profils.ts` rend cinq états et non trois pour cette seule raison :
+  confondre une panne réseau avec un compte neuf enfermerait quelqu'un hors du
+  site, ce qui est mot pour mot le défaut du 30 juillet 2026 consigné au §9,
+  où `auth-js` introuvable bloquait le catalogue entier.
+
+  **`VueProfil` est partagé entre les deux pages.** Ce que vous voyez sur
+  `/profile` est ce que verra quelqu'un qui ouvre votre lien, aux actions près.
+  Deux copies auraient dérivé, et la version publique, celle qu'on partage,
+  aurait été la dernière servie.
+
+  **Le tableau de bord montre le « @ » à la place de l'adresse électronique.**
+  L'adresse ne dit rien qu'on ne sache déjà et vit dans `/account` ; le @, lui,
+  est ce qu'on donne à quelqu'un. En chasse fixe, comme un code-barres : c'est
+  une adresse, on la lit signe à signe.
+
+  **Reste non vérifié** : le parcours connecté, création du @, contrôle de
+  disponibilité, modification, masquage. Il demande une vraie session Google.
+  Les barrières, elles, sont mesurées (§3), et le middleware l'est sous
+  `wrangler` (§7).
 - **La consultation reste publique** : c'est la condition de l'indexation, donc
   de la migration Cloudflare. Ne pas fermer le catalogue.
 - **Rapatrier les images** hébergées chez editioncollector
@@ -4422,6 +4562,26 @@ Ce qui a évité le plus d'erreurs :
   `auth.users`, et la liste de ses éditions dans `collections`. Hébergement
   Supabase en Suède, dans l'Union, c'est ce qu'annonce `/compte`. À vérifier
   que les mentions publiées disent bien cela, et non l'inverse.
+- **Les listes deviennent publiques par défaut, le 3 août 2026.** C'est le
+  changement de posture le plus lourd depuis l'ouverture des comptes : la FAQ
+  répondait « Non » à « mes listes sont-elles visibles par d'autres ». Elle
+  répond maintenant « Oui, si votre page publique est active, et elle l'est par
+  défaut ».
+
+  **Le consentement est demandé une fois, au bon moment** : l'écran de choix du
+  @ annonce la page publique et écrit son adresse en toutes lettres, avant
+  qu'aucune donnée ne soit publiée. C'est la seule occasion où il est réellement
+  demandé, `/account` ne fait ensuite que l'entretenir.
+
+  **Ce que la page ne montre jamais** : l'adresse électronique et l'identifiant
+  Google. Ils vivent dans `auth.users`, qu'aucune fonction publique ne lit, et
+  le nom affiché est une colonne séparée précisément pour pouvoir en mettre un
+  autre.
+
+  Politique de confidentialité, sommaire servi par le middleware et FAQ
+  (`list-privacy`, plus une entrée `public-profile`) mis à jour dans le même
+  commit. Une promesse qui ne correspond plus au code est pire que pas de
+  promesse.
 - **Effacement (RGPD art. 17)** tenu par `public.supprimer_mon_compte()`,
   atteignable depuis `/compte`, lui-même lié depuis le menu du bandeau et
   depuis la politique de confidentialité, laquelle annonçait déjà la

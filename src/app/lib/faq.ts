@@ -235,8 +235,17 @@ export const FAQ: SectionFaq[] = [
         ancre: "list-privacy",
         question: "Mes listes sont-elles visibles par d’autres ?",
         reponse: [
-          "Non. Elles ne sont lisibles que par vous, et la base l’impose : aucun autre compte n’a le droit de les lire.",
-          "Il n’existe pas de profil public à ce jour, et en créer un demanderait un choix explicite de votre part.",
+          "Oui, si votre page publique est active, et elle l’est par défaut. Votre collection et vos envies s’affichent alors sur jaquette.app/u/votre-identifiant, consultable sans compte.",
+          "Ce que cette page ne montre jamais : votre adresse électronique et votre identifiant Google. Seuls y paraissent le nom que vous avez saisi, votre « @ » et les éditions marquées.",
+          "Vous pouvez la masquer à tout moment depuis « Mon compte ». Elle répond alors comme une page inexistante, et non « profil masqué » : personne ne peut déduire de l’adresse que le compte existe.",
+        ],
+      },
+      {
+        ancre: "public-profile",
+        question: "À quoi sert mon « @ » ?",
+        reponse: [
+          "Il donne son adresse à votre page de collection : jaquette.app/u/votre-identifiant. C’est le lien qu’on partage, et il s’ouvre sans compte.",
+          "Il se choisit à la création du compte et se change ensuite depuis « Mon compte ». Attention, changer d’identifiant change l’adresse : les liens déjà partagés cessent de fonctionner, et l’ancien identifiant redevient disponible pour quelqu’un d’autre.",
         ],
       },
       {

@@ -1,5 +1,5 @@
 import { lazy, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType } from "react-router";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType, useParams } from "react-router";
 import { Layout } from "./components/Layout";
 import { BrowsePage } from "./pages/BrowsePage";
 import { FilmDetailPage } from "./pages/FilmDetailPage";
@@ -27,6 +27,7 @@ import { RegroupementPage } from "./pages/RegroupementPage";
 import { IndexRegroupementsPage } from "./pages/IndexRegroupementsPage";
 import { IntrouvablePage } from "./pages/IntrouvablePage";
 import { redirectionDe } from "./lib/chemins";
+import { cheminProfil, normaliserIdentifiant } from "./lib/identifiant";
 /*
  * `/bienvenue` suit la même règle, et pour la même raison : c'est la page qu'on
  * donne en lien quand on présente le site, donc une porte d'entrée, donc un
@@ -44,6 +45,14 @@ import { BienvenuePage } from "./pages/BienvenuePage";
  */
 import { CataloguePage } from "./pages/CataloguePage";
 import { TableauDeBordPage } from "./pages/TableauDeBordPage";
+/*
+ * `/u/<identifiant>` : le profil public, embarqué lui aussi. C'est l'adresse
+ * qu'on partage, donc une porte d'entrée depuis l'extérieur, donc un chemin de
+ * consultation. La règle du §9 s'applique mot pour mot : un morceau `lazy()`
+ * demandé pendant la propagation d'un déploiement rend un écran vide, et un
+ * lien partagé n'a pas de seconde chance.
+ */
+import { ProfilPublicPage } from "./pages/ProfilPublicPage";
 import { useSession } from "./lib/auth";
 
 /*
@@ -210,6 +219,16 @@ function RedirectionAncienne() {
   return <Navigate to={`${cible ?? "/"}${search}`} replace />;
 }
 
+/**
+ * `/@rayan` vers `/u/rayan`. Toute autre adresse d'un seul segment est
+ * introuvable, comme avant.
+ */
+function ArobaseOuIntrouvable() {
+  const { segment = "" } = useParams();
+  if (!segment.startsWith("@")) return <IntrouvablePage />;
+  return <Navigate to={cheminProfil(normaliserIdentifiant(segment.slice(1)))} replace />;
+}
+
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
@@ -229,6 +248,12 @@ export default function App() {
           <Route path="/movies/:id" element={<FilmDetailPage />} />
           <Route path="/profile" element={<ProfilPage />} />
           <Route path="/account" element={<ComptePage />} />
+
+          {/* Le profil public. L'identifiant est la seule partie qui compte,
+              il n'y a pas d'id derrière comme sur une fiche film : c'est lui
+              qui est unique en base, et le changer change l'adresse, ce que
+              l'écran de modification annonce. */}
+          <Route path="/u/:identifiant" element={<ProfilPublicPage />} />
 
           {/* Pages de regroupement. Elles captent la requête de navigation
               (« steelbooks 4K », « éditions Carlotta ») et, surtout, donnent
@@ -276,6 +301,18 @@ export default function App() {
           <Route path="/confidentialite" element={<RedirectionAncienne />} />
           <Route path="/profil" element={<RedirectionAncienne />} />
           <Route path="/compte" element={<RedirectionAncienne />} />
+
+          {/* `/@rayan` est la forme qu'on écrit à la main, celle qu'on tape
+              après avoir lu un « @ » quelque part. La Pages Function la
+              redirige en 301, mais elle ne tourne qu'en production : sans cette
+              route, l'adresse tomberait sur l'écran introuvable dans le serveur
+              de développement.
+
+              Un segment dynamique ne peut pas porter de préfixe littéral en
+              react-router, d'où ce filtrage à l'exécution. Les chemins d'un
+              seul segment déjà déclarés plus haut ne passent pas ici : un
+              segment statique l'emporte toujours sur un paramètre. */}
+          <Route path="/:segment" element={<ArobaseOuIntrouvable />} />
 
           <Route path="*" element={<IntrouvablePage />} />
         </Route>

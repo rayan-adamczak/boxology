@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { ChevronDown, Settings, LogOut, Bookmark, Library, User as UserIcon, Bell, Search } from "lucide-react";
+import { ChevronDown, Settings, LogOut, Bookmark, Library, User as UserIcon, Bell, Search, Share2 } from "lucide-react";
 import { UserAvatar } from "./UserAvatar";
 import { Logo } from "./Logo";
 import { ChampRecherche } from "./ChampRecherche";
 import { connexionGoogle, deconnexion, nomAffiche, useSession } from "../lib/auth";
+import { arobase, cheminProfil } from "../lib/identifiant";
+import { useProfil } from "../lib/profils";
 
 /**
  * Bandeau, refait le 3 août 2026.
@@ -28,6 +30,8 @@ export function TopBar() {
   const [clocheOuverte, setClocheOuverte] = useState(false);
   const [saisie, setSaisie] = useState("");
   const session = useSession();
+  const etatProfil = useProfil();
+  const profil = etatProfil.statut === "pret" ? etatProfil.profil : null;
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -192,11 +196,28 @@ export function TopBar() {
                     >
                       <div className="px-3 py-2" style={{ borderBottom: "1px solid var(--reel-border)" }}>
                         <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--reel-text)" }}>
-                          {nomAffiche(session)}
+                          {profil?.nom ?? nomAffiche(session)}
                         </p>
-                        <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>{session.user.email}</p>
+                        {/* Le « @ » plutôt que l'adresse : c'est ce qu'on donne
+                            à quelqu'un, et le menu est l'endroit où on vient le
+                            relire. L'adresse reste sur `/account`. */}
+                        <p
+                          className="truncate"
+                          style={{
+                            fontFamily: profil ? "ui-monospace, SFMono-Regular, Menlo, monospace" : undefined,
+                            fontSize: "13px",
+                            color: "var(--reel-muted)",
+                          }}
+                        >
+                          {profil ? arobase(profil.identifiant) : session.user.email}
+                        </p>
                       </div>
                       <MenuItem icon={<UserIcon size={16} />} to="/profile">Mon profil</MenuItem>
+                      {profil?.visible && (
+                        <MenuItem icon={<Share2 size={16} />} to={cheminProfil(profil.identifiant)}>
+                          Ma page publique
+                        </MenuItem>
+                      )}
                       <MenuItem icon={<Library size={16} />} to="/profile">Ma collection</MenuItem>
                       <MenuItem icon={<Bookmark size={16} />} to="/profile?liste=envies">Mes envies</MenuItem>
                       <MenuItem icon={<Library size={16} />} to="/lists">Mes listes</MenuItem>

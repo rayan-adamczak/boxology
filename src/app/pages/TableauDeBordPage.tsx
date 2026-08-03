@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Library, Bookmark, Wallet, CalendarClock, ArrowRight, ListPlus, Settings } from "lucide-react";
+import { Library, Bookmark, Wallet, CalendarClock, ArrowRight, ListPlus, Settings, Share2 } from "lucide-react";
 import { UserAvatar } from "../components/UserAvatar";
 import { CarteEdition } from "../components/CarteEdition";
 import { RailHorizontal } from "../components/RailHorizontal";
@@ -15,6 +15,8 @@ import {
   type ResumeCollection,
 } from "../lib/tableau-de-bord";
 import { lienFilm } from "../lib/liens";
+import { arobase, cheminProfil } from "../lib/identifiant";
+import { useProfil } from "../lib/profils";
 import { useSeo } from "../lib/seo";
 
 /**
@@ -47,6 +49,8 @@ const CADRE = {
 
 export function TableauDeBordPage() {
   const session = useSession();
+  const etatProfil = useProfil();
+  const profil = etatProfil.statut === "pret" ? etatProfil.profil : null;
   const [resume, setResume] = useState<ResumeCollection | null>(null);
   const [activite, setActivite] = useState<ActiviteLigne[]>([]);
   const [dernieres, setDernieres] = useState<EditionWithFilm[]>([]);
@@ -102,15 +106,41 @@ export function TableauDeBordPage() {
             fond de page. Emboîter des cadres dans un cadre épaissit le bord
             gauche sans rien séparer de plus. */}
         <aside className="flex w-full shrink-0 flex-col gap-5 lg:sticky lg:top-[92px] lg:w-[248px]">
+          {/*
+            L'identité, et sous elle le « @ » plutôt que l'adresse électronique.
+
+            L'adresse ne dit rien qu'on ne sache déjà, et elle vit dans
+            `/account`. L'identifiant, lui, est ce qu'on donne à quelqu'un : il
+            doit se lire et se recopier depuis l'accueil, sans passer par les
+            réglages. En chasse fixe pour la même raison qu'un code-barres (§8),
+            c'est une adresse, on la lit signe à signe.
+
+            Repli sur l'adresse tant que le profil n'est pas lu : la ligne ne
+            doit pas être vide pendant le chargement, ni si la lecture échoue.
+          */}
           <div className="flex items-center gap-3">
-            <UserAvatar name={nomAffiche(session ?? null)} size={44} />
+            <UserAvatar name={profil?.nom ?? nomAffiche(session ?? null)} size={44} />
             <div className="min-w-0">
               <p className="truncate" style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)" }}>
-                {nomAffiche(session ?? null)}
+                {profil?.nom ?? nomAffiche(session ?? null)}
               </p>
-              <p className="truncate" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
-                {session?.user.email}
-              </p>
+              {profil ? (
+                <Link
+                  to={cheminProfil(profil.identifiant)}
+                  className="block truncate transition hover:brightness-125"
+                  style={{
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                    fontSize: "13px",
+                    color: "var(--reel-accent-clair)",
+                  }}
+                >
+                  {arobase(profil.identifiant)}
+                </Link>
+              ) : (
+                <p className="truncate" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+                  {session?.user.email}
+                </p>
+              )}
             </div>
           </div>
 
@@ -139,6 +169,14 @@ export function TableauDeBordPage() {
           <div className="flex flex-col gap-1">
             <LienPanneau to="/profile" icone={Library}>Ma collection</LienPanneau>
             <LienPanneau to="/profile?liste=envies" icone={Bookmark}>Mes envies</LienPanneau>
+            {/* Le lien de partage n'apparaît que si la page est réellement
+                servie : proposer de partager une adresse qui répond 404 serait
+                pire que ne rien proposer. */}
+            {profil?.visible && (
+              <LienPanneau to={cheminProfil(profil.identifiant)} icone={Share2}>
+                Ma page publique
+              </LienPanneau>
+            )}
           </div>
 
           <div style={{ borderTop: "1px solid var(--reel-border)" }} />

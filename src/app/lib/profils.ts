@@ -1,0 +1,301 @@
+import { useEffect, useReducer } from "react";
+import { identiteCourante, useSession } from "./auth";
+import { clientAuthentifie, supabase } from "./supabase";
+import type { StatutValue } from "./reelio-db";
+
+/**
+ * Le profil public d'un compte : son identifiant @, son nom affiché, et
+ * l'interrupteur qui décide si la page est servie.
+ *
+ * Deux chemins de lecture, et ils ne se croisent jamais :
+ *
+ *   - **le sien**, par la table `profils` sous jeton de session, la RLS ne
+ *     rendant que sa propre ligne ;
+ *   - **celui d'un autre**, par les fonctions `profil_public` et
+ *     `editions_du_profil`, en clé anon. `profils` et `collections` restent
+ *     inaccessibles à `anon`, ces deux fonctions sont la seule porte, et c'est
+ *     ce qui garde `visible` à un seul endroit (cf. la migration
+ *     `20260803_profils.sql`).
+ *
+ * Un compte connecté qui regarde le profil de quelqu'un d'autre emprunte le
+ * second chemin comme tout le monde : une seule porte, un seul endroit où
+ * `visible` peut être oublié.
+ */
+
+/** Le profil du compte connecté, tel qu'il peut le modifier. */
+export interface Profil {
+  identifiant: string;
+  nom: string;
+  visible: boolean;
+}
+
+/** Ce qu'un visiteur sans compte a le droit de voir. Jamais l'adresse. */
+export interface ProfilPublic {
+  identifiant: string;
+  nom: string;
+  creeLe: string;
+  /** Éditions marquées « possédée ». Compté en base, listes comprises. */
+  possedees: number;
+  envies: number;
+}
+
+/** Réponse de `etat_identifiant`. Le motif, pas seulement un oui ou non. */
+export type EtatIdentifiant = "libre" | "pris" | "reserve" | "invalide";
+
+/**
+ * L'état du profil du compte courant, vu par l'interface.
+ *
+ * Cinq cas et non trois, parce que « pas encore chargé », « pas de compte » et
+ * « compte sans profil » appellent trois écrans différents, et surtout parce
+ * qu'**une panne ne doit pas se lire comme une absence** : `erreur` laisse
+ * passer, `absent` bloque sur l'écran de choix. Confondre les deux enfermerait
+ * un utilisateur hors du site pour une coupure réseau, exactement le défaut du
+ * 30 juillet consigné au §9.
+ */
+export type EtatProfil =
+  | { statut: "attente" }
+  | { statut: "anonyme" }
+  | { statut: "absent" }
+  | { statut: "pret"; profil: Profil }
+  | { statut: "erreur" };
+
+/* -------------------------------------------------------------------------- */
+/* Cache partagé                                                              */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Le profil est lu par le bandeau, le tableau de bord, la page de profil et le
+ * garde-fou du Layout. Sans cache partagé, chacun déclencherait sa propre
+ * requête au montage, et un changement d'identifiant n'en rafraîchirait qu'un.
+ *
+ * `userId` fait partie de l'état : changer de compte dans le même onglet, ce
+ * qui arrive en se déconnectant puis reconnectant, doit invalider le cache et
+ * non recycler le profil du précédent.
+ */
+let cache: { userId: string; etat: EtatProfil } | null = null;
+let enCours: Promise<void> | null = null;
+const auditeurs = new Set<() => void>();
+
+function notifier(): void {
+  for (const auditeur of auditeurs) auditeur();
+}
+
+function poser(userId: string, etat: EtatProfil): void {
+  cache = { userId, etat };
+  notifier();
+}
+
+/**
+ * Recharge le profil du compte connecté.
+ *
+ * Une seule requête en vol à la fois : quatre composants montés ensemble
+ * partagent la même promesse. L'échec n'est pas mis en cache comme état
+ * définitif, il est rangé en `erreur`, que le prochain appel retentera.
+ */
+export async function rafraichirProfil(): Promise<void> {
+  if (enCours) return enCours;
+
+  enCours = (async () => {
+    const identite = await identiteCourante();
+    if (!identite) {
+      cache = null;
+      notifier();
+      return;
+    }
+
+    const { data, error } = await clientAuthentifie(identite.jeton)
+      .from("profils")
+      .select("identifiant, nom, visible")
+      .eq("user_id", identite.userId)
+      .maybeSingle();
+
+    if (error) {
+      // Une lecture qui échoue doit se voir (§9). Ici « se voir » veut dire :
+      // ne pas être prise pour un compte sans profil, ce qui enverrait
+      // l'utilisateur sur l'écran de création alors qu'il en a déjà un.
+      poser(identite.userId, { statut: "erreur" });
+      return;
+    }
+
+    poser(
+      identite.userId,
+      data
+        ? { statut: "pret", profil: data as Profil }
+        : { statut: "absent" },
+    );
+  })().finally(() => {
+    enCours = null;
+  });
+
+  return enCours;
+}
+
+/**
+ * L'état du profil courant, partagé par tous les composants qui l'appellent.
+ *
+ * Ne déclenche aucune requête tant que la session n'est pas résolue, et aucune
+ * du tout sans compte : un visiteur de passage, le cas courant, ne paie rien.
+ */
+export function useProfil(): EtatProfil {
+  const session = useSession();
+  const [, forcer] = useReducer((n: number) => n + 1, 0);
+
+  useEffect(() => {
+    auditeurs.add(forcer);
+    return () => {
+      auditeurs.delete(forcer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (session === undefined) return;
+    if (session === null) {
+      if (cache !== null) {
+        cache = null;
+        notifier();
+      }
+      return;
+    }
+    if (cache?.userId === session.user.id && cache.etat.statut !== "erreur") return;
+    void rafraichirProfil();
+    // Comme ailleurs dans le dépôt : on suit l'identité, pas l'objet session,
+    // recréé à chaque rafraîchissement de jeton.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session === undefined, session?.user.id]);
+
+  if (session === undefined) return { statut: "attente" };
+  if (session === null) return { statut: "anonyme" };
+  if (cache?.userId !== session.user.id) return { statut: "attente" };
+  return cache.etat;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Écriture                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/** Disponibilité d'un identifiant, motif compris. Demande une session. */
+export async function etatIdentifiant(identifiant: string): Promise<EtatIdentifiant> {
+  const identite = await identiteCourante();
+  if (!identite) throw new Error("Un compte est nécessaire.");
+
+  const { data, error } = await clientAuthentifie(identite.jeton).rpc("etat_identifiant", {
+    p_identifiant: identifiant,
+  });
+  if (error) throw new Error(`Vérification impossible : ${error.message}`);
+  return data as EtatIdentifiant;
+}
+
+/**
+ * Crée le profil du compte connecté. Un seul par compte, la clé primaire étant
+ * `user_id` : une seconde tentative se solde par un conflit, pas par un doublon.
+ */
+export async function creerProfil(identifiant: string, nom: string): Promise<Profil> {
+  const identite = await identiteCourante();
+  if (!identite) throw new Error("Un compte est nécessaire.");
+
+  const ligne = { user_id: identite.userId, identifiant, nom };
+  const { data, error } = await clientAuthentifie(identite.jeton)
+    .from("profils")
+    .insert(ligne)
+    .select("identifiant, nom, visible")
+    .single();
+  if (error) throw new Error(traduire(error));
+
+  const profil = data as Profil;
+  poser(identite.userId, { statut: "pret", profil });
+  return profil;
+}
+
+/** Modifie ce qui est passé, laisse le reste. */
+export async function majProfil(champs: Partial<Profil>): Promise<Profil> {
+  const identite = await identiteCourante();
+  if (!identite) throw new Error("Un compte est nécessaire.");
+
+  const { data, error } = await clientAuthentifie(identite.jeton)
+    .from("profils")
+    .update(champs)
+    .eq("user_id", identite.userId)
+    .select("identifiant, nom, visible")
+    .single();
+  if (error) throw new Error(traduire(error));
+
+  const profil = data as Profil;
+  poser(identite.userId, { statut: "pret", profil });
+  return profil;
+}
+
+/**
+ * Message lisible pour les deux refus que la base sait opposer.
+ *
+ * `23505` est le conflit d'unicité : quelqu'un a pris l'identifiant entre la
+ * vérification et l'envoi. Rare, mais c'est la seule garantie réelle, la
+ * vérification n'étant qu'une amabilité. `23514` est le code que le
+ * déclencheur pose sur un identifiant réservé.
+ */
+function traduire(error: { code?: string; message: string }): string {
+  if (error.code === "23505") return "Cet identifiant vient d’être pris. Essayez-en un autre.";
+  if (error.code === "23514") return "Cet identifiant est réservé. Essayez-en un autre.";
+  return `Enregistrement impossible : ${error.message}`;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Lecture publique                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Le profil désigné par un identifiant, ou `null`.
+ *
+ * `null` couvre aussi bien l'identifiant inconnu que le profil masqué, et
+ * c'est délibéré : les distinguer dirait quels comptes existent.
+ */
+export async function profilPublic(identifiant: string): Promise<ProfilPublic | null> {
+  const { data, error } = await supabase.rpc("profil_public", { p_identifiant: identifiant });
+  if (error) throw new Error(`Profil indisponible : ${error.message}`);
+  if (!data) return null;
+
+  const brut = data as {
+    identifiant: string;
+    nom: string;
+    cree_le: string;
+    possedees: number;
+    envies: number;
+  };
+  return {
+    identifiant: brut.identifiant,
+    nom: brut.nom,
+    creeLe: brut.cree_le,
+    possedees: brut.possedees,
+    envies: brut.envies,
+  };
+}
+
+/**
+ * Les éditions d'une liste publique, du geste le plus récent au plus ancien.
+ *
+ * Rend des identifiants : les éditions elles-mêmes se relisent ensuite par le
+ * chemin ordinaire du catalogue (`getEditionsByIds`), qui est public. La
+ * fonction en base n'a donc pas à savoir ce qu'une carte affiche.
+ */
+export async function editionsDuProfil(
+  identifiant: string,
+  statut: StatutValue,
+): Promise<number[]> {
+  const PAGE = 500;
+  const ids: number[] = [];
+
+  for (let debut = 0; ; debut += PAGE) {
+    const { data, error } = await supabase.rpc("editions_du_profil", {
+      p_identifiant: identifiant,
+      p_statut: statut,
+      p_debut: debut,
+      p_limite: PAGE,
+    });
+    if (error) throw new Error(`Liste indisponible : ${error.message}`);
+
+    const lot = (data ?? []) as number[];
+    ids.push(...lot);
+    if (lot.length < PAGE) break;
+  }
+
+  return ids;
+}

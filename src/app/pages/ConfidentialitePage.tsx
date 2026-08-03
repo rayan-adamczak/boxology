@@ -114,6 +114,32 @@ export function ConfidentialitePage() {
         </p>
       </Section>
 
+      <Section titre="Votre page publique">
+        <p>
+          À la création du compte, vous choisissez un identifiant, votre « @ ». Il donne son adresse
+          à une page qui présente votre collection et vos envies, consultable{" "}
+          <strong style={{ color: "var(--reel-text)" }}>sans compte</strong> par toute personne
+          disposant du lien.
+        </p>
+        <p>
+          Cette page affiche le nom que vous avez saisi, votre identifiant et les éditions que vous
+          avez marquées. Elle n’affiche{" "}
+          <strong style={{ color: "var(--reel-text)" }}>jamais</strong> votre adresse électronique ni
+          votre identifiant Google : ces deux-là ne sortent pas des tables auxquelles la clé publique
+          du site n’a aucun accès.
+        </p>
+        <p>
+          Le nom affiché est repris de votre compte Google à l’inscription, puis modifiable :
+          personne n’est tenu de publier son état civil pour avoir une page.
+        </p>
+        <p>
+          <strong style={{ color: "var(--reel-text)" }}>Vous pouvez la masquer</strong> à tout moment
+          depuis la page Mon compte. L’adresse répond alors comme une page inexistante, et non
+          « profil masqué » : un visiteur ne peut pas en déduire que le compte existe. Vos listes
+          restent visibles pour vous seul, et rien n’est effacé.
+        </p>
+      </Section>
+
       <Section titre="Ce que le site ne fait pas">
         <ul className="flex list-disc flex-col gap-1 pl-5">
           <li>aucun outil de mesure d’audience ou d’analyse comportementale ;</li>
