@@ -2325,6 +2325,20 @@ Thrones*, la fiche la plus fournie du catalogue avec 64 éditions :
 | page avec le bloc | 97 370 o | 11 390 o |
 | la requête qu'il remplace | 107 890 o | 10 023 o |
 
+**Mesuré une fois déployé, sur cette même fiche** :
+
+    192 ms  HTML servi, données comprises
+    388 ms  bundle exécuté, React monte avec ses 64 éditions déjà en main
+    691 ms  relecture en arrière-plan
+
+Le contenu est donc **complet au montage**, et ce qui suit ne fait que
+rafraîchir. C'est la mesure à refaire si un jour la fiche paraît de nouveau
+lente : ce qui compte n'est pas le total mais l'écart entre `388` et `691`,
+c'est-à-dire ce que la page attend avant d'afficher quelque chose.
+
+Les blocs mesurés en production, pour savoir à quoi s'attendre : 2 563 octets
+sur une édition, 11 227 sur neuf, 72 510 sur soixante-quatre.
+
 **Le corps, parce que le `<head>` ne suffisait pas.** Le corps servi faisait
 48 octets, `<div id="root"></div>` et rien d'autre : un moteur qui n'exécute
 pas le JavaScript n'avait aucun texte à lire, et une fiche ne pouvait pas
@@ -3627,6 +3641,20 @@ branché sur l'enrichissement dvdfr par code-barres, et les flux marchands.
   fait afficher le tableau de bord une seconde avant de retomber sur le
   catalogue. C'est le clignotement d'hier, dans l'autre sens, et bien plus rare.
   Éprouvé sous `wrangler` dans les deux sens, avec et sans clé en stockage.
+
+  **Le troisième étage est au §7**, et il complète les deux autres : les données
+  de la fiche sont désormais inlinées dans la page par le middleware, donc React
+  monte avec son contenu. Les trois correctifs visent la même chose, ne pas
+  peindre un état qu'on sait faux. **La règle qui s'en dégage, et qui vaudra
+  pour les prochains écrans : ce qui se décide au premier rendu doit se décider
+  sans réseau.** Le stockage local pour le compte, le HTML pour les données ;
+  tout ce qui demande un aller-retour arrive après, et ne fait que confirmer.
+
+  **Ce qui n'est toujours pas couvert** : le parcours connecté n'a pas été
+  exercé de bout en bout, faute de session Google, ici comme dans les deux
+  audits. `compteProbable()` et `apercuNom()` ont été éprouvés avec une session
+  posée à la main dans le stockage, ce qui valide le choix d'écran et le nom
+  affiché, pas le rafraîchissement d'un vrai jeton.
 - **Authentification en ligne depuis le 30 juillet 2026.** Google uniquement,
   `auth-js` seul et chargé à la demande, +0,75 Ko compressé au bundle initial,
   le reste dans un morceau séparé de 24,5 Ko. Parcours exercé de bout en bout en
