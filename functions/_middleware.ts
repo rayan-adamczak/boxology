@@ -83,6 +83,16 @@ interface EditionSeo {
   editeur: string | null;
   date_parution: string | null;
   formats_extraits: string[] | null;
+  /** Offres marchandes, jointure à gauche : vide sur 96 % du catalogue. */
+  offres: OffreSeo[] | null;
+}
+
+interface OffreSeo {
+  marchand: string;
+  prix: string | number | null;
+  devise: string;
+  disponible: boolean | null;
+  releve_le: string;
 }
 
 interface FilmSeo {
@@ -132,7 +142,12 @@ async function lireFilm(id: number): Promise<FilmSeo | null> {
   const champsFilm =
     "id,titre,titre_original,type,annee,duree,note,nb_votes,realisateur," +
     "scenariste,genres,pays,date_sortie,imdb_id,synopsis,affiche_url,slug";
-  const champsEdition = "id,titre,ean,image_url,editeur,date_parution,formats_extraits";
+  /* `offres(...)` est une jointure à gauche : une édition sans offre revient
+     avec un tableau vide plutôt que de disparaître. C'est le cas de 96 % du
+     catalogue, donc ce n'est pas un détail de forme. */
+  const champsEdition =
+    "id,titre,ean,image_url,editeur,date_parution,formats_extraits," +
+    "offres(marchand,prix,devise,disponible,releve_le)";
 
   const url =
     `https://${PROJET}.supabase.co/rest/v1/films` +
@@ -294,26 +309,107 @@ function compacter<T extends Record<string, unknown>>(objet: T): T {
  * que `7.901` est une note sur 10 portée par 29 867 votes, que `Chris Columbus`
  * est le réalisateur, et surtout que telle édition porte tel code-barres.
  *
- * **Pas de nœud `Product`, et ce n'est pas un oubli.** Un par édition à
- * code-barres a été posé le 31 juillet 2026, puis retiré le jour même : le test
- * en direct de la Search Console les a tous déclarés non valides, avec le
- * message « Il faut indiquer "offers", "review", ou "aggregateRating" ».
+ * **Un nœud `Product` par édition qui porte une offre réelle**, et par elle
+ * seule. Rétabli le 3 août 2026, après avoir été posé puis retiré le jour même
+ * le 31 juillet : le test de la Search Console les avait alors tous déclarés
+ * non valides, « Il faut indiquer "offers", "review", ou "aggregateRating" ».
  *
- * Aucune de ces trois issues n'est honnête ici. On n'a pas d'avis. La note TMDB
- * porte sur l'œuvre, l'accrocher à un disque serait faux. Et `prix_editeur` est
- * un prix conseillé, pas une offre : le site ne vend rien, aucun programme Awin
- * n'est accepté, et déclarer une disponibilité qu'on ignore est exactement ce
- * que Google sanctionne.
+ * Aucune des trois issues n'était honnête à l'époque. On n'a pas d'avis. La
+ * note TMDB porte sur l'œuvre, l'accrocher à un disque serait faux. Et
+ * `prix_editeur` est un prix conseillé, pas une offre.
  *
- * Un balisage qui ne peut produire aucun résultat enrichi et qui laisse une
- * erreur permanente dans la Search Console est un passif : elle masquerait les
- * vraies erreurs plus tard. **L'EAN reste dans le texte du corps injecté**
- * (cf. `corpsFilm`), donc lisible par un moteur, ce qui préserve l'essentiel.
+ * **Ce qui a changé, c'est la troisième.** Le programme Awin d'E.Leclerc est
+ * accepté, `public.offres` porte des prix marchands datés, donc `offers` cesse
+ * d'être le champ qu'on ne peut pas remplir sans mentir. 724 éditions sur 658
+ * films en portent une ; les autres n'ont **aucun** nœud `Product`, et c'est
+ * la bonne réponse plutôt qu'un nœud incomplet qui laisserait une erreur
+ * permanente dans la Search Console.
  *
- * À rouvrir le jour où un flux Awin est accepté : les offres seront réelles, le
- * `Product` redeviendra valide, et `gtin13` est ce qui nous distingue, ni TMDB
- * ni SensCritique ne publiant cette donnée.
+ * Trois choix qui ne se devinent pas à la relecture :
+ *
+ *   - **deux types, `Product` et `CreativeWork`.** Le second est ce qui autorise
+ *     `exampleOfWork` pour rattacher le disque à l'œuvre. `isRelatedTo` attend
+ *     un `Product` ou un `Service` et ne peut pas désigner un film ;
+ *   - **`offers.url` est la fiche du site, pas le lien d'affiliation.** Le lien
+ *     de tracking a sa place dans la page, où il est déclaré `rel="sponsored"`,
+ *     pas dans un balisage lu par une machine qui n'a pas à être redirigée ;
+ *   - **`priceValidUntil` vaut le relevé plus un jour**, parce que la passe
+ *     tourne tous les jours (`maj-awin.yml`). Annoncer une validité plus longue
+ *     que la fréquence de rafraîchissement serait une promesse qu'on ne tient
+ *     pas, et Google traite une offre périmée comme une erreur.
+ *
+ * `gtin13` est ce qui nous distingue : ni TMDB ni SensCritique ne publient
+ * cette donnée. Et sur les éditions sans offre, **l'EAN reste dans le texte du
+ * corps injecté** (cf. `corpsFilm`), donc lisible par un moteur, ce qui
+ * préserve l'essentiel de ce que ce balisage apportait.
  */
+/**
+ * Un nœud `Product` par édition qui porte une offre exploitable.
+ *
+ * « Exploitable » veut dire un prix strictement positif : `public.offres`
+ * autorise `prix` nul, et un `Offer` sans `price` est refusé par Google, ce qui
+ * remettrait une erreur permanente dans la Search Console. Mieux vaut aucun
+ * nœud qu'un nœud invalide, c'est toute la leçon du 31 juillet.
+ *
+ * Une édition peut porter plusieurs offres le jour où un deuxième programme est
+ * accepté : `offers` prend alors le tableau, ce que schema.org accepte.
+ */
+function produits(film: FilmSeo, canonical: string): Record<string, unknown>[] {
+  const noeuds: Record<string, unknown>[] = [];
+
+  for (const lien of film.edition_films ?? []) {
+    const ed = lien.edition;
+    if (!ed) continue;
+
+    const offres = (ed.offres ?? [])
+      .map((o) => {
+        const prix = Number(o.prix);
+        if (!Number.isFinite(prix) || prix <= 0) return null;
+        /* Le relevé plus un jour : la passe tourne quotidiennement, annoncer
+           plus long serait une promesse qu'on ne tient pas. `Date` accepte
+           l'horodatage ISO de PostgREST, et `toISOString` le ramène en UTC. */
+        const valide = new Date(new Date(o.releve_le).getTime() + 86_400_000);
+        return compacter({
+          "@type": "Offer",
+          price: prix.toFixed(2),
+          priceCurrency: o.devise || "EUR",
+          availability: o.disponible
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+          priceValidUntil: Number.isNaN(valide.getTime())
+            ? null
+            : valide.toISOString().slice(0, 10),
+          /* La fiche du site, jamais le lien d'affiliation : celui-ci est
+             déclaré `rel="sponsored"` dans la page, et un balisage lu par une
+             machine n'a pas à la faire passer par une redirection de tracking. */
+          url: canonical,
+          seller: { "@type": "Organization", name: o.marchand },
+        });
+      })
+      .filter(Boolean);
+
+    if (offres.length === 0) continue;
+
+    noeuds.push(
+      compacter({
+        /* Deux types : `CreativeWork` est ce qui autorise `exampleOfWork`,
+           `isRelatedTo` n'acceptant qu'un `Product` ou un `Service`. */
+        "@type": ["Product", "CreativeWork"],
+        "@id": `${canonical}#edition-${ed.id}`,
+        name: ed.titre || `${film.titre} — édition`,
+        gtin13: ed.ean,
+        image: ed.image_url,
+        brand: ed.editeur ? { "@type": "Brand", name: ed.editeur } : null,
+        releaseDate: ed.date_parution,
+        exampleOfWork: { "@id": `${canonical}#oeuvre` },
+        offers: offres.length === 1 ? offres[0] : offres,
+      }),
+    );
+  }
+
+  return noeuds;
+}
+
 function donneesStructurees(film: FilmSeo, canonical: string): string {
   const note = Number(film.note);
   const votes = Number(film.nb_votes);
@@ -360,7 +456,10 @@ function donneesStructurees(film: FilmSeo, canonical: string): string {
     ],
   };
 
-  const graphe = { "@context": "https://schema.org", "@graph": [oeuvre, filAriane] };
+  const graphe = {
+    "@context": "https://schema.org",
+    "@graph": [oeuvre, ...produits(film, canonical), filAriane],
+  };
 
   /* `</script>` dans un synopsis fermerait la balise par surprise. Échapper le
      chevron ouvrant suffit à l'empêcher, et reste du JSON valide. */
