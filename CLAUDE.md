@@ -12,12 +12,24 @@ pour le marché français. Anciennement *Boxology*, renommé en juillet 2026.
 | Nom | **jaquette.app**, en minuscules, extension comprise. Depuis juillet 2026 : « jaquette » seul est un nom commun, le `.app` est ce qui démarque. Vaut partout : mot-symbole, `<title>`, `og:site_name` |
 | Domaine | `jaquette.app`, **en ligne**, apex et `www` |
 | Dépôt | `github.com/rayan-adamczak/jaquette` (public) |
-| Éditeur | Rayan Adamczak, designer, à titre non professionnel |
+| Éditeur | Rayan Adamczak, **entrepreneur individuel**, SIREN 852 258 680, SIRET 852 258 680 00028, RNE. Siège 32 D passage privé du Maupas, 58000 Nevers. Franchise en base, art. 293 B du CGI |
 | Contact | `contact@jaquette.app`, Cloudflare Email Routing, redirige vers rayan.adamczak@gmail.com. Réception seulement, pas d'envoi |
-| Compte Awin | `Boxology` (3006883), 4 candidatures en attente |
+| Compte Awin | `Jaquette.app` (3006883), **E.Leclerc accepté le 3 août 2026**, Fnac, Cultura et Zavvi en attente |
 
-**Ambition** : devenir commercial via liens d'affiliation. Aujourd'hui purement
-informatif, aucun partenariat actif.
+**Le site est commercial depuis le 3 août 2026.** L'ambition du §1 d'origine est
+atteinte : le premier programme d'affiliation est accepté, 724 offres sont en
+ligne, et les pages légales ont basculé en régime professionnel (§10).
+
+**Le compte Awin ne s'appelle plus `Boxology`.** Le renommage a suivi celui du
+site ; l'identifiant 3006883, lui, n'a pas bougé.
+
+**L'APE est `74.10Z`, activités spécialisées de design, et il ne couvre pas
+l'apport d'affaires.** Le code APE est statistique et n'interdit rien, mais la
+nature du revenu, BIC ou BNC, change le taux URSSAF et la ligne de déclaration.
+Question ouverte au 3 août 2026, à trancher avec l'URSSAF **avant le premier
+virement Awin**, pas avant une mise en ligne : rien de tout cela ne bloque le
+site. C'est aussi ce qui fait écrire « RNE » et non « RCS » dans les mentions,
+un APE ni commercial ni artisanal n'ouvrant aucun de ces deux registres.
 
 ---
 
@@ -120,7 +132,7 @@ l'ancienne supprimée du tableau de bord.
 
 ## 3. Modèle de données
 
-### `films`, 8 664 lignes
+### `films`, 10 871 lignes (3 août 2026, dont 748 séries)
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
@@ -181,7 +193,7 @@ toujours. Au 31 juillet 2026 la tête de liste est *L'Odyssée* (1 167),
 indéfiniment les succès du jour de l'import, d'où la tâche hebdomadaire
 décrite au §6.
 
-### `editions`, 15 483 lignes
+### `editions`, 20 602 lignes (3 août 2026)
 `id` (identity **ajoutée en juillet 2026**, elle manquait, toute insertion
 applicative échouait), `titre`, `ean`, `date_sortie`, `pays`, `region`,
 `formats_extraits` (text[]), `url_source`, `contenu_brut`, `image_url`,
@@ -272,9 +284,14 @@ Répartition : `zavvi` 4 446, `bluray_tmdb` 3 106, `bluray_page` 2 891,
 `chat_qui_fume_duree` 66, `metaluna_relecture` 76 et
 `metaluna_relecture_partiel` 2, `fusion_doublon` 3.
 
-17 513 liens pour **14 586 éditions rattachées** sur 15 483, soit 94,2 % :
-l'écart entre liens et éditions, ce sont les coffrets, qui portent un lien par
-film.
+21 055 liens pour **18 110 éditions rattachées** sur 20 602, soit 87,9 % au
+3 août 2026 : l'écart entre liens et éditions, ce sont les coffrets, qui portent
+un lien par film.
+
+Le taux était à 94,2 % la veille. Il baisse parce que les vagues Metaluna font
+entrer des catalogues d'éditeurs que TMDB indexe mal, et c'est le mouvement
+normal décrit juste en dessous : **un taux qui ne baisse jamais est le signe
+qu'on force les liens, pas qu'on les mesure.**
 
 **Le taux a monté en absorbant 4 446 éditions**, ce qui paraît contre-intuitif
 et ne l'est pas : l'import Zavvi du 2 août 2026 n'a écrit **que des éditions
@@ -365,6 +382,34 @@ s'appelle littéralement `Blu-ray 4K`. Le §9 dit déjà qu'un candidat réduit 
 vocabulaire d'édition n'est pas un titre ; **la règle vaut dans les deux sens,
 la cible comme le candidat**. Second indice, décisif : sur les 130 paires où
 les deux côtés portaient un EAN, **aucune** ne concordait.
+
+### `offres`, posée le 3 août 2026, 724 lignes
+
+Offres marchandes : `edition_id`, `marchand`, `reference`, `ean`, `prix`
+(numeric), `devise`, `disponible`, `url`, `image_url`, `releve_le`. Unicité sur
+`(edition_id, marchand, reference)`, index sur `edition_id` et sur `ean`.
+Migration `20260803_offres.sql`, cascade sur `editions`.
+
+**Table séparée, et surtout pas une colonne de plus sur `editions`.**
+`prix_editeur` est un prix conseillé figé à la sortie du disque, dont la devise
+dépend même de la source (§5, Zavvi en livres). Une offre est datée, change tous
+les jours, et il y en aura plusieurs par édition dès le deuxième programme
+accepté. Les mêler donnerait une colonne dont on ne saurait plus dire ce qu'elle
+mesure.
+
+`releve_le` n'est pas décoratif : un prix affiché est une information
+commerciale, il doit se dater à l'écran, et une passe qui ne tourne plus doit se
+voir plutôt que servir indéfiniment le prix de la semaine dernière.
+
+`url` est le lien de tracking Awin, **jamais l'URL marchande nue**. C'est la
+seule colonne dont une valeur fausse est silencieuse : le lien marche, il ne
+rapporte simplement rien.
+
+**Barrière posée comme `collections`, pas comme le catalogue.** `revoke insert,
+update, delete, truncate` à `anon` **et** `authenticated`, policy `select` pour
+tous. Vérifié par un vrai `INSERT` anon, pas par un `PATCH` sur filtre vide :
+
+    42501  permission denied for table offres
 
 ### Tables de sauvegarde
 `editions_film_id_backup_20260728`, `editions_supprimees_20260728`.
@@ -558,13 +603,32 @@ de `auth.users` au-delà d'un décompte par fournisseur.
 
 | | |
 |---|---|
-| Films | 8 664 |
-| Éditions | 15 483 |
+Mesuré le 3 août 2026 en fin de journée. **Ces chiffres bougent plusieurs fois
+par jour** depuis que les cinq passes tournent sur Actions et que les vagues
+Metaluna s'enchaînent : les relever plutôt que les recopier.
+
+| | |
+|---|---|
+| Films | 10 871, dont 748 séries |
+| Éditions | 20 602 |
 | Codes-barres | 5 460, dont 13 codes de magasin sans valeur hors enseigne |
-| Éditions rattachées | 14 586 (94,2 %) |
-| Éditions sans film | 897 |
-| Éditions avec visuel | 15 164 (97,9 %) |
-| URL au sitemap | 9 525 |
+| Éditions rattachées | 18 110 (87,9 %), pour 21 055 liens |
+| Éditions sans film | 2 492 |
+| Éditions avec visuel | 20 282 (98,4 %) |
+| **Offres marchandes** | **724**, sur 724 éditions et 658 films |
+| URL au sitemap | 11 982 |
+
+**La couverture EAN est retombée à 26,5 %**, 5 460 codes pour 20 602 éditions,
+contre 35 % au 2 août. Aucun code n'a été perdu : le dénominateur a doublé,
+Zavvi et Metaluna n'en publiant aucun. C'est ce qui bloque le scan de
+code-barres (§8) et ce qui rend le flux Leclerc précieux, lui donnant l'EAN à
+100 %.
+
+**Le taux de rattachement est descendu de 94,2 à 87,9 %**, et c'est la même
+mécanique qu'au 2 août, en sens inverse : les vagues Metaluna font entrer des
+catalogues d'éditeurs que TMDB indexe mal. Le nombre absolu d'orphelines monte,
+le taux baisse, et un taux qui ne baisse jamais serait le signe qu'on force les
+liens.
 
 **Zavvi est entré le 2 août 2026**, +4 446 éditions et +2 822 films, le plus
 gros import du catalogue, et le premier à passer **entièrement par GitHub
@@ -1235,6 +1299,88 @@ produits Awin, et le signalement d'édition manquante par l'utilisateur branché
 sur l'enrichissement dvdfr par code-barres, qui ne dépend d'aucune
 autorisation extérieure.
 
+### E.Leclerc par Awin, flux mesuré le 3 août 2026
+
+**Première source licenciée du catalogue.** Pas de crawl, pas de `robots.txt`,
+pas de pare-feu, pas d'IP bannie : un flux produit qu'on a le droit de
+télécharger, et des images licenciées pour l'usage affilié. C'est la seule
+source qui ne pose aucune question de collecte.
+
+L'URL de téléchargement se fabrique dans Awin, *Toolbox*, *Create-a-Feed*, et
+**porte la clé API** : elle vit dans l'environnement, `AWIN_FEED_LECLERC`,
+jamais dans le dépôt. Create-a-Feed était inutilisable tant qu'aucun programme
+n'avait validé, il rendait « Feed not found » ; il s'est ouvert le jour de
+l'acceptation.
+
+**Leclerc publie sept flux, pas un.** Le compteur du sélecteur d'annonceurs les
+liste avec leur volume :
+
+| flux | fid | produits |
+|---|---|---|
+| **Culturel** | 52431 | 91 284 |
+| Tous univers | 69029 | 108 649 |
+| Parapharmacie | 52429 | 8 225 |
+| High-Tech | 56585 | 3 846 |
+| Maison et Loisirs | 53647 | 2 338 |
+| Ma Cave | 68725 | 1 824 |
+| Optique | 41483 | 255 |
+
+« Tous univers » est l'union des six autres, à quelques centaines près. On prend
+**Culturel seul**, les disques y sont et le reste est du bruit.
+
+Sur les 91 284 lignes, **7 090 sont des disques** (7,8 %), le gros du flux étant
+du livre (37 730) et de la BD (5 986). Couverture, mesurée sur ces 7 090 et non
+sur un échantillon :
+
+    nom, EAN, prix, image, lien, stock, description   100 %
+
+**C'est la meilleure couverture jamais relevée**, et elle est sans précédent au
+catalogue : Zavvi, Metaluna et Le Chat qui fume ne publient aucun EAN, et
+editioncollector en écrivait 375 en chaîne vide (§9).
+
+**Mais le format n'est pas déclaré, sur 92,8 % des lignes.** Ni dans le nom, ni
+dans la description :
+
+| signal | lignes |
+|---|---|
+| aucun | 6 576 |
+| Blu-ray | 255 |
+| 4K | 135 |
+| DVD | 124 |
+
+`product_type` vaut `consumer` sur les 7 090, `brand_name` et `category_name`
+sont vides, `specifications` aussi. Seul `merchant_category` sépare, et mal :
+`DVD` 2 676 contre `DVD & Blu-ray` 4 341, où le « & » n'est pas décoratif. Pour
+un catalogue classé par format, c'est le trou de Zavvi déplacé ailleurs.
+
+Ni année, ni réalisateur, ni durée non plus : **aucune mesure indépendante**
+pour un rattachement TMDB, exactement la faiblesse d'editioncollector.
+
+**Le creux 2000-2014 n'est pas comblé.** Sur les 19 absents nommés du banc
+d'essai du 2 août (§8), **4 exacts** seulement, `Alpha`, `Les Huit Salopards`,
+`In the Mood for Love`, `Obsession`, plus `Insidious` en anthologie. Leclerc
+vend son stock du jour, pas un fonds.
+
+**Recoupement : 724 éditions.** 6 393 EAN du flux ne sont pas au catalogue, et
+**rien n'en a été importé** : voir §8, l'import est suspendu au format.
+
+### Ce qui a été fait du flux, et ce qui ne l'a pas été
+
+**Fait, et en ligne** : les 724 éditions déjà au catalogue portent une offre,
+prix, disponibilité et lien de tracking. Aucun film, aucune édition, aucun lien
+`edition_films` créé. C'était le seul travail sur ce flux qui ne demande aucune
+décision de rattachement, donc le premier.
+
+**Pas fait** : l'import des 6 393 restants. Écrire des milliers d'éditions dont
+on ignore si ce sont des DVD ou des 4K, sans année ni réalisateur pour
+contrôler, refait le lot `probable` du §3, faux à 23 %.
+
+**Le levier identifié, et il retourne une conclusion du §8** : `dvdfr.yml`
+interroge code-barres par code-barres et « n'élargit rien », ce qui le rendait
+inutile. Il donne précisément ce que Leclerc tait, format, zone et date
+française. Leclerc élargit, dvdfr qualifie. À mesurer avant de s'y engager : le
+débit réel sur 6 393 codes, le §5 gardant la trace d'un quota à 200 par semaine.
+
 ---
 
 ## 6. Scripts (`~/jaquette-scraping/`)
@@ -1659,6 +1805,47 @@ La passe repart de zéro à chaque fois, l'avancement sert à reprendre après u
 coupure, pas à sauter les films vus la semaine d'avant. C'est bien tout le
 catalogue qu'on veut réactualiser.
 
+### Awin (`awin/`, 2026-08-03)
+
+    export AWIN_FEED_LECLERC='…'          # Create-a-Feed, porte la clé API
+    python3 telecharger_awin.py leclerc
+    python3 sonde_awin.py                 # mesure, n'écrit rien
+    python3 offres_awin.py --apply        # pose les offres
+
+| Fichier | Rôle |
+|---|---|
+| `telecharger_awin.py` | Récupère le flux, garde le brut sous `brut/`, n'interprète rien |
+| `sonde_awin.py` | Mesure : colonnes, catégories, EAN, recoupement, manques. **Lecture seule** |
+| `offres_awin.py` | Écrit `offres` par EAN exact (`--apply`), purge ce que la passe n'a pas revu |
+
+**Aucune colonne n'est supposée.** Le jeu de colonnes d'un flux Awin est un choix
+fait dans Create-a-Feed, pas un contrat : la sonde relève l'en-tête, le publie,
+cherche chaque champ par une liste d'alias, et **annonce ce qu'elle n'a pas
+trouvé**. Un champ introuvable n'est jamais compté zéro en silence, c'est le §9
+mot pour mot.
+
+**Le filtre « disque » n'est pas décidé d'avance** : la sonde histogramme les
+catégories marchandes et publie le tableau, c'est en le lisant qu'on écrit le
+vrai filtre. Une enseigne généraliste a un vocabulaire de rayon qu'on ne devine
+pas.
+
+**`offres_awin.py` rapproche sur tout le flux, pas sur les lignes filtrées.** Un
+EAN exact qui tombe sur une de nos éditions **est** ce disque, la catégorie du
+marchand n'a plus rien à dire : c'est ce qui fait 724 offres au lieu des 697 que
+le filtre disque laissait voir.
+
+**Ce que la passe n'a pas revu est supprimé.** Un produit sorti du flux est
+délisté ; garder son offre afficherait un prix mort et un lien qui ne rapporte
+plus. La suppression ne porte que sur ce marchand et sur les lignes dont
+`releve_le` précède le début de la passe.
+
+**Rien ne planifie encore cette passe**, et c'est le manque à combler en
+premier : les 724 prix sont un instantané du 3 août 2026. Un prix affiché est
+une information commerciale, il se périme, et le site le date au survol sans
+pour autant se rafraîchir. Le flux Leclerc est régénéré tous les jours chez eux
+et le téléchargement ne coûte que quelques minutes de runner, sans crawl : c'est
+la passe la moins chère du dépôt et la seule dont le retard se voit à l'écran.
+
 ---
 
 ## 7. SEO
@@ -1674,7 +1861,7 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   Function les ajoute par fiche au lieu de les modifier, en se raccrochant à
   `og:site_name`, une balise qui existe à coup sûr.
 - **`sitemap.xml`** généré au build par `scripts/generer-sitemap.mjs` depuis la
-  base. **9 525 URL** au 2 août 2026, contre 5 446 la veille et 2 105 avant
+  base. **11 982 URL** au 3 août 2026, contre 9 525 la veille et 2 105 avant
   les campagnes de rattachement du 30 juillet 2026. Seuls les films
   rattachés à une édition y figurent, en **adresse canonique avec slug**. Le
   script casse le build s'il ne trouve aucun film, et aussi si `films.slug`
@@ -1683,6 +1870,30 @@ Chantier ouvert jusqu'en juillet 2026, désormais en place.
   dans la table générée.
 - **Search Console** : propriété Domaine validée, sitemap soumis et lu.
 - **Listes personnelles et écrans du prototype** en `noindex, follow`.
+- **`/legal` en `noindex, follow` depuis le 3 août 2026**, et **retirée du
+  sitemap** au même moment. La page a cessé d'être anonyme le jour où l'activité
+  est devenue professionnelle : elle porte désormais une adresse personnelle et
+  un numéro de portable que la LCEN oblige à publier (§10).
+
+  **L'obligation est de rendre accessible, pas de faire indexer.** Rien n'exige
+  qu'une adresse de domicile remonte dans les résultats sur le nom de l'éditeur,
+  et une page atteignable depuis le pied de page de tout le site est accessible
+  au sens de la loi.
+
+  Le retrait du sitemap va avec : demander l'indexation d'une page qui la refuse
+  est une contradiction que la Search Console signale. `/privacy` reste indexée,
+  elle ne porte aucune donnée personnelle.
+
+  **Ce qui n'a pas été fait, et volontairement** : masquer le numéro derrière un
+  bouton, l'écrire en image, ou le composer en JavaScript. Ces trois procédés
+  gênent d'abord les lecteurs d'écran, donc ils abîment l'accessibilité même de
+  la mention, qui est ce que la loi exige. Le seul vrai levier restant est une
+  adresse de domiciliation, qui retire l'adresse au lieu de la cacher.
+
+  Le `noindex` est posé **côté client** par `useSeo`, le middleware n'injectant
+  de `<head>` que sur `/movies/`. Google exécute le JavaScript, donc il le voit ;
+  un `X-Robots-Tag` dans `public/_headers` serait plus direct si le besoin se
+  précise.
 
 ### Rendu du `<head>` à la périphérie, en place le 31 juillet 2026
 
@@ -1853,14 +2064,23 @@ permanente dans la Search Console est un passif : elle masquerait les vraies
 erreurs plus tard. **L'EAN reste dans le texte du corps injecté**, donc lisible
 par un moteur, ce qui préserve l'essentiel.
 
-**Ne pas remettre de `Product` avant qu'un flux Awin soit accepté.** Ce jour-là
-les offres seront réelles, le nœud redeviendra valide, et `gtin13` vaudra la
-peine : 3 379 films sur 4 418 portent au moins un EAN, sur 5 305 au catalogue,
-et ni TMDB ni SensCritique ne publient cette donnée. Détail à ne pas
-reperdre : une édition doit porter **deux types**, `Product` et `CreativeWork`,
-le second étant ce qui autorise `exampleOfWork` pour la rattacher à l'œuvre.
-`isRelatedTo` attend un `Product` ou un `Service` et ne peut pas désigner un
-film.
+**La condition est levée depuis le 3 août 2026, et le chantier est ouvert.** Le
+programme E.Leclerc est accepté, `public.offres` porte 724 offres réelles sur
+658 films, donc `offers` cesse d'être le champ qu'on ne peut pas remplir
+honnêtement. Le nœud redevient valide sur ces 658 films, et sur eux seulement :
+les autres restent sans `Product`, faute d'offre, et c'est la bonne réponse.
+
+`gtin13` reste ce qui nous distingue, ni TMDB ni SensCritique ne le publiant.
+
+Détail à ne pas reperdre : une édition doit porter **deux types**, `Product` et
+`CreativeWork`, le second étant ce qui autorise `exampleOfWork` pour la
+rattacher à l'œuvre. `isRelatedTo` attend un `Product` ou un `Service` et ne
+peut pas désigner un film.
+
+Second détail, neuf : le middleware devra joindre `offres` pour écrire `price`,
+`priceCurrency`, `availability` et `priceValidUntil`. Déclarer un prix sans le
+dater est ce que Google sanctionne, et c'est aussi ce que la loi demande côté
+consommateur (§10).
 
 **Ce que le test valide aujourd'hui**, sur une fiche film :
 
@@ -2374,12 +2594,25 @@ produit trouvé est un disque avant de conclure à un défaut de rattachement.
 
 Les issues possibles, dans l'ordre :
 
-1. **Les flux produits Awin**, Fnac, Cultura, E.Leclerc, Zavvi : EAN, prix,
-   images, marché français, et c'est déjà l'objectif commercial du §1. Bloqué
-   tant qu'aucun programme n'a validé la candidature.
-2. **Le listing dvdfr**, écarté au §5 et toujours à raison : les facettes qui
+1. **Les flux produits Awin. Débloqué le 3 août 2026**, E.Leclerc accepté, flux
+   Culturel mesuré (§5). Fnac, Cultura et Zavvi restent en attente.
+
+   **Et le trou n'est pas comblé pour autant.** Le flux donne l'EAN, le prix,
+   l'image et le lien à 100 %, mais **pas le format sur 92,8 % des lignes**, et
+   ni année ni réalisateur. Sur les 19 absents nommés plus bas, il en apporte
+   4. Leclerc vend son stock du jour, pas un fonds : c'est une source de
+   **prix**, pas une source de **catalogue**.
+
+   Les 6 393 EAN qu'il porte et que nous n'avons pas ne sont pas importés,
+   et ne le seront pas tant que le format ne sera pas qualifié.
+2. **dvdfr par code-barres, et c'est un retournement.** Le §8 le rangeait comme
+   inutile à l'élargissement, ce qui reste vrai isolément. Mais il donne
+   exactement ce que Leclerc tait, format, zone et date française, sur un EAN
+   qu'on lui fournit. Leclerc élargit, dvdfr qualifie : la combinaison vaut
+   mieux que chacun des deux.
+3. **Le listing dvdfr**, écarté au §5 et toujours à raison : les facettes qui
    permettraient de n'énumérer que le Blu-ray sont en `Disallow`.
-3. Rien d'autre n'a été mesuré.
+4. Rien d'autre n'a été mesuré.
 
 **Ne pas attendre de dvdfr qu'il comble ce trou.** `dvdfr.yml` interroge
 **code-barres par code-barres**, à partir des EAN déjà en base : il apporte le
@@ -2389,10 +2622,13 @@ l'existant, il ne l'élargit pas, et son workflow dépose deux artefacts que
 rien n'écrit encore en base.
 
 ### Décisions en attente sur les orphelines
-Il reste **897 éditions sans film** au 2 août 2026, sur 15 483, le taux se
-tenant à 94,2 %. Le nombre absolu monte à chaque import et le taux aussi : ce
-sont deux mesures qui ne disent pas la même chose, et c'est la seconde qui
-compte.
+Il reste **2 492 éditions sans film** au 3 août 2026, sur 20 602, pour un taux
+de 87,9 %. La veille c'était 897 sur 15 483 et 94,2 %. Le nombre absolu et le
+taux sont deux mesures qui ne disent pas la même chose, et elles peuvent aller
+dans des sens opposés selon ce qu'un import fait entrer : Zavvi n'écrivait que
+du rattaché et faisait monter les deux, les vagues Metaluna font entrer des
+catalogues d'auteur que TMDB indexe mal et font baisser le taux. Aucun des deux
+mouvements n'est une anomalie.
 
 Les 116 orphelines ajoutées le 2 août sont les ambiguës des deux lots
 blu-ray.com : `import_3_ecrire.py` écrit l'édition mais ne pose un lien que sur
@@ -2538,12 +2774,24 @@ disque.
 #### Les deux murs, et ils ne se règlent pas par du front
 
 - **Le scan de code-barres, fonction la plus demandée.** 5 460 EAN pour
-  15 483 éditions, soit **35 %**, et Zavvi comme Metaluna n'en publient aucun.
-  Un scan qui échoue deux fois sur trois est pire que pas de scan. Le blocage
-  est la couverture EAN, pas le lecteur.
-- **La valeur de la collection, deuxième plus demandée.** Aucune source de
-  prix, et `prix_editeur` est un prix conseillé, pas une cote. Suspendu à
-  Awin comme le reste du volet commercial (§8, trou de source).
+  20 602 éditions, soit **26,5 %**, en baisse : Zavvi et Metaluna n'en publient
+  aucun et gonflent le dénominateur à chaque vague. Un scan qui échoue trois
+  fois sur quatre est pire que pas de scan. Le blocage est la couverture EAN,
+  pas le lecteur.
+
+  **Le flux Leclerc est la première source à pouvoir la relever**, avec 100 %
+  d'EAN sur ses 7 090 disques, dont 6 393 inconnus de nous. C'est le meilleur
+  argument d'un import, et le seul obstacle est le format non déclaré.
+- **La valeur de la collection, deuxième plus demandée. Le premier étage est
+  posé**, `public.offres` portant 724 prix marchands réels et datés au 3 août
+  2026.
+
+  **Ce n'est toujours pas une cote.** Un prix marchand du jour dit ce que le
+  disque coûte neuf en rayon, pas ce que vaut un steelbook épuisé, et il ne
+  couvre que 3,5 % du catalogue. Additionner ces 724 prix donnerait un total
+  qui se lit comme une valeur de collection et n'en est pas une. Ce qui
+  manquerait pour l'écrire honnêtement : une couverture large, et une source
+  de **seconde main**, qu'aucune des six sources ne donne.
 
 #### Abonnement envisagé en v2, deux à trois euros par mois
 
@@ -3299,9 +3547,27 @@ en JavaScript ne déclenche rien quand le panneau est masqué ; il faut un vrai
 clic.
 
 ### Awin
-4 programmes en attente : Fnac, E.Leclerc, Cultura, Zavvi, **tous avec flux
-produits** (EAN + images + prix). Aucun accepté. Create-a-Feed inutilisable
-tant qu'aucun n'a validé (« Feed not found »).
+
+**E.Leclerc accepté le 3 août 2026**, premier programme validé. Fnac, Cultura et
+Zavvi restent en attente, **tous avec flux produits** (EAN, images, prix).
+
+Create-a-Feed s'est ouvert le jour de l'acceptation : il rendait « Feed not
+found » tant qu'aucun programme n'avait validé, et c'était bien la cause, pas un
+défaut de configuration. Flux retenu, mesure et chaîne au §5 et §6.
+
+**Ce que l'acceptation débloque, par ordre d'importance** :
+
+| | état au 3 août 2026 |
+|---|---|
+| offres réelles sur les éditions du catalogue | **fait**, 724 offres en ligne |
+| nœud JSON-LD `Product` avec `offers` | à faire, condition levée (§7) |
+| élargissement du catalogue par les 6 393 EAN neufs | suspendu au format (§8) |
+| valeur de collection | premier étage seulement, ce n'est pas une cote (§8) |
+
+**Chaque programme accepté demandera sa propre mesure.** Les six sources déjà
+mesurées n'ont pas deux fois le même défaut, et Leclerc en apporte un inédit,
+l'EAN parfait sans le format. Ne pas supposer que le flux Fnac ressemblera à
+celui-ci.
 
 ---
 
@@ -3861,6 +4127,24 @@ Documentés parce qu'ils se reproduiront.
   de juillet. Pour savoir si un push est parti, comparer le hachage du bundle
   servi ou compter les URL du sitemap, et lire le journal dans le tableau de
   bord Pages, seule source de la cause d'un échec.
+- **Le hachage du bundle ne vaut comme repère que si le build local part de
+  `HEAD`.** Mesuré le 3 août 2026 : un `npm run build` lancé dans un répertoire
+  où une autre session laisse `TopBar.tsx` et `regroupements.ts` modifiés
+  produit un bundle que Cloudflare ne produira **jamais**, puisqu'il ne voit que
+  ce qui est commité. On attend alors un nom qui n'arrivera pas.
+
+  Le compte d'URL du sitemap n'est pas meilleur : il se génère depuis la base,
+  qui grossit entre le build local et celui du serveur.
+
+  **Prendre un repère déterministe, issu du code et non de la base.** Ce jour-là
+  c'était la disparition de `/legal` du sitemap servi, conséquence directe d'une
+  ligne modifiée. Un marqueur qu'on a écrit soi-même vaut mieux qu'un hachage ou
+  qu'un décompte.
+
+  Corollaire du même épisode : trois noms de bundle successifs en quelques
+  minutes ne signalent pas une panne, mais **plusieurs déploiements en vol**.
+  Une autre session avait poussé par-dessus. Vérifier `git fetch` avant de
+  chercher plus loin.
 - **Après un déploiement, la première visite peut rendre l'ancienne page.**
   L'`index.html` en cache navigateur pointe l'ancien bundle : sur une route
   neuve, on obtient la page « introuvable » alors que tout est en ligne. Un
@@ -3967,6 +4251,26 @@ Documentés parce qu'ils se reproduiront.
 - Deux crawlers lancés en parallèle produisent des doublons exacts. Un test
   d'existence de fichier ne suffit pas : `flock`.
 
+### Contrôles de présence
+- **Une frontière de mot ne suffit pas à dire qu'un titre est présent.** La
+  sonde Awin cherchait les 19 absents du banc d'essai (§8) avec `\btitre\b` sur
+  les noms de produits, et annonçait 7 trouvés. Relecture à l'œil : 4. `Armageddon`
+  matchait `Armageddon Time`, `Obsession` matchait `Obsession fatale`, `Assaut`
+  matchait `À l'assaut du Fort Clark`.
+
+  La frontière de mot corrigeait déjà une faute plus grossière, la sous-chaîne
+  nue, qui faisait passer `Agora` pour trouvé dans « agoraphobie » et `Alpha`
+  dans « alphabet ». Elle ne corrige pas celle-ci : **un titre qui contient le
+  titre cherché n'est pas le même film**, et c'est le motif constant du §9,
+  l'homonyme, vu depuis l'autre bout.
+
+  Ce qui rend la mesure lisible : **imprimer le titre trouvé à côté de la
+  demande**, jamais un décompte seul. Un « 7/19 » ne se dément pas, un
+  « Armageddon → Armageddon Time » se dément d'un coup d'œil.
+- **Un flux marchand n'annonce pas ce qu'il ne vend pas.** Corollaire du même
+  épisode : ne pas conclure d'un « 4/19 » que la source est mauvaise. Elle est
+  excellente sur ce qu'elle porte, elle ne porte simplement pas de fonds.
+
 ### Méthode
 Ce qui a évité le plus d'erreurs :
 1. **Séparer résolution et écriture.** Chaque passe en lecture seule a révélé
@@ -3996,8 +4300,51 @@ Ce qui a évité le plus d'erreurs :
 ## 10. Juridique
 
 - Mentions légales, confidentialité et à propos en ligne
-- Éditeur non professionnel (LCEN art. 6), **à compléter dès que le site
-  devient commercial**
+- **Le site est passé en régime professionnel le 3 août 2026**, jour du premier
+  programme d'affiliation accepté. `/legal` porte désormais les mentions de
+  l'article 6 III de la LCEN : nom, adresse de l'établissement, téléphone,
+  SIREN, SIRET, inscription au RNE, franchise en base (art. 293 B du CGI) et
+  directeur de la publication. Valeurs relevées sur le registre public, jamais
+  devinées.
+
+  **RNE et non RCS**, l'APE `74.10Z` n'étant ni commercial ni artisanal : aucun
+  de ces deux numéros n'existe, et l'inventer serait une mention fausse, ce qui
+  est pire que l'absence.
+
+  **Elles vivent dans un objet `EDITEUR` unique** en tête de
+  `MentionsLegalesPage.tsx`, avec un garde-fou : tant qu'un champ porte encore
+  son marqueur `À COMPLÉTER`, un encadré « mentions incomplètes » s'affiche sur
+  la page. L'omission est silencieuse par nature, une page trouée ressemblant
+  trait pour trait à une page complète, et c'est une infraction à l'art. 6 VI.
+- **Mention d'affiliation, obligatoire et écrite au présent.** La rédaction
+  précédente promettait au conditionnel que « si des liens d'affiliation étaient
+  mis en place, leur présence serait signalée » : une promesse au conditionnel
+  devient un mensonge le jour où le lien existe, et c'est le manquement que
+  sanctionne l'article L. 121-1 du code de la consommation.
+
+  Trois endroits, tous au présent et nommant Awin et le marchand : une section
+  dédiée dans `/legal`, une dans `/privacy`, une question dans `/about`, plus
+  une ligne sous la liste des éditions **quand une offre y figure**, jamais
+  ailleurs. Une mention posée sur toutes les fiches parlerait de liens absents
+  de 96 % du catalogue, ce qui est l'inverse d'informer.
+
+  Côté technique, `rel="sponsored noopener noreferrer"` : un lien affilié non
+  déclaré est un montage de liens pour Google, et la sanction porte sur le site
+  entier.
+- **Le site ne vend rien et n'encaisse rien**, et c'est écrit tel quel : il
+  n'est ni marchand ni intermédiaire de vente, toute commande se conclut chez le
+  marchand. Pas de CGV, pas de médiateur de la consommation à désigner, ces deux
+  obligations ne visant que le vendeur.
+- **Le prix affiché est daté et ne fait pas foi.** `offres.releve_le` est écrit
+  en `title` sur chaque lien, et les pages disent que seul le prix du marchand
+  au moment de la commande fait foi. Un prix périmé affiché comme actuel est une
+  pratique commerciale trompeuse : c'est ce qui rend le rafraîchissement des
+  offres (§6) une obligation et pas un confort.
+- **La confidentialité disait deux choses fausses**, corrigées le 3 août 2026 :
+  Google Fonts figurait encore dans les services tiers alors que les polices
+  sont auto-hébergées depuis le 31 juillet et que la CSP n'autorise plus que
+  `'self'` en `font-src`, et Cloudflare R2 n'y était pas alors qu'il sert tous
+  les visuels. Une politique de confidentialité ne vaut que par son exactitude.
 - Attribution TMDB en pied de page (exigée par leur licence)
 - **Les visuels Zavvi sont repris depuis le 2 août 2026**, 11 498 packshots
   miroités sur R2, dont 4 454 seulement correspondent à une édition écrite.
