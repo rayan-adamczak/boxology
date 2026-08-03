@@ -73,6 +73,11 @@ export function Footer() {
             <LienInterne to="/publishers">Éditeurs</LienInterne>
             <LienInterne to="/genres">Genres</LienInterne>
             <LienInterne to="/collections">Collections</LienInterne>
+            {/* Le signalement est ici et non dans « Légal » : c'est une
+                contribution au catalogue, pas une formalité, et c'est dans
+                cette colonne que regardera quelqu'un qui n'a pas trouvé son
+                disque. */}
+            <LienInterne to="/report">Signaler une édition</LienInterne>
           </Colonne>
 
           {/* Aucun compte de réseau social ouvert pour l'instant : de simples

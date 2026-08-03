@@ -31,6 +31,7 @@ export const PAGES_RENOMMEES: Record<string, string> = {
   "/confidentialite": "/privacy",
   "/profil": "/profile",
   "/compte": "/account",
+  "/signaler": "/report",
 };
 
 /** Préfixes renommés, segment de tête seulement. */

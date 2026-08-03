@@ -68,6 +68,12 @@ const ConfidentialitePage = lazy(() =>
   import("./pages/ConfidentialitePage").then((m) => ({ default: m.ConfidentialitePage })));
 const ComptePage = lazy(() =>
   import("./pages/ComptePage").then((m) => ({ default: m.ComptePage })));
+// En `lazy()` comme `/account`, et pour la même raison : la page est en
+// `noindex`, personne n'y arrive depuis un moteur. La règle du §9 vise les
+// portes d'entrée extérieures, où un morceau demandé pendant la propagation
+// rend un écran vide sans seconde chance.
+const SignalerPage = lazy(() =>
+  import("./pages/SignalerPage").then((m) => ({ default: m.SignalerPage })));
 const ProfilPage = lazy(() =>
   import("./pages/ProfilPage").then((m) => ({ default: m.ProfilPage })));
 // Annonce d'une fonctionnalité à venir, en `noindex` : personne n'y arrive par
@@ -255,6 +261,7 @@ export default function App() {
           <Route path="/movies/:id" element={<FilmDetailPage />} />
           <Route path="/profile" element={<ProfilPage />} />
           <Route path="/account" element={<ComptePage />} />
+          <Route path="/report" element={<SignalerPage />} />
 
           {/* Le profil public. L'identifiant est la seule partie qui compte,
               il n'y a pas d'id derrière comme sur une fiche film : c'est lui
