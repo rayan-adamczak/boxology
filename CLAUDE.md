@@ -1341,14 +1341,46 @@ Résultat du 3 août 2026 : 5 440 codes interrogés, **4 967 fiches trouvées**,
 domestique. `crawl_dvdfr_local.sh` collecte par créneaux et dépose son fichier
 dans R2 ; `dvdfr.yml` le reprend et n'adresse aucune requête à dvdfr.
 
-**Enrichir, jamais corriger.** Une colonne déjà remplie n'est pas touchée. Le
-compte des désaccords est affiché, et il est trop gros pour être du bruit :
+**Enrichir, jamais corriger.** Une colonne déjà remplie n'est pas touchée, et
+c'est ce qui a sauvé la passe : le compte des désaccords paraissait accablant,
+il ne l'était pas.
 
     pays 4 529 | region 3 765 | disques 1 614 | editeur 1 161 | ratio 891
 
-Une des deux sources se trompe systématiquement. Piste à vérifier, non
-tranchée : blu-ray.com décrit souvent l'édition **américaine** d'un titre là
-où dvdfr décrit la française.
+**Le pays n'est pas un désaccord, c'est un contresens**, vérifié le 3 août
+2026. `editions.pays` dit le **marché du disque**, et vaut « France » sur
+l'essentiel du catalogue, blu-ray.com étant crawlé filtré France et
+editioncollector étant un catalogue français. Le `Pays` de dvdfr dit le pays de
+**production de l'œuvre** :
+
+    2 034  nous « France »  dvdfr « États-Unis »
+      359  nous « France »  dvdfr « Japon »
+      163  nous « France »  dvdfr « Royaume-Uni »
+
+Les deux ont raison. Le champ n'a jamais atteint la base, aucune édition
+n'ayant de `pays` vide, mais la correspondance a été retirée : une source
+future sans `pays` aurait ouvert le trou.
+
+**Et il n'y a aucune colonne à créer** : `films.pays` porte déjà le pays de
+production, remplie à 88 % depuis `production_countries` de TMDB, qui rend
+même la liste complète des coproducteurs là où dvdfr en donne un ou deux.
+C'est le partage habituel du §3, `films` porte l'œuvre et `editions` porte le
+disque ; deux colonnes nommées `pays` ne parlent pas de la même chose.
+
+**La zone non plus n'est pas un désaccord**, c'était un artefact de comptage :
+la comparaison opposait `2K Blu-ray: Region B (A, C untested)` à `B` comme deux
+chaînes différentes. Normalisées comme le fait `zonesDe` côté site :
+
+    2 125  44 %  identiques
+    1 644  34 %  recouvrement partiel, nous « B » et eux « A;B;C »
+    1 041  21 %  non comparables
+        0        contradiction franche
+
+**Aucune des deux sources ne se trompe systématiquement**, contrairement à ce
+qui a été avancé toute une journée. Le soupçon « blu-ray.com décrit l'édition
+américaine » ne tient pas : les éditions sont bien françaises, c'est dvdfr qui
+parlait d'autre chose. Restent `disques`, `editeur` et `ratio`, jamais
+départagés.
 
 **Trois politiques contradictoires sur le même site**, ce qui fait qu'aucune
 ne se lit comme leur position :
@@ -3862,6 +3894,18 @@ Documentés parce qu'ils se reproduiront.
   y compris une figurine Amiibo et No Man's Sky. Inexploitable. `supports`
   (Blu-ray, 4K) est fiable quand il est renseigné, mais vide sur des disques
   réels : croiser avec un vocabulaire de formats relevé dans le titre.
+- **Deux colonnes du même nom ne mesurent pas forcément la même chose.**
+  `editions.pays` dit le marché du disque, `films.pays` le pays de production
+  de l'œuvre. Reprendre le `Pays` de dvdfr dans la première aurait écrit
+  « États-Unis » sur 2 034 Blu-ray français, et le compte des désaccords, 4 529
+  lignes, se lisait comme une source défaillante alors que les deux avaient
+  raison. Vérifier ce qu'un champ mesure avant de le rapprocher d'un autre,
+  surtout quand les noms concordent.
+- **Un désaccord compté sur des chaînes n'est pas un désaccord.** Les 3 765
+  divergences de zone entre dvdfr et blu-ray.com opposaient `2K Blu-ray:
+  Region B (A, C untested)` à `B` : une fois normalisées, zéro contradiction
+  franche sur 4 810 comparaisons. Normaliser avant de compter, sans quoi la
+  mesure invente un problème.
 - **Une absence écrite comme une valeur est pire qu'une absence.** Le parseur
   editioncollector posait `''` quand l'EAN manquait, là où les trois autres
   sources posent `null` : 375 lignes sur 5 383. Les deux comptes sont justes et
