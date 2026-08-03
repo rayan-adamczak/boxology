@@ -306,11 +306,11 @@ const LONGUEUR_MINIMALE_APPROCHANTE = 4;
  * retenu et pourquoi c'est `word_similarity` et non `similarity`, et
  * `20260801_recherche_classee.sql` pour la normalisation partagée.
  */
-async function rechercheApprochante(terme: string): Promise<Film[]> {
+async function rechercheApprochante(terme: string, limite = 50): Promise<Film[]> {
   if (terme.length < LONGUEUR_MINIMALE_APPROCHANTE) return [];
   const { data, error } = await supabase.rpc("recherche_films_approchante", {
     terme,
-    limite: 50,
+    limite,
   });
   if (error) {
     console.warn("Recherche approchante indisponible:", error.message);
@@ -356,26 +356,26 @@ export interface ResultatRecherche {
  * devant *Matrix* sur une saisie parfaite. Le repli ne coûte rien tant que la
  * frappe est juste : il n'est appelé que sur zéro résultat.
  */
-export async function searchFilms(query: string): Promise<ResultatRecherche> {
+export async function searchFilms(query: string, limite = 50): Promise<ResultatRecherche> {
   const terme = query.trim();
 
   if (!terme) {
     const { data, error } = await supabase
       .from("films")
       .select("*")
-      .limit(50)
+      .limit(limite)
       .order("popularite", { ascending: false, nullsFirst: false });
     if (error) throw new Error(`Erreur lors du chargement du catalogue: ${error.message}`);
     return { films: (data ?? []) as Film[], approchante: false };
   }
 
-  const { data, error } = await supabase.rpc("recherche_films", { terme, limite: 50 });
+  const { data, error } = await supabase.rpc("recherche_films", { terme, limite });
   if (error) throw new Error(`Erreur lors de la recherche de films: ${error.message}`);
 
   const exacts = (data ?? []) as Film[];
   if (exacts.length > 0) return { films: exacts, approchante: false };
 
-  const proches = await rechercheApprochante(terme);
+  const proches = await rechercheApprochante(terme, limite);
   return { films: proches, approchante: proches.length > 0 };
 }
 

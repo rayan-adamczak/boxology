@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { Library, Bookmark, Disc3 } from "lucide-react";
 import { RailHorizontal } from "../components/RailHorizontal";
 import { ModaleConnexion } from "../components/ModaleConnexion";
@@ -88,6 +89,7 @@ export function BrowsePage() {
     dérivé au premier réglage.
   */
   const recherche = useRechercheFilms();
+  const navigate = useNavigate();
   const terme = recherche.query.trim();
 
   /*
@@ -177,7 +179,28 @@ export function BrowsePage() {
           </p>
 
           <div className="mt-9 w-full max-w-[680px]">
-            <ChampRecherche valeur={recherche.query} onChange={recherche.setQuery} />
+            {/*
+              L'aperçu réutilise les résultats de la page, il n'en demande pas
+              d'autres. Tronqué à huit : la grille au-dessous porte déjà les
+              cinquante, le panneau sert à atteindre un titre sans faire défiler.
+
+              Entrée et « voir tous les résultats » emmènent vers /catalogue,
+              qui a les filtres, plutôt que de laisser sur une page d'accueil
+              dont la grille n'est qu'un aperçu du catalogue.
+            */}
+            <ChampRecherche
+              valeur={recherche.query}
+              onChange={recherche.setQuery}
+              apercu={{
+                films: recherche.films.slice(0, 8),
+                suggestions: recherche.suggestions,
+                chargement: recherche.chargement,
+                approchante: recherche.approchante,
+              }}
+              onValider={(v) =>
+                navigate(v.trim() ? `/catalogue?q=${encodeURIComponent(v.trim())}` : "/catalogue")
+              }
+            />
           </div>
         </div>
       </section>

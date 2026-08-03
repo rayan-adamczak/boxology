@@ -80,6 +80,14 @@ export function CataloguePage() {
       </p>
 
       <div className="mt-7 max-w-[680px]">
+        {/*
+          **Pas de panneau d'aperçu ici, et c'est la seule page dans ce cas.**
+          La grille est juste en dessous et se rafraîchit à la frappe : un
+          panneau par-dessus montrerait les huit premières lignes de ce qu'elle
+          affiche déjà, en masquant les filtres au passage.
+
+          Pas d'`onValider` non plus : on est déjà sur la page de destination.
+        */}
         <ChampRecherche valeur={recherche.query} onChange={recherche.setQuery} />
       </div>
 

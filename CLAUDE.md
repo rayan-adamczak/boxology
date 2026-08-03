@@ -2670,6 +2670,34 @@ rien signaler. Mesuré, le champ restait à 250 px du haut, exactement où il
 était. Ce n'est pas gênant, la page étant ramenée en haut, le champ est
 toujours à sa position naturelle et la mesure suffit.
 
+**L'attente porte les couleurs du mot-symbole**, cyan, ambre, rouge, et non un
+rouet générique qui aurait pu venir de n'importe quel site. Deux états, parce
+qu'il y a deux situations et qu'une seule forme ne couvre pas les deux :
+
+- **panneau vide, première recherche** : trois tranches qui montent et
+  redescendent en décalé (`.reel-tranches`), dans l'ordre du logo. Le dessin
+  dit la même chose que la marque, des boîtiers rangés sur une étagère. Le
+  décalage de 140 ms sur un cycle de 900 est mesuré à l'œil : à 60 ms les trois
+  montent ensemble et l'onde disparaît, à 300 la troisième repart quand la
+  première est retombée et ça se lit comme trois animations séparées ;
+- **liste déjà affichée, on affine** : un filet de 2 px en tête du panneau
+  (`.reel-filet-charge`), même dégradé et mêmes clés que l'anneau de focus.
+  Sans lui, affiner ne montrait **rien** : les tranches ne paraissent que tant
+  que le panneau est vide, et la liste précédente restait à l'écran comme si
+  elle était à jour. Le tour est à 1,4 s et non 7 s comme l'anneau, sinon le
+  filet paraît immobile sur les quelques centaines de millisecondes d'une
+  requête.
+
+Le filet n'est **monté** que pendant la recherche, pas seulement masqué : une
+bande animée en permanence sous une opacité nulle fait repeindre le panneau
+pour rien, la raison même qui met l'animation de l'anneau sur le seul état
+`focus-within`.
+
+Sous `prefers-reduced-motion`, les deux restent à l'écran, colorés et
+immobiles : c'est leur présence qui dit qu'on cherche, pas leur mouvement.
+`role="status"` porte l'annonce, les barres sont `aria-hidden`, elles ne sont
+que décoratives.
+
 Clavier : flèches pour parcourir, Entrée pour ouvrir la ligne choisie, Entrée
 sans sélection pour « voir tous les résultats », Échap pour fermer. La
 sélection repasse par « rien » en bout de liste, sinon on ne peut plus revenir

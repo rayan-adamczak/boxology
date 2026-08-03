@@ -345,6 +345,108 @@
 }
 
 /*
+  Attente du panneau de recherche, aux couleurs du mot-symbole.
+
+  Trois tranches qui montent et redescendent en décalé, dans l'ordre du logo,
+  cyan puis ambre puis rouge. Le dessin dit la même chose que la marque, des
+  boîtiers rangés sur une étagère, et c'est ce qui le distingue d'un rouet
+  générique : un disque qui tourne aurait pu venir de n'importe quel site.
+
+  `transform-origin: bottom` : elles poussent depuis le bas, comme une pile qui
+  se remplit. En partant du centre elles se contentaient de clignoter.
+
+  Le décalage de 140 ms est mesuré à l'œil sur un cycle de 900 : à 60 ms les
+  trois montent presque ensemble et l'onde disparaît, à 300 la troisième repart
+  quand la première est déjà retombée, et l'ensemble se lit comme trois
+  animations séparées plutôt qu'une seule.
+*/
+.reel-tranches {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 16px;
+}
+
+.reel-tranches i {
+  display: block;
+  width: 4px;
+  height: 100%;
+  border-radius: 1px;
+  transform-origin: bottom;
+  animation: reel-tranches 900ms ease-in-out infinite;
+}
+
+.reel-tranches i:nth-child(1) {
+  background: var(--reel-logo-cyan);
+}
+
+.reel-tranches i:nth-child(2) {
+  background: var(--reel-logo-ambre);
+  animation-delay: 140ms;
+}
+
+.reel-tranches i:nth-child(3) {
+  background: var(--reel-logo-rouge);
+  animation-delay: 280ms;
+}
+
+@keyframes reel-tranches {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* Les trois tranches restent, à leur pleine hauteur et à leur couleur : c'est
+   leur présence qui dit qu'on cherche, pas leur mouvement. */
+@media (prefers-reduced-motion: reduce) {
+  .reel-tranches i {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/*
+  Filet d'attente en tête du panneau, quand une liste est déjà affichée.
+
+  Les trois tranches ne paraissent qu'à la toute première recherche, tant que
+  le panneau est vide. Dès qu'on affine, la liste précédente reste à l'écran et
+  plus rien ne disait qu'une requête était en cours : ce filet couvre ce cas,
+  sans pousser le contenu ni faire sauter la liste sous le curseur.
+
+  Même dégradé et mêmes clés que l'anneau de focus, écrit deux fois sur un fond
+  large de 200 % pour que le tour boucle sans couture. Le tour est ramené à
+  1,4 s : à 7 s, celui de l'anneau, le filet paraît immobile sur les quelques
+  centaines de millisecondes d'une requête.
+*/
+.reel-filet-charge {
+  background: linear-gradient(
+    90deg,
+    var(--reel-logo-cyan),
+    var(--reel-logo-ambre),
+    var(--reel-logo-rouge),
+    var(--reel-logo-cyan),
+    var(--reel-logo-ambre),
+    var(--reel-logo-rouge),
+    var(--reel-logo-cyan)
+  );
+  background-size: 200% 100%;
+  animation: reel-anneau-defile 1.4s linear infinite;
+}
+
+/* Le filet reste, coloré et immobile : il dit toujours qu'on cherche. */
+@media (prefers-reduced-motion: reduce) {
+  .reel-filet-charge {
+    animation: none;
+  }
+}
+
+/*
   Gouttière commune à toutes les pages.
 
   Elle remplace une douzaine de `max-w-[1440px] px-4 sm:px-6 lg:px-10` recopiés

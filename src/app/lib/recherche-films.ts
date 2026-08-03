@@ -51,6 +51,61 @@ export interface Recherche {
  * l'a pas : ses paramètres d'URL ne doivent pas se mettre à filtrer sa grille
  * parce qu'un lien collé traînait un `?genre=`.
  */
+/**
+ * Recherche autonome, pour le champ du bandeau.
+ *
+ * `useRechercheFilms` ne convient pas là : il écrit la frappe dans l'URL, ce
+ * qui remplacerait le `?q=` de la page qu'on est en train de lire, et il porte
+ * l'état d'une grille que le bandeau n'a pas.
+ *
+ * Même temporisation que la recherche de page, à dessein : deux cadences
+ * différentes pour le même geste se remarquent d'un champ à l'autre.
+ *
+ * Le plafond est à huit lignes, pas cinquante : le panneau tombe sous le champ
+ * et doit tenir à l'écran, et personne ne fait défiler une liste d'aperçu
+ * jusqu'à sa cinquantième entrée.
+ */
+export function useApercuFilms(saisie: string) {
+  const terme = saisie.trim();
+  const [films, setFilms] = useState<Film[]>([]);
+  const [approchante, setApprochante] = useState(false);
+  const [chargement, setChargement] = useState(false);
+
+  useEffect(() => {
+    if (!terme) {
+      setFilms([]);
+      setApprochante(false);
+      setChargement(false);
+      return;
+    }
+    let annule = false;
+    setChargement(true);
+    const t = setTimeout(async () => {
+      try {
+        const resultat = await searchFilms(terme, 8);
+        if (!annule) {
+          setFilms(resultat.films);
+          setApprochante(resultat.approchante);
+        }
+      } catch (e) {
+        // L'échec est muet : un panneau d'aperçu qui affiche une erreur rouge
+        // sous le bandeau serait plus alarmant qu'utile, et la page de
+        // résultats, elle, dira ce qui ne va pas.
+        console.warn("Aperçu de recherche indisponible", e);
+        if (!annule) setFilms([]);
+      } finally {
+        if (!annule) setChargement(false);
+      }
+    }, 250);
+    return () => {
+      annule = true;
+      clearTimeout(t);
+    };
+  }, [terme]);
+
+  return { films, approchante, chargement, suggestions: terme ? suggestionsPour(terme) : [] };
+}
+
 export function useRechercheFilms(avecFiltres = false): Recherche {
   const [parametres, setParametres] = useSearchParams();
   const qUrl = parametres.get("q") ?? "";
