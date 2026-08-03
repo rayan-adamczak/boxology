@@ -372,6 +372,14 @@ export async function getDernieresEditions(limite = 18): Promise<EditionWithFilm
     .not("date_parution", "is", null)
     .lte("date_parution", new Date().toISOString().slice(0, 10))
     .order("date_parution", { ascending: false })
+    /*
+      Tri secondaire obligatoire, et ce n'est pas décoratif : dix éditions
+      partagent le 27 juillet 2026, quatorze le 21. Sans ordre total, PostgreSQL
+      départage les ex æquo comme son plan le décide, donc le rail changeait
+      d'ordre — et de contenu, la limite tombant au milieu d'un paquet — à chaque
+      rechargement. Même piège que la pagination du §9, vu ici sans `offset`.
+    */
+    .order("id", { ascending: false })
     .limit(limite);
   if (error) throw new Error(`Erreur lors du chargement des dernières éditions: ${error.message}`);
 
