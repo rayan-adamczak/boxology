@@ -438,7 +438,15 @@
       1 240 px, soit la somme des colonnes et de leurs gouttières, plus une
       marge. Le `min()` garde le comportement fluide en dessous.
     */
-    width: min(100%, 1240px);
+    /*
+      `100% - 64px` et non `100%` : entre 1 024 et 1 304 px de fenêtre, le
+      plafond de 1 240 ne mord pas, la largeur valait donc 100 % et le
+      rembourrage tombait à zéro. Le bandeau touchait les deux bords de l'écran
+      pendant que le contenu, lui, restait centré par `justify-center` : le
+      mot-symbole se retrouvait à gauche de tout, l'avatar collé à droite.
+      Trente-deux pixels de chaque côté, comme sous `lg`.
+    */
+    width: min(calc(100% - 64px), 1240px);
     max-width: none;
     padding-inline: 0;
   }

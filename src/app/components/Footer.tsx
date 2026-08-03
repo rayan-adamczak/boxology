@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { ArrowUpRight } from "lucide-react";
 import { Logo } from "./Logo";
+import { useSession } from "../lib/auth";
 
 const CONTACT = "contact@jaquette.app";
 
@@ -32,12 +33,22 @@ function LienInterne({ to, children }: { to: string; children: ReactNode }) {
  * sur toutes les pages, d'où sa présence ici et non sur la seule page À propos.
  */
 export function Footer() {
+  /*
+    Même gouttière que le contenu de la page, y compris sur l'accueil connecté,
+    qui est le seul écran large : sinon le pied de page rentrait de cent
+    pixels par rapport au bandeau et aux colonnes juste au-dessus. C'est le
+    décalage que la gouttière commune existe pour éviter (§8).
+  */
+  const { pathname } = useLocation();
+  const session = useSession();
+  const gouttiere = pathname === "/" && session ? "reel-gouttiere-large" : "reel-gouttiere";
+
   return (
     <footer
       className="mt-16 py-12 pb-24 lg:pb-12"
       style={{ borderTop: "1px solid var(--reel-border)" }}
     >
-      <div className="reel-gouttiere flex flex-col gap-10 lg:flex-row lg:justify-between">
+      <div className={`${gouttiere} flex flex-col gap-10 lg:flex-row lg:justify-between`}>
         {/* Identité */}
         <div className="flex max-w-[320px] flex-col gap-3">
           <Link to="/" className="flex items-center gap-2" aria-label="Accueil jaquette.app">
@@ -108,7 +119,7 @@ export function Footer() {
       </div>
 
       <p
-        className="reel-gouttiere pt-10"
+        className={`${gouttiere} pt-10`}
         style={{ fontSize: "12px", lineHeight: "18px", color: "var(--reel-muted)" }}
       >
         Métadonnées et affiches fournies par{" "}
