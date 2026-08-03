@@ -57,6 +57,14 @@ export interface Edition {
   titre: string | null;
   formats_extraits: string | null;
   prix_fnac_extrait: string | null;
+  /**
+   * Prix conseillé, en **texte** : `24.99`, `29.0`. Sa devise dépend de la
+   * source, Zavvi étant britannique (cf. `lib/prix.ts`). Présent sur 10 089
+   * éditions sur 16 923 au 3 août 2026, absent de tout blu-ray.com.
+   */
+  prix_editeur: string | null;
+  /** `bluray.com`, `zavvi.com`, `metalunastore.fr`… Sert à lire la devise. */
+  source: string | null;
   image_url: string | null;
   pays: string | null;
   date_sortie: string | null;

@@ -1,6 +1,7 @@
 import { identiteCourante } from "./auth";
 import { clientAuthentifie, supabase } from "./supabase";
 import type { EditionWithFilm, Film, StatutValue } from "./reelio-db";
+import { prixEnEuros } from "./prix";
 
 /**
  * Données de l'accueil connecté.
@@ -22,9 +23,9 @@ export interface ResumeCollection {
   possedees: number;
   /** Éditions marquées « envie ». */
   envies: number;
-  /** Somme des prix conseillés connus, en euros, sur les seules possédées. */
+  /** Somme des prix conseillés **en euros**, sur les seules possédées. */
   valeur: number;
-  /** Combien de possédées portent un prix : c'est ce qui qualifie `valeur`. */
+  /** Combien de possédées portent un prix en euros : ce qui qualifie `valeur`. */
   valorisees: number;
 }
 
@@ -39,24 +40,14 @@ export interface ActiviteLigne {
 }
 
 /**
- * `prix_editeur` est du **texte**, pas un nombre : la colonne porte aussi bien
- * `24.99` que `29.0`, et rien n'empêche une source d'y mettre autre chose. On
- * lit donc ce qu'on peut et on ignore le reste, plutôt que d'afficher `NaN €`.
- */
-function prixEnEuros(brut: unknown): number | null {
-  if (typeof brut !== "string") return null;
-  const nombre = Number(brut.replace(",", ".").replace(/[^\d.]/g, ""));
-  return Number.isFinite(nombre) && nombre > 0 ? nombre : null;
-}
-
-/**
  * Compteurs et valeur estimée.
  *
  * Rend `null` sans session : la page appelante affiche alors le catalogue
  * public, elle ne montre pas un tableau de bord vide.
  *
  * La valeur est une **estimation par le prix conseillé**, pas une cote : au
- * 3 août 2026, 9 195 éditions sur 16 923 portent un `prix_editeur`, soit 54 %.
+ * 3 août 2026, 10 089 éditions sur 16 923 portent un `prix_editeur`, dont
+ * 4 446 en livres chez Zavvi, écartées du total (cf. `lib/prix.ts`).
  * D'où `valorisees`, que l'écran affiche à côté du montant. Un total qui
  * ignorerait la moitié du catalogue sans le dire se lirait comme une valeur
  * réelle, et c'est exactement le grief relevé au §8 contre les concurrents.
@@ -71,17 +62,22 @@ export async function getResumeCollection(): Promise<ResumeCollection | null> {
   for (let debut = 0; ; debut += PAGE) {
     const { data, error } = await client
       .from("collections")
-      .select("statut, editions(prix_editeur)")
+      .select("statut, editions(prix_editeur, source)")
       .eq("user_id", identite.userId)
       .range(debut, debut + PAGE - 1);
     // Une lecture qui échoue doit se voir, pas rendre du vide (§9).
     if (error) throw new Error(`Résumé de collection indisponible : ${error.message}`);
 
-    const lignes = (data ?? []) as { statut: StatutValue; editions?: { prix_editeur?: string | null } | null }[];
+    const lignes = (data ?? []) as {
+      statut: StatutValue;
+      editions?: { prix_editeur?: string | null; source?: string | null } | null;
+    }[];
     for (const ligne of lignes) {
       if (ligne.statut === "possede") {
         resume.possedees += 1;
-        const prix = prixEnEuros(ligne.editions?.prix_editeur);
+        // Les prix Zavvi sont en livres : `prixEnEuros` les écarte plutôt que
+        // de les additionner à des euros, ce qui ne voudrait rien dire.
+        const prix = prixEnEuros(ligne.editions?.prix_editeur, ligne.editions?.source);
         if (prix !== null) {
           resume.valeur += prix;
           resume.valorisees += 1;
