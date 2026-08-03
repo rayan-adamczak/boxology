@@ -601,8 +601,6 @@ de `auth.users` au-delà d'un décompte par fournisseur.
 
 ## 4. État du catalogue
 
-| | |
-|---|---|
 Mesuré le 3 août 2026 en fin de journée. **Ces chiffres bougent plusieurs fois
 par jour** depuis que les cinq passes tournent sur Actions et que les vagues
 Metaluna s'enchaînent : les relever plutôt que les recopier.
@@ -616,7 +614,38 @@ Metaluna s'enchaînent : les relever plutôt que les recopier.
 | Éditions sans film | 2 492 |
 | Éditions avec visuel | 20 282 (98,4 %) |
 | **Offres marchandes** | **724**, sur 724 éditions et 658 films |
-| URL au sitemap | 11 982 |
+| URL au sitemap | 12 017 |
+
+**Les 65 collections Metaluna sont passées le 3 août 2026**, en deux vagues
+locales : 33 éditeurs français puis 14 catalogues d'import, **+5 119 éditions
+et +2 207 films en une journée**, le plus gros mouvement depuis Zavvi. Aucune
+n'est miroitée, les 5 119 portent l'URL de la boutique ; les 1 615 sur
+`img.jaquette.app` sont celles du 1er août.
+
+**Le compteur de collection majore de 23 %, pas de 10 %.** La vague d'import
+annonçait 3 771 fiches et en a servi 2 916. Retenir cette marge pour les
+prochaines estimations.
+
+**Le rattachement d'un catalogue anglophone est très inégal**, et bien plus
+bas que le français :
+
+    kino-lorber      492/635   77 %      88-films          97/228   43 %
+    warner-archive   249/323   77 %      eureka            49/129   38 %
+    vinegar-syndrome 192/250   77 %      second-sight      25/76    33 %
+                                         arrow-video       67/287   23 %
+
+Les mauvais sont les labels d'auteur, dont les catalogues sont faits de
+coffrets et de rétrospectives. Arrow à 23 % est le plus bas jamais mesuré.
+Ces lignes sont orphelines, pas mal rattachées : `relire_metaluna.py --toutes`
+est fait pour ça.
+
+**Ce que la journée n'a pas réglé, et c'était prévisible.** `Les Yeux sans
+visage` n'a toujours que son Criterion, `Moonlight` n'a toujours aucune fiche.
+Metaluna est un **revendeur** : il stocke ce qu'il vend aujourd'hui, pas un
+fonds. Le Blu-ray Gaumont 2010 est épuisé, l'édition française de Moonlight
+n'est dans aucune des 65 collections. Élargir le crawl de revendeurs ne
+comblera pas ce reste ; c'est le signalement d'édition par l'utilisateur,
+branché sur l'enrichissement dvdfr par code-barres, qui répond à ce cas.
 
 **La couverture EAN est retombée à 26,5 %**, 5 460 codes pour 20 602 éditions,
 contre 35 % au 2 août. Aucun code n'a été perdu : le dénominateur a doublé,
