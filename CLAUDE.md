@@ -3353,6 +3353,39 @@ fonds que Carlotta et Sidonis éditent, et dont nous n'avons que 231 et
 À refaire à l'identique après le prochain import, c'est le seul moyen de dire
 si une source neuve comble le trou ou grossit le catalogue à côté.
 
+#### Refait le 3 août 2026 au soir, après les 65 collections Metaluna
+
+Mêmes dix listes, mêmes 296 entrées, même rapprochement strict. Le catalogue
+avait grossi d'un tiers dans l'intervalle, +5 215 éditions et +2 384 films.
+
+| période | avant | après |
+|---|---|---|
+| avant 1980 | 58,1 % | 67,7 % |
+| 1980-1999 | 75,9 % | 79,7 % |
+| **2000-2014** | **64,7 %** | **66,9 %** |
+| 2015 et après | 80,0 % | 80,0 % |
+| **total** | **73,0 %** | **76,0 %** |
+
+**Un tiers de catalogue en plus pour trois points de couverture**, et le creux
+2000-2014 n'a bougé que de 2,2 points. C'est le résultat le plus utile de la
+journée, et il est négatif.
+
+**Sur les 19 absents nommés ci-dessus, trois seulement sont réglés** : `2 Guns`,
+`Bone Collector` et `In the Mood for Love`, ce dernier par la collection The
+Jokers. `Les Yeux sans visage` a gagné une seconde édition, BFI. Les seize
+autres restent absents, `Armageddon`, `Broken Arrow`, `Mission to Mars`,
+`Australia`, `Insidious`, `Agora`, `Les Huit Salopards` compris.
+
+**La raison est structurelle et vaut pour toute source du même genre.** Les
+collections `studio-canal`, `warner-video` et `paramount` de Metaluna sont le
+**stock du jour d'un revendeur**, pas le fonds de ces studios. On a donc
+élargi le catalogue sans combler le trou, exactement ce que le §8 supposait et
+que cette mesure établit : **le crawl de revendeurs élargit, il ne comble
+pas.** Ne pas relancer une vague de ce type en espérant un autre résultat.
+
+Ce qui reste, et rien d'autre : le signalement d'édition par l'utilisateur
+branché sur l'enrichissement dvdfr par code-barres, et les flux marchands.
+
 ### Fonctionnel
 - **Authentification en ligne depuis le 30 juillet 2026.** Google uniquement,
   `auth-js` seul et chargé à la demande, +0,75 Ko compressé au bundle initial,
