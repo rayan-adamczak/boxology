@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 import { ChampRecherche } from "../components/ChampRecherche";
 import { GrilleFilms, PucesRegroupement } from "../components/GrilleFilms";
 import { useRechercheFilms } from "../lib/recherche-films";
@@ -151,7 +151,21 @@ function BarreFiltres({
   nb: number;
 }) {
   return (
-    <div className="mt-5 flex flex-wrap items-center gap-2">
+    /*
+      Grille de deux colonnes sur téléphone, flux libre au-delà.
+
+      **La largeur d'un `<select>` natif suit sa plus longue option**, et rien
+      d'autre : mesuré à 375 px, les six capsules faisaient 147, 261, 288, 130,
+      115 et 100 px, parce que « Éditeur » contient « France Télévisions
+      Distribution » et « Genre » « Science-Fiction & Fantastique ». Le flux
+      libre en tirait des rangées bancales, une capsule par ligne ici, trois
+      là.
+
+      Deux colonnes égales rangent ça sans rien tronquer d'utile : le libellé
+      fermé est court, ce sont les options ouvertes qui sont longues, et elles
+      s'affichent dans la roue du système, pas dans la capsule.
+    */
+    <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
       <Selecteur
         libelle="Décennie"
         valeur={filtres.decennie ? String(filtres.decennie) : ""}
@@ -196,9 +210,11 @@ function BarreFiltres({
         <button
           type="button"
           onClick={effacer}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 transition hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+          /* Toute la largeur sur téléphone, et sur sa propre rangée : ce n'est
+             pas un filtre de plus, c'est ce qui les défait tous. */
+          className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2.5 transition hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] sm:col-span-1"
           style={{
-            fontSize: "13px",
+            fontSize: "14px",
             color: "var(--reel-accent-clair)",
             border: "1px solid var(--reel-border)",
           }}
@@ -224,14 +240,18 @@ function Selecteur({
   const actif = valeur !== "";
 
   return (
-    <label className="relative inline-flex">
+    /* `w-full` sur téléphone pour remplir sa cellule de grille, largeur libre
+       au-delà : c'est la capsule qui doit s'adapter à la rangée, pas la rangée
+       à la plus longue option d'un menu fermé. */
+    <label className="relative flex w-full sm:inline-flex sm:w-auto">
       <span className="sr-only">{libelle}</span>
       <select
         value={valeur}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none rounded-full py-2 pl-3.5 pr-8 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+        className="w-full appearance-none truncate rounded-full py-2.5 pl-4 pr-10 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] sm:w-auto"
         style={{
-          fontSize: "13px",
+          fontSize: "14px",
+          fontWeight: actif ? 600 : 400,
           color: actif ? "var(--reel-text)" : "var(--reel-muted)",
           backgroundColor: actif ? "var(--reel-accent-soft)" : "var(--reel-surface)",
           border: `1px solid ${actif ? "var(--reel-accent-clair)" : "var(--reel-border)"}`,
@@ -244,15 +264,25 @@ function Selecteur({
           </option>
         ))}
       </select>
-      {/* Le chevron du système disparaît avec `appearance-none` : on le
-          redessine, sinon rien ne dit que la capsule s'ouvre. */}
-      <span
+      {/*
+        Le chevron du système disparaît avec `appearance-none` : on le
+        redessine, sinon rien ne dit que la capsule s'ouvre.
+
+        **C'était un caractère « ▾ » en 10 px**, invisible et étranger au reste
+        de l'interface : ce glyphe est dessiné par la police du système, il
+        change donc de forme et d'épaisseur d'une machine à l'autre, là où tout
+        le reste du site emploie le même jeu d'icônes. Un `ChevronDown` à 16 px
+        s'aligne sur les icônes des cartes et des liens de panneau, et il suit
+        l'état du filtre : accent clair quand il porte une valeur, gris sinon,
+        comme le fait déjà la bordure de la capsule.
+      */}
+      <ChevronDown
         aria-hidden
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
-        style={{ fontSize: "10px", color: "var(--reel-muted)" }}
-      >
-        ▾
-      </span>
+        size={16}
+        strokeWidth={2.25}
+        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2"
+        color={actif ? "var(--reel-accent-clair)" : "var(--reel-muted)"}
+      />
     </label>
   );
 }
