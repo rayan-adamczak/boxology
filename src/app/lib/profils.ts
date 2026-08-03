@@ -225,16 +225,27 @@ export async function majProfil(champs: Partial<Profil>): Promise<Profil> {
 }
 
 /**
- * Message lisible pour les deux refus que la base sait opposer.
+ * Message lisible pour les refus que la base sait opposer.
  *
  * `23505` est le conflit d'unicité : quelqu'un a pris l'identifiant entre la
  * vérification et l'envoi. Rare, mais c'est la seule garantie réelle, la
- * vérification n'étant qu'une amabilité. `23514` est le code que le
- * déclencheur pose sur un identifiant réservé.
+ * vérification n'étant qu'une amabilité.
+ *
+ * `23514` est le code que le déclencheur pose sur un identifiant réservé, sur
+ * un identifiant filtré et sur un nom filtré. Le message de la base distingue
+ * les deux **colonnes**, pour que l'écran sache lequel des deux champs est en
+ * cause, mais jamais la **cause** : « réservé » et « interdit » rendent le même
+ * message, sans quoi on désignerait la mutation qui a échoué, donc on
+ * apprendrait à contourner une entrée à la fois
+ * (cf. `20260803_identifiants_interdits.sql`).
  */
 function traduire(error: { code?: string; message: string }): string {
   if (error.code === "23505") return "Cet identifiant vient d’être pris. Essayez-en un autre.";
-  if (error.code === "23514") return "Cet identifiant est réservé. Essayez-en un autre.";
+  if (error.code === "23514") {
+    return error.message.includes("nom")
+      ? "Ce nom affiché n’est pas accepté. Choisissez-en un autre."
+      : "Cet identifiant n’est pas disponible. Essayez-en un autre.";
+  }
   return `Enregistrement impossible : ${error.message}`;
 }
 

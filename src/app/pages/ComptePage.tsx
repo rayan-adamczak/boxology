@@ -254,7 +254,7 @@ function ProfilPublicReglages() {
             : verdict === "pris"
             ? "Cet identifiant est déjà pris."
             : verdict === "reserve"
-            ? "Cet identifiant est réservé."
+            ? "Cet identifiant n’est pas disponible."
             : verdict === "invalide"
             ? `Entre ${IDENTIFIANT_MIN} et ${IDENTIFIANT_MAX} signes : lettres, chiffres et « _ ».`
             : `Les liens déjà partagés vers ${arobase(profil.identifiant)} cesseront de fonctionner si vous le changez.`}

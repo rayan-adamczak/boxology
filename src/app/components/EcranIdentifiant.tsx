@@ -34,11 +34,18 @@ import { SITE_ORIGIN } from "../lib/seo";
 /** Ce que la vérification renvoie, plus les deux états qui lui sont propres. */
 type Verdict = EtatIdentifiant | "attente" | "vide";
 
+/*
+  `reserve` couvre deux causes que la base ne distingue pas à dessein : le nom
+  est réservé au site, ou il tombe sur la liste des injures. Répondre
+  « interdit » désignerait exactement la mutation qui a échoué, donc
+  apprendrait à contourner une entrée à la fois. « Pas disponible » est vrai
+  dans les deux cas et n'apprend rien.
+*/
 const MESSAGES: Record<Verdict, string> = {
   vide: "",
   attente: "Vérification…",
   invalide: `Entre ${IDENTIFIANT_MIN} et ${IDENTIFIANT_MAX} signes : lettres, chiffres et « _ ».`,
-  reserve: "Cet identifiant est réservé.",
+  reserve: "Cet identifiant n’est pas disponible.",
   pris: "Cet identifiant est déjà pris.",
   libre: "Disponible.",
 };

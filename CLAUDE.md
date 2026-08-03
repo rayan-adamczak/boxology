@@ -405,6 +405,53 @@ Ce qui existe en double, et rien d'autre : la **forme** de l'identifiant, dans
 la contrainte de table et dans `src/app/lib/identifiant.ts`, pour que le champ
 réponde à la frappe sans un aller-retour.
 
+### `identifiants_interdits`, le 3 août 2026
+
+Injures, injures racistes, antisémites, homophobes, apologie nazie. Migration
+`20260803_identifiants_interdits.sql`. **Une table et non un tableau en dur** :
+`identifiant_reserve` porte sa liste dans son corps parce qu'elle ne bougera
+plus, celle-ci bougera à chaque contournement trouvé, et une liste qui s'étend
+par migration ne s'étend pas.
+
+Aucun privilège pour `anon` ni `authenticated`, aucune policy. `texte_interdit`
+est `security definer` et ne rend qu'un booléen : publier la liste, ce serait
+publier le mode d'emploi du contournement.
+
+**Le contrôle porte sur deux replis, et il faut les deux.** `repli_brut` retire
+accents, souligné et ponctuation, donc `s_a_l_o_p_e` et `Sale Juif` tombent
+juste. `repli_lettres` replie en plus les chiffres sur les lettres qu'ils
+imitent, `n1gg3r` vers `nigger`. Le second détruit ce que le premier attrape :
+`1488`, code néonazi, devient `iabb` et ne ressemble plus à rien.
+
+**Deux modes, et le second est le vrai travail.** `sous_chaine` pour les mots
+qu'aucun mot légitime ne contient, `exact` pour les autres, et il y en a plus
+qu'on ne croit : « salope » est dans **salopette**, « pute » dans **dispute**
+et **réputé**, « nazi » dans le prénom **Nazim**, « pédo » dans **pédologie**,
+« batard » est aussi un pain, « 88 » une année de naissance. Une correspondance
+en sous-chaîne sur ces mots-là refuserait des pseudonymes innocents. La colonne
+`note` dit pourquoi chaque entrée est dans le mode où elle est.
+
+Mesuré à l'application, 53 cas, **zéro écart** : les évasions passent
+(`n1gg3r`, `n_i_g_g_e_r`, `m0rtauxju1fs`, `s4l0p3`, `xX_nigga_Xx`), et
+`niger`, `nigel`, `salopette`, `dispute`, `nazim`, `pedologie`, `technique`,
+`unique_toi`, `heilmann`, `anne1988`, `José Ramírez` passent aussi.
+
+**Le nom affiché est filtré comme l'identifiant.** Il est libre, plus long, et
+paraît juste à côté sur la page : ne filtrer que le premier aurait fait un
+garde-fou décoratif.
+
+**Le refus ne dit jamais pourquoi.** `etat_identifiant` rend `reserve` pour les
+deux causes et l'écran affiche « Cet identifiant n'est pas disponible ».
+Distinguer « réservé » d'« interdit » désignerait la mutation qui a échoué,
+donc apprendrait à contourner une entrée à la fois. Le message de la base
+distingue en revanche les deux **colonnes**, pour que l'écran sache lequel des
+deux champs montrer en rouge.
+
+**Ce que ça ne fait pas** : une liste de mots est toujours en retard, elle
+attrape le cas courant et pas quelqu'un qui cherche. Ce qui manque et qui
+compte davantage, c'est un **signalement depuis la page de profil**, seul
+mécanisme qui apprenne les mots qu'on n'a pas prévus. À écrire.
+
 ### `bluray_import`, table de transit
 6 201 fiches crawlées, avec statut : `promu` (6 017), `doublon` (184).
 Invisible du site, aucune policy anon.
