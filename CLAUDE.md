@@ -987,7 +987,7 @@ films**, tous isolables séparément :
 | reprise Zavvi à quatre mesures | 460 | 460 | `zavvi_reprise` |
 | Diaphana, première WooCommerce | 92 | 92 | `diaphana` |
 
-    23 803 éditions | 8 063 EAN (33,9 %) | 92,0 % rattachées
+    23 803 éditions | 8 090 EAN (34,0 %) | 92,0 % rattachées
     12 129 films | 24 940 liens | sitemap 13 420 URL avant Diaphana
 
 **La couverture EAN monte puis redescend dans la même journée, et les deux
@@ -2074,15 +2074,15 @@ la taille de la boutique à ce que la base porte déjà pour cet éditeur.**
 donc sans EAN. Leurs boutiques le publient, dans le `gtin13` du JSON-LD et
 jusque dans l'URL produit, `143-dernier-ete-a-tanger-dvd-3760233157946.html`.
 
-**Résultat : 50 éditions enrichies**, 18 Rimini et 32 Spectrum, aucune créée.
-Puis les 50 codes passés chez dvdfr, ce qui remplit quatre colonnes que
+**Résultat : 77 éditions enrichies**, 18 Rimini et 59 Spectrum, aucune créée.
+Puis les 77 codes passés chez dvdfr, ce qui remplit quatre colonnes que
 Metaluna ne publie sur aucune de ses 6 830 fiches :
 
                     avant   après
-    zone            32/50   50/50
-    distributeur     0/50   50/50
-    disques          0/50   50/50
-    ratio            0/50   39/50
+    zone            32/77   77/77
+    distributeur     0/77   77/77
+    disques          0/77   77/77
+    ratio            0/77   61/77
 
 La chaîne complète se lit donc : boutique PrestaShop, code-barres, dvdfr,
 fiche technique. C'est le premier cas du dépôt où une source ne sert qu'à
@@ -2094,11 +2094,12 @@ record. C'est un artefact : les éditions visées ont justement `ean = NULL`,
 donc elles ne peuvent matcher aucun code. J'ai failli le rapporter comme une
 trouvaille.
 
-**Ce qui reste dehors, et pourquoi ça ne s'assouplit pas.** 67 des 104 produits
-Spectrum ne trouvent aucun titre concordant : ils titrent en version
-originale, `Viva Erotica`, `Buddha Mountain`, là où Metaluna titre parfois en
-français. Il faudrait un rapprochement par titre traduit, pas un assouplissement
-de plus.
+**Ce qui bloquait n'était pas la traduction, c'était une asymétrie**, corrigée
+le soir même (§9). Le nettoyage de titre ne s'appliquait qu'au produit de
+boutique et pas aux titres en base, qui portent les mêmes formes,
+`Viva Erotica` contre `Viva Erotica (avec fourreau)`. Le rapprochement par
+titre d'œuvre avait bien été essayé et rendait 14 candidats ; la symétrie en
+rend 27.
 
 ### solaris-distribution.com : mesuré le 4 août 2026, et écarté
 
@@ -5888,6 +5889,21 @@ Documentés parce qu'ils se reproduiront.
   mais **21 n'existe pas**, et un 404 traité comme une panne tuait
   l'énumération aux trois quarts, en perdant tout puisque l'écriture n'a lieu
   qu'à la fin. Un trou dans une numérotation n'est pas une panne.
+- **Un rapprochement se fait entre deux chaînes préparées de la même façon**, et
+  une asymétrie de traitement se déguise en problème de données. Le nettoyage de
+  titre d'`enrichir_ean.py` n'était appliqué qu'au produit de boutique, alors
+  que les titres en base portent les mêmes formes :
+
+      boutique   Viva Erotica
+      base       Viva Erotica (avec fourreau)
+
+  **Le diagnostic posé là-dessus était faux**, et il est resté écrit une nuit :
+  « Spectrum titre en version originale là où Metaluna titre en français, il
+  faudrait un rapprochement par titre traduit ». Le rapprochement par titre
+  d'œuvre a bien été essayé, il rendait 14 candidats ; la simple symétrie en
+  rend 27, sans rien assouplir. Chercher une explication dans la nature des
+  données avant d'avoir vérifié qu'on traite les deux côtés pareil coûte un
+  chantier entier.
 
 ### Infrastructure
 - **Une boucle d'attente sur `pgrep -f <motif>` se reconnaît elle-même.** Un
