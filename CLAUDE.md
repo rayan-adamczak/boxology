@@ -2114,6 +2114,38 @@ rerésolvait avec des règles plus lâches. Le taux montait de 81,5 à 86,5 %, e
 cette hausse n'était pas un gain, c'était **la relecture contournée**. Le cache
 retient désormais l'ensemble des EAN vus : un refus consigné est un refus.
 
+**`relire_leclerc.py` reprend un refus avec un titre de recherche corrigé, et
+jamais avec un verdict.** Chaque entrée dit « cherche plutôt ceci » ;
+`apparier` refait tout le travail et le contrôle à deux mesures tranche comme
+pour les 2 823 autres. Poser des `tmdb_id` en dur ferait entrer des
+rattachements que rien n'aurait vérifiés, ce que le §9 reproche au lot
+`probable`.
+
+**Et il m'a démenti deux fois sur treize** : `Harry Potter et les Reliques de
+la Mort` et `Violent Streets` n'ont trouvé aucun titre exact même corrigés,
+donc ils ne sont pas écrits. Si le contrôle refuse un candidat jugé bon à
+l'œil, c'est le jugement qui se trompait.
+
+**Ce que la relecture des 522 refus a montré**, et c'est le vrai résultat :
+
+    169  sans durée, rien pour contrôler
+    210  coffrets et séries, dont 114 trahis par leur seule durée
+    105  films seuls dont TMDB ne rend aucun candidat
+     38  relus un par un  ->  11 récupérés, ~14 pièges bien refusés
+
+**73 % des refus sont structurels**, pas des ratés de méthode. Une vingtaine
+seulement était discutable. Ne pas rouvrir ce lot en espérant mieux.
+
+Le piège du champ `realisateur` de dvdfr apparaît ici : sur un coffret il
+porte `Coffret 2 films`, `1ère partie`, `Part 1 & 2`, le parseur prenant ce qui
+suit le titre. Sans conséquence, un réalisateur inventé ne correspondant à
+rien chez TMDB, mais il explique une part des « aucun titre exact ».
+
+**`ecrire_croisement.py` a remplacé `ecrire_leclerc.py` le 4 août 2026**, après
+avoir servi sur deux lots. Le précédent lisait le flux brut et le cache dvdfr,
+donc il était noué à Leclerc ; `disques_leclerc.json`, sa seule entrée
+propre, part avec lui.
+
 **Toutes les planifications sont coupées depuis le 4 août 2026**, le forfait de
 2 000 minutes étant consommé. Sur un dépôt privé, Actions cesse alors de lancer
 les jobs sans rien signaler. Les deux plus gros consommateurs étaient Zavvi,
