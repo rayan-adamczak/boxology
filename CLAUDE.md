@@ -977,17 +977,18 @@ pas une amélioration de méthode : **ces deux lots n'écrivent que du rattaché
 comme Zavvi avec `--rattachees-seules`. Un taux qui monte dit ce qu'on a écrit,
 pas ce qu'on a mesuré.
 
-**Trois lots de plus dans la nuit du 4 août 2026, +648 éditions et +353
-films**, tous les trois isolables séparément :
+**Quatre lots de plus dans la nuit du 4 août 2026, +740 éditions et +419
+films**, tous isolables séparément :
 
 | lot | éditions | liens | source du lien |
 |---|---|---|---|
 | Coin de Mire Cinéma | 124 | 124 | `coindemire` |
 | coffrets Leclerc, découpés | 64 | 156 | `leclerc_dvdfr_coffret` |
 | reprise Zavvi à quatre mesures | 460 | 460 | `zavvi_reprise` |
+| Diaphana, première WooCommerce | 92 | 92 | `diaphana` |
 
-    23 711 éditions | 8 013 EAN (33,8 %) | 21 814 rattachées (92,0 %)
-    12 063 films dont 846 séries | 24 854 liens
+    23 803 éditions | 8 013 EAN (33,7 %) | 92,0 % rattachées
+    12 129 films | 24 940 liens | sitemap 13 420 URL avant Diaphana
 
 **La couverture EAN monte puis redescend dans la même journée, et les deux
 mouvements se lisent.** 26,5 % le 3 août, 33,8 après Leclerc, **34,5 après Coin
@@ -2007,6 +2008,62 @@ meilleur taux du catalogue, contre 86 % à Metaluna et 43,5 % à Zavvi. 124
 en disant `total de saison, 173 ≈ n × 57` — un film à sketches dont la durée se
 lit comme un lot d'épisodes. Le garde-fou fait son travail.
 
+### diaphana.fr, 92 éditions, 4 août 2026
+
+**Première source WooCommerce du dépôt**, et première trouvée en partant d'une
+liste de **distributeurs de salle** plutôt que d'éditeurs vidéo. La distinction
+décide de tout : mettre un film en salle et presser un disque sont deux
+métiers, et sur la vingtaine de sociétés françaises sondées, **deux seulement
+ont une boutique**, Diaphana et Solaris. Bac Films, Memento, Ad Vitam, Pyramide,
+Le Pacte, SND, Wild Bunch, Eurozoom, Acacias sont des sites vitrines ; Carlotta
+est éditorial plus VOD.
+
+C'est mesurable autrement : `editions.distributeur`, rempli par dvdfr sur
+2 400 éditions, nomme `ESCD`, `Arcadès`, `Seven7`, `Fox Pathé Europa`,
+`Plaion`, `BQHL Diffusion`. **Aucun n'est dans la liste des distributeurs de
+salle.** C'est l'étage vidéo, invisible depuis l'autre.
+
+**La Store API WooCommerce rend le catalogue entier en trois requêtes**, sans
+une fiche à crawler, là où Shopify en impose une par produit :
+
+    /wp-json/wc/store/v1/products?per_page=100&page=1
+    283 produits, 108 Blu-ray, 175 DVD écartés
+
+Leur `robots.txt` ne bloque que `/wp-admin/` et ne nomme aucun agent.
+
+**Aucun EAN, nulle part**, ni `sku` ni `gtin13`. C'est la catégorie Zavvi et
+Metaluna : pas de qualification dvdfr, pas de déduplication par code-barres, et
+la couverture EAN du catalogue qui baisse. Le format n'en a pas besoin, il est
+dans le **nom du produit** à 100 %, `Titane (Blu-Ray)`, `Nebraska (DVD)`.
+
+**Les deux mesures indépendantes viennent des pages film du même site**, pas de
+la boutique, et c'est ce qui rend la source exploitable sans code-barres :
+
+    /film/<slug>/   ->   « Un film de Hettie MacDonald »   « Durée : 1h30 »
+
+421 pages film pour 283 produits, appariées sur le **slug**, le produit valant
+le film plus un suffixe de format, `titane-blu-ray` contre `titane`. Couverture
+obtenue : réalisateur 88 %, durée 84 %.
+
+Résultat : **93 rattachés sur 108, 86,1 %**, 92 écrites, 66 films créés. Le
+fonds visé est bien là, *Titane*, *Mommy*, *Cold War*, *Drive My Car*,
+*Burning*, *Divines*, *Le Daim*, *Robuste*, et **69 des 102 titres étaient
+inconnus du catalogue**, le taux de nouveauté le plus élevé jamais mesuré.
+
+**La sonde annonçait 90 %, la chaîne rend 86,1 %.** L'écart vient d'`apparier`,
+plus strict sur quelques cas que la règle écrite dans la sonde. Retenir le sens
+de l'écart : une sonde qui majore de quatre points vaut mieux que l'inverse,
+mais elle majore.
+
+### solaris-distribution.com : mesuré le 4 août 2026, et écarté
+
+Même plateforme, même `robots.txt` ouvert, chaîne déjà écrite : il ne restait
+qu'à lancer. **Un seul Blu-ray sur 50 produits**, le reste étant 27 DVD et
+22 affiches. Le catalogue écarte le DVD systématiquement, 69 chez Coin de Mire,
+3 344 chez Leclerc : écrire une édition pour justifier la chaîne n'a pas de
+sens. L'entrée reste dans `boutiques.py`, prête si leur catalogue Blu-ray
+grandit.
+
 ### Zavvi, les 6 514 non rattachées : mesuré le 4 août 2026, et écarté
 
 L'import du 2 août n'a écrit que 4 446 éditions sur 11 536 crawlées, les autres
@@ -2803,6 +2860,28 @@ tient en une entrée et cinq commandes.
 requête. C'est la méthode n° 2 du §9, conserver de quoi rejouer un parseur, et
 elle a servi le jour même de son écriture : le `4K` de restauration avait
 faussé les 213 fiches Coin de Mire au premier passage.
+
+**Deux plateformes depuis Diaphana**, déclarées dans la table, et l'écart tient
+en une requête :
+
+    shopify       sitemap -> 1 requête par fiche      213 requêtes
+    woocommerce   Store API -> tout le catalogue        3 requêtes
+
+**Ce qu'on crawle chez un WooCommerce, ce sont les pages `/film/`**, pas les
+produits : la boutique a déjà tout donné du disque, ce qui manque est le
+réalisateur et la durée. Une seule fois par œuvre, un Blu-ray et un DVD du même
+film partageant leur page.
+
+**Trois adaptations pour une source sans code-barres**, la chaîne supposant
+l'EAN partout :
+
+- la clé de reprise devient `<handle>:<slug>`, mais elle **n'entre pas dans
+  `editions.ean`** : ce n'est pas un code-barres, et l'écrire gonflerait le
+  compteur du §4 d'un code qui n'existe pas ;
+- la déduplication passe sur `(source, source_id)`. Deux disques identiques
+  venus de deux sources ne se verront plus, là où l'EAN les confondait. C'est
+  le prix d'une source sans code-barres, à savoir avant d'en ajouter une ;
+- le suffixe de format part du nom, `A pied d'œuvre – Blu-ray`.
 
 ### Reprise Zavvi (`zavvi/reprendre_zavvi.py`, 2026-08-04)
 
@@ -4097,6 +4176,18 @@ faute de fichier de tri, `agfa`, `cauldron-films`, `chameleon-films`,
 Et la réénumération des 65 collections le même jour rend **+0 fiche neuve**
 (§5). **Le filon Metaluna est épuisé, mesuré et non supposé** : ne pas relancer
 une vague de ce type en espérant autre chose.
+
+**Une troisième mesure l'a confirmé le soir même, et elle visait autre chose.**
+Le correctif de `chercher()` décrit au §9, qui rendait à Metaluna les titres
+anglais qu'il jetait, faisait espérer une reprise des catalogues anglophones,
+Arrow à 23 %, second-sight à 33 %, eureka à 38 %. Rejouée sur les 1 224
+orphelines : **3 éditions rattachées, 4 liens.** L'hypothèse est morte.
+
+Ce qui reste est donc bien ce que dit cette section, des œuvres que TMDB ne
+référence pas : le bis espagnol d'Eloy de la Iglesia chez Artus, `Le Prêtre`,
+`La Créature`, `Le Buraliste de Vallecas`, et les doubles programmes
+Studiocanal, `Croisières sidérales + Konga`. **Filon mort, mesuré deux fois par
+deux voies différentes.**
 
 **7 films seulement n'ont aucune édition**, contre 134 supprimés le 31 juillet.
 Le catalogue est piloté par les éditions, et il l'est bien.
@@ -5640,6 +5731,26 @@ Documentés parce qu'ils se reproduiront.
   coffret `Dune + Dune : Deuxième partie` annoncé 314 minutes et résolu
   « 1/2 titres, somme 155 ». Un contrôle qui compare une somme rend visible ce
   qu'un contrôle par oui/non aurait tu.
+
+  **La même faute était écrite une seconde fois**, dans
+  `resoudre_metaluna.chercher()`, corrigée le soir même. Là-bas `fr-FR` court en
+  premier, donc c'était le libellé **anglais** qui sautait, l'inverse exact. Ce
+  que le §6 reproche à une seconde implémentation ne se voit jamais mieux que
+  là : deux copies, deux bugs identiques, deux symptômes opposés, trouvés à des
+  semaines d'intervalle. Rejouer les 1 224 orphelines Metaluna derrière n'a
+  rendu que 3 éditions, l'effet espéré sur les catalogues anglophones n'existait
+  pas (§8).
+- **Un `wp-sitemap.xml` est un index, pas une liste de pages.** WordPress publie
+  les deux formes : Diaphana sert `films-sitemap.xml`, plat, dont les `<loc>`
+  sont les pages ; Solaris sert `wp-sitemap.xml`, dont les `<loc>` sont
+  `wp-sitemap-posts-film-1.xml`. Un filtre sur `/film/` appliqué à l'index rend
+  **zéro**, et la passe écrit alors des lignes sans aucune mesure — 50 sur 50,
+  journal vert, `erreurs 0`. Suivre l'index d'un niveau, et sortir en erreur sur
+  une énumération vide plutôt que continuer.
+- **La catégorie de la boutique dit le format que le nom tait.** Solaris nomme
+  `LA DANSE DE MORT – DVD` mais range aussi sous `DVD`, `Blu-rays`, `Affiches` :
+  la catégorie trie les dérivés sans qu'on ait à lister un vocabulaire
+  d'affiche et de livre.
 - **La borne du « multiple entier = total de boîtier » dépend du type.** Pour un
   film, un lot dépasse rarement six disques et monter plus haut laisserait
   baptiser « multiple » n'importe quel écart. Pour une **série**, `duree_tmdb`
