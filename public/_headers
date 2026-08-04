@@ -22,6 +22,25 @@
 #               site de toute dépendance à un tiers pour ses images, et un
 #               hotlink vers le CDN d'un revendeur rouvre exactement ça.
 #
+#               **Quatrième hôte le 4 août 2026, `media.e.leclerc`**, et
+#               celui-là n'est pas provisoire. Les 2 312 éditions entrées par
+#               le flux Awin portent toutes une `image_url` chez lui, et le §5
+#               le dit sans ambiguïté : E.Leclerc est la seule source dont les
+#               visuels sont **licenciés pour l'usage affilié**. Le lien direct
+#               est donc légitime et voulu, là où celui vers Shopify est un
+#               accident à réparer.
+#
+#               Symptôme à reconnaître, il n'a rien d'évident : la carte rend
+#               un cadre gris, la console ne dit rien d'utile, et la requête
+#               sort à `transferSize 0, status 0`. Zéro octet **et** zéro
+#               statut, c'est une CSP, pas un 404. Un visuel absent en base
+#               n'aurait, lui, produit aucune requête du tout.
+#
+#               La leçon vaut pour la suite : cette directive est écrite sur un
+#               **instantané** des hôtes présents en base. Toute source neuve en
+#               ajoute un, et l'oubli ne casse rien de bruyant. À vérifier à
+#               chaque import qui apporte ses propres visuels.
+#
 #               Les deux hôtes d'origine, eux, sont mesurés en base sur les 36 031
 #               URL d'`affiche_url`, `backdrop_url`, `image_url` et
 #               `images_secondaires` : img.jaquette.app (19 201) et
@@ -44,7 +63,7 @@
 # Certificates, et l'engagement est difficile à défaire une fois le max-age
 # servi.
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.tmdb.org https://img.jaquette.app https://cdn.shopify.com; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.tmdb.org https://img.jaquette.app https://cdn.shopify.com https://media.e.leclerc; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co
   X-Frame-Options: DENY
   Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
   X-Content-Type-Options: nosniff
