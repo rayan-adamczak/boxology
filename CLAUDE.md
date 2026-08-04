@@ -934,19 +934,26 @@ Mesuré le 3 août 2026 en fin de journée. **Ces chiffres bougent plusieurs foi
 par jour** depuis que les cinq passes tournent sur Actions et que les vagues
 Metaluna s'enchaînent : les relever plutôt que les recopier.
 
-| | |
-|---|---|
-Relevé à nouveau le **4 août 2026** après les imports Leclerc et The Jokers.
+Relevé à nouveau le **4 août 2026** après les imports Leclerc et The Jokers,
+puis en fin de journée, les écritures Leclerc s'étant poursuivies entre les deux.
 
-| | |
-|---|---|
-| Films | 11 710, dont 751 séries |
-| Éditions | 23 028 |
-| Codes-barres | **7 790 (33,8 %)**, dont 13 codes de magasin sans valeur hors enseigne |
-| Éditions rattachées | 21 131 (**91,8 %**), pour 24 079 liens |
-| Éditions sans film | 1 897 |
-| Éditions avec visuel | 22 708 (98,6 %) |
-| **Offres marchandes** | **3 026**, sur 3 026 éditions et 2 483 films |
+| | 4 août, après-midi | 4 août, soir |
+|---|---|---|
+| Films | 11 710, dont 751 séries | 11 749 |
+| Éditions | 23 028 | 23 246 |
+| dont source `leclerc` | 2 301 | 2 400 |
+| Codes-barres | **7 790 (33,8 %)** | — |
+| Éditions rattachées | 21 131 (**91,8 %**), pour 24 079 liens | — |
+| Éditions sans film | 1 897 | — |
+| Éditions avec visuel | 22 708 (98,6 %) | — |
+| **Offres marchandes** | **3 026** | **3 014** |
+
+Les 13 codes de magasin sans valeur hors enseigne sont toujours dans le compte
+des codes-barres.
+
+**Les offres baissent de 12 et ce n'est pas une perte** : la passe Awin purge ce
+qu'elle n'a pas revu dans le flux du jour, un produit délisté chez le marchand
+n'ayant plus ni prix ni lien valides (§6). Le seuil d'alerte est à 998.
 
 **La couverture EAN remonte pour la première fois**, de 26,5 % le 3 août à
 33,8 %. Toutes les campagnes précédentes la faisaient baisser, Zavvi et
