@@ -918,14 +918,33 @@ Metaluna s'enchaînent : les relever plutôt que les recopier.
 
 | | |
 |---|---|
-| Films | 11 105, dont 748 séries |
-| Éditions | 20 698 |
-| Codes-barres | 5 460, dont 13 codes de magasin sans valeur hors enseigne |
-| Éditions rattachées | 18 743 (90,6 %), pour 21 688 liens |
-| Éditions sans film | 1 955 |
-| Éditions avec visuel | 20 282 (98,4 %) |
-| **Offres marchandes** | **724**, sur 724 éditions et 658 films |
-| URL au sitemap | 12 017 |
+Relevé à nouveau le **4 août 2026** après les imports Leclerc et The Jokers.
+
+| | |
+|---|---|
+| Films | 11 710, dont 751 séries |
+| Éditions | 23 028 |
+| Codes-barres | **7 790 (33,8 %)**, dont 13 codes de magasin sans valeur hors enseigne |
+| Éditions rattachées | 21 131 (**91,8 %**), pour 24 079 liens |
+| Éditions sans film | 1 897 |
+| Éditions avec visuel | 22 708 (98,6 %) |
+| **Offres marchandes** | **3 026**, sur 3 026 éditions et 2 483 films |
+
+**La couverture EAN remonte pour la première fois**, de 26,5 % le 3 août à
+33,8 %. Toutes les campagnes précédentes la faisaient baisser, Zavvi et
+Metaluna n'en publiant aucun : c'est le premier import qui apporte du
+code-barres en masse, et c'est lui qui débloque le scan du §8, fonction la plus
+demandée.
+
+**La journée du 4 août 2026, +2 426 éditions et +839 films** :
+
+    Leclerc, qualifié par dvdfr    2 301 éditions, 586 films créés
+    The Jokers                        29 éditions,   7 films créés
+
+Le taux de rattachement monte de 87,9 à 91,8 %, et pour une raison qui n'est
+pas une amélioration de méthode : **ces deux lots n'écrivent que du rattaché**,
+comme Zavvi avec `--rattachees-seules`. Un taux qui monte dit ce qu'on a écrit,
+pas ce qu'on a mesuré.
 
 **Les 65 collections Metaluna sont passées le 3 août 2026**, en deux vagues
 locales : 33 éditeurs français puis 14 catalogues d'import, **+5 119 éditions
@@ -1741,25 +1760,122 @@ d'essai du 2 août (§8), **4 exacts** seulement, `Alpha`, `Les Huit Salopards`,
 `In the Mood for Love`, `Obsession`, plus `Insidious` en anthologie. Leclerc
 vend son stock du jour, pas un fonds.
 
-**Recoupement : 724 éditions.** 6 393 EAN du flux ne sont pas au catalogue, et
-**rien n'en a été importé** : voir §8, l'import est suspendu au format.
+**Recoupement : 724 éditions**, et 6 393 EAN du flux absents du catalogue.
 
-### Ce qui a été fait du flux, et ce qui ne l'a pas été
+### Le flux a été importé le 4 août 2026, qualifié par dvdfr
 
-**Fait, et en ligne** : les 724 éditions déjà au catalogue portent une offre,
-prix, disponibilité et lien de tracking. Aucun film, aucune édition, aucun lien
-`edition_films` créé. C'était le seul travail sur ce flux qui ne demande aucune
-décision de rattachement, donc le premier.
+**Deux voies fermées avant celle-là**, et les deux mesurées plutôt que
+supposées :
 
-**Pas fait** : l'import des 6 393 restants. Écrire des milliers d'éditions dont
-on ignore si ce sont des DVD ou des 4K, sans année ni réalisateur pour
-contrôler, refait le lot `probable` du §3, faux à 23 %.
+- **les colonnes `custom_1` à `custom_3` de Create-a-Feed sont vides**, 0 % sur
+  les 7 093 disques. Le scan fonctionnait, 35 colonnes lues et parsées : un
+  vrai zéro. Le flux **ne peut pas** dire le format, la question est close ;
+- **le cache dvdfr existant ne couvrait aucun des 6 393**, par construction, et
+  n'avait rien à rattraper chez nous : 19 éditions seulement manquaient de
+  format tout en portant un code-barres.
+
+Restait dvdfr interrogé code-barres par code-barres. **6 393 codes, 6 311
+fiches, 82 inconnues (1,3 %), zéro erreur**, en cinq créneaux locaux de deux à
+quatre heures. Ce qu'il rend comble les quatre manques d'un coup :
+
+    Support principal   DVD, Blu-ray, 4K Ultra HD, Blu-ray 3D
+    titre               le candidat à chercher chez TMDB
+    realisateur         mesure indépendante n° 1        100 %
+    Durée               mesure indépendante n° 2         92 %
+
+**Le format, enfin mesuré, et mon estimation était fausse d'un facteur 1,7.**
+`merchant_category` laissait croire à 38 % de DVD ; c'est **55,4 %**.
+
+    3 344  55,4 %  DVD          -> écartés
+    2 263  37,5 %  Blu-ray
+      429   7,1 %  4K Ultra HD
+
+**La proportion de Blu-ray monte en fin de liste**, 37 % sur le premier tiers,
+44,6 % à la fin : le lot n'était pas homogène, et je l'ai affirmé trop tôt à
+mi-parcours. Retenir qu'un ratio mesuré sur un préfixe de liste n'est pas un
+ratio.
+
+Résultat : 2 823 candidats, **2 301 rattachés (81,5 %)**, 522 refusés, 586 films
+créés. Le meilleur taux du catalogue, Metaluna étant à 86 % après relecture et
+Zavvi à 43,5 %.
 
 **Le levier identifié, et il retourne une conclusion du §8** : `dvdfr.yml`
 interroge code-barres par code-barres et « n'élargit rien », ce qui le rendait
 inutile. Il donne précisément ce que Leclerc tait, format, zone et date
 française. Leclerc élargit, dvdfr qualifie. À mesurer avant de s'y engager : le
 débit réel sur 6 393 codes, le §5 gardant la trace d'un quota à 200 par semaine.
+
+### thejokers-shop.com, 29 éditions, 4 août 2026
+
+**Éditeur français d'auteur**, et la première source choisie pour combler le
+§8 plutôt que pour son volume : 146 fiches, 100 disques, 87 EAN inconnus du
+catalogue. Cinéma coréen, japonais et hongkongais, `Memories of Murder`, `JSA`,
+`Hana-Bi`, `Kids Return`, `Dark Water`, et le Blu-ray 4K d'`In the Mood for
+Love` que Leclerc ne vend qu'en DVD.
+
+Boutique Shopify, mais **`products.json` est fermé** : 429 `local_rate_limited`
+sous deux agents différents, donc pas le filtre par UA du précédent dvdfr mais
+une limite posée exprès. Leur `robots.txt` l'écrit, « AJAX surfaces: agents
+should use UCP/MCP instead », et déclare un endpoint d'agent dédié,
+`/api/ucp/mcp`, un `agents.md` et une découverte `.well-known/ucp`.
+
+**C'est une politique déclarée, du côté du §5 qu'on respecte.** Le bloc
+`User-agent: *` autorise `/products` sans réserve et déclare le sitemap : c'est
+la voie ouverte, et c'est celle prise. Aucune connexion à leur serveur MCP,
+décision qui appartient à l'éditeur du site et non à l'assistant.
+
+**Leur JSON-LD porte le `gtin13`**, ce qu'aucune autre source Shopify du dépôt
+ne publie. C'est la clé qui a permis à dvdfr de qualifier le support.
+
+**Un sitemap par locale, et ils décrivent le même catalogue.** Shopify publie
+`sitemap_products_1.xml` et `/en/sitemap_products_1.xml` avec les mêmes bornes :
+292 fiches relevées pour 146 produits, et le crawl a coûté le double. Le défaut
+ne se voyait nulle part — zéro erreur, couverture à 100 % — il n'est apparu
+qu'en comptant les **EAN distincts**, 100 pour 200 disques.
+
+Couverture sur les 100 disques : EAN, prix, image et éditeur à 100 %, durée
+85 %, langues 90 %, **réalisateur 0 %**. D'où le passage par dvdfr, qui en
+qualifie 83 sur 100 ; les 17 inconnus sont des médiabooks et collectors récents
+que dvdfr ne référence pas non plus, et c'est la mesure de ce que cette source
+a d'unique.
+
+**Le titre de l'œuvre est entre guillemets dans le nom du produit**, gabarit
+constant : `Médiabook "A Scene at the Sea"`. Sans cette coupe, le vocabulaire
+de boîtier partirait chez TMDB.
+
+76 candidats, 65 sûrs (85,5 %), **29 écrits** : 36 des 65 étaient déjà entrés
+par Leclerc quelques heures plus tôt, les mêmes disques étant vendus aux deux
+endroits. `ecrire_croisement.py` relit `editions.ean` plutôt que son fichier,
+et c'est ce garde-fou qui a évité 36 doublons.
+
+### Zavvi, les 6 514 non rattachées : mesuré le 4 août 2026, et écarté
+
+L'import du 2 août n'a écrit que 4 446 éditions sur 11 536 crawlées, les autres
+étant refusées par `--rattachees-seules` faute de rattachement. La question de
+les reprendre s'est reposée, et **elle est mesurée plutôt que débattue** :
+échantillon de 200, résolu par l'`apparier` d'aujourd'hui, en lecture seule.
+
+    sur 18 (9,0 %)   a_relire 46   echec 136
+
+Soit **~586 éditions récupérables sur 6 514**. Les rattachements proposés sont
+bons, avec des durées justes à la minute, et `apparier` retrouve des titres
+traduits que la passe d'origine manquait, `Deadfall` sous *Le chat croque les
+diamants*.
+
+**Mais un faux positif sur dix-huit, et il est instructif** :
+
+    Andy's Baby Animals (BBC) - Playtime  ->  ファンタズマ ～呪いの館～ Vol.2 (2004)
+
+Un documentaire animalier de la BBC rattaché à une série d'horreur japonaise,
+sur la seule concordance de durée 100/100. **Zavvi ne donne ni année ni date de
+parution**, donc le plafond — contrôle le plus rentable du dépôt, 51 liens faux
+sortis en une passe — ne s'applique pas. 5,5 % de faux dans le lot « sûr », là
+où l'échantillon de cinquante de Leclerc n'en portait aucun.
+
+**Ne pas reprendre en l'état.** Ce qui le rendrait défendable serait un
+troisième contrôle pour remplacer le plafond manquant, le `Studio` présent à
+90,9 % croisé avec les sociétés de production TMDB. C'est un chantier, pas une
+passe.
 
 ---
 
@@ -1974,6 +2090,39 @@ gagner une heure. Mais un miroir qui part avant les résolutions ne sait pas
 quelles fiches seront retenues : il a recopié **11 498 images pour 3 154 Mo en
 quatre heures** quand 4 446 éditions seulement ont été écrites. Une heure
 gagnée d'un côté, deux heures et demie perdues de l'autre.
+
+**La chaîne complète, au 4 août 2026**, en quatre étages dont trois en lecture
+seule :
+
+| Fichier | Rôle |
+|---|---|
+| `eans_a_qualifier.py` | Sort les EAN du flux absents du catalogue |
+| `croiser_leclerc.py` | Apparie flux et dvdfr sur l'EAN, **sans réseau** |
+| `croiser_jokers.py` | Idem pour The Jokers |
+| `resoudre_leclerc.py --source X` | TMDB, reprenable, **lecture seule** |
+| `ecrire_croisement.py --source X` | Films, éditions et liens (`--apply`) |
+
+**`resoudre_leclerc.py` est paramétré par source, pas recopié**, et
+`ecrire_croisement.py` l'est aussi : c'est le §6 appliqué à lui-même, une
+seconde implémentation du rapprochement dériverait sans que ça se voie.
+`ecrire_leclerc.py` précède ce dernier et fait doublon, à retirer.
+
+**L'écriture ne résout rien, elle lit `resolutions_<source>.jsonl`.** Première
+version fautive, corrigée avant d'aller plus loin : le cache ne retenait que
+les rattachements sûrs, donc les 522 refusés retombaient dans un repli qui les
+rerésolvait avec des règles plus lâches. Le taux montait de 81,5 à 86,5 %, et
+cette hausse n'était pas un gain, c'était **la relecture contournée**. Le cache
+retient désormais l'ensemble des EAN vus : un refus consigné est un refus.
+
+**Toutes les planifications sont coupées depuis le 4 août 2026**, le forfait de
+2 000 minutes étant consommé. Sur un dépôt privé, Actions cesse alors de lancer
+les jobs sans rien signaler. Les deux plus gros consommateurs étaient Zavvi,
+310 minutes pour recrawler 12 665 fiches par semaine, et dvdfr, **281 minutes
+brûlées pour rien** puisque le runner ne peut pas joindre le site.
+
+**Conséquence à surveiller : la passe de prix ne tourne plus.** C'est la seule
+dont le retard se voit à l'écran, la date de relevé s'affichant sous le prix.
+À lancer à la main, ou à remettre en local par un agent launchd.
 
 ### Metaluna (`metaluna/`, 2026-08-01)
 
@@ -2291,7 +2440,7 @@ La passe repart de zéro à chaque fois, l'avancement sert à reprendre après u
 coupure, pas à sauter les films vus la semaine d'avant. C'est bien tout le
 catalogue qu'on veut réactualiser.
 
-### Awin (`awin/`, 2026-08-03)
+### Awin, Leclerc et Jokers (`awin/`, 2026-08-03 et 04)
 
     export AWIN_FEED_LECLERC='…'          # Create-a-Feed, porte la clé API
     python3 telecharger_awin.py leclerc
@@ -5404,6 +5553,38 @@ Documentés parce qu'ils se reproduiront.
 - **Un flux marchand n'annonce pas ce qu'il ne vend pas.** Corollaire du même
   épisode : ne pas conclure d'un « 4/19 » que la source est mauvaise. Elle est
   excellente sur ce qu'elle porte, elle ne porte simplement pas de fonds.
+
+### Doublons et duplication silencieuse
+- **Un lot doublé ressemble à un lot sain.** Le crawl The Jokers a rendu 292
+  fiches, zéro erreur, couverture à 100 % sur l'EAN, le prix et l'image. Il n'y
+  avait que 146 produits : Shopify publie un sitemap par locale,
+  `sitemap_products_1.xml` et `/en/sitemap_products_1.xml`, mêmes bornes. Aucun
+  compteur de la passe ne pouvait le dire.
+
+  **Ce qui l'a montré est le décompte des valeurs distinctes**, 100 EAN pour
+  200 disques. Compter les lignes ne suffit jamais ; compter les clés, si.
+  Variante du §9 qu'on n'avait pas : jusqu'ici « un scan cassé ressemble à un
+  scan négatif », désormais aussi « un scan doublé ressemble à un scan riche ».
+- **Vérifier le presse-papiers puis s'en servir dans deux commandes ne vérifie
+  rien.** Entre les deux, il change. Le 4 août, un `pbpaste | gh secret set` a
+  posé un fragment de terminal à la place d'une clé API, parce que la
+  vérification était dans l'appel précédent. La forme juste lit **une fois**,
+  contrôle, et **refuse** si ça ne colle pas, dans la même commande.
+- **Un refus consigné doit rester un refus.** Une passe d'écriture qui ne met
+  en cache que les rattachements retenus fait retomber les refusés dans son
+  repli, qui les rerésout avec d'autres règles. Le taux monte et paraît
+  meilleur : c'est la relecture contournée. Mettre en cache **l'ensemble des
+  candidats examinés**, pas seulement ceux qui ont passé.
+- **Relire la base, jamais son propre fichier.** Sur The Jokers, 36 des 65
+  rattachements sûrs étaient déjà en base : l'import Leclerc de la même journée
+  avait fait entrer les mêmes disques, et la liste d'EAN neufs datait d'avant.
+
+### Rattachement sans plafond
+- **Sans année ni date de parution, le contrôle le plus rentable du dépôt ne
+  s'applique pas**, et la durée seule ne suffit pas. Mesuré sur Zavvi le 4 août
+  2026 : `Andy's Baby Animals (BBC)` rattaché à `ファンタズマ ～呪いの館～ Vol.2`
+  sur une concordance de durée 100/100. Une source sans millésime demande un
+  troisième contrôle, pas une tolérance plus large.
 
 ### Méthode
 Ce qui a évité le plus d'erreurs :
