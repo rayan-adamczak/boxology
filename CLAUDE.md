@@ -1957,6 +1957,53 @@ au lieu de les recopier : une seconde normalisation dériverait de la première
 sans que ça se voie, et c'est elle qui porte les pièges d'apostrophe
 typographique, de chiffres romains et de suffixe de format.
 
+#### Trois passes du 4 août 2026, sur 1 238 orphelines
+
+Trois leviers essayés le même jour, chacun mesuré avant d'être écrit, et
+chacun avec un résultat franc. Le catalogue est passé de 89,2 à **90,8 %** de
+rattachement, et **le filon Metaluna est épuisé**.
+
+| levier | population visée | rendement |
+|---|---|---|
+| mention de langue dans le titre | 121 | **39 liens** |
+| liste de films dans la description | 162 | **16 liens**, 226 découpages |
+| le reste, sans motif identifié | ~1 000 | 0 |
+
+**La mention de langue cassait le découpage, pas la recherche.** `SEPARATEURS`
+coupe sur ` + `, et `(VF + STFR)` en porte un : `Speak No Evil (VF + STFR)`
+devenait `Speak No Evil (VF` puis `STFR)`. Le nettoyage existait, mais dans
+`requetes()`, donc **après** l'éclatement. Détail au §9.
+
+**La liste des films vit dans la description, jamais dans le titre.** Le titre
+d'un coffret d'éditeur ne nomme souvent aucune œuvre, `J-Horror Rising`,
+`Brit Noir: Collection I`, `Film Noir: The Dark Side of Cinema XXVII`. Aucun
+découpage du titre ne les résoudra. Trois formes relevées, et seulement trois :
+
+    Shikoku / Isola / Persona / Inugami           titres séparés par des barres
+    Contient les 4 films suivants : - A - B - C   annoncé, puis à tirets
+    - Meurtre au soleil (1982) : synopsis…        tirets, année et résumé
+
+Mesuré avant d'écrire : **162 orphelines portent une liste, 1 076 n'en ont
+aucune.** C'est la leçon des coffrets blu-ray.com à l'identique, ce qu'on croit
+absent de la source est souvent dans la page, jeté par le parseur.
+
+**Mais un coffret n'a aucune mesure par film, et c'est là que ça s'arrête.**
+226 découpages pour **11 coffrets validés seulement**. La durée annoncée couvre
+le lot entier, et le réalisateur est unique pour tous les titres quand il ne
+vaut pas `various` : sur `J-Horror Rising`, sept films japonais héritent tous
+d'« Alex de la Iglesia », déjà faux au boîtier. Sans durée ni réalisateur par
+film, aucune des deux mesures concordantes exigées n'est disponible.
+
+**Le contrôle a raison de refuser, et il ne faut pas l'assouplir.** Poser les
+226 liens sur un titre exact sans mesure, ce serait refaire le lot `probable`,
+faux à 23 %. Les 16 liens obtenus le sont sur les coffrets où un contrôle
+tenait vraiment, dont 13 en `metaluna_relecture_partiel`.
+
+**Ne pas rouvrir ce chantier sans une mesure neuve par film.** Ce qui reste
+est caractérisé et hors de portée : environ 1 076 éditions sans liste ni
+séparateur, le bis espagnol d'Artus et les fonds d'auteur que TMDB ne
+référence pas, plus 215 coffrets découpés mais invalidables.
+
 ### Le Chat qui fume (`chat_qui_fume/`, 2026-08-01)
 
 | Fichier | Rôle |
@@ -4853,6 +4900,31 @@ Documentés parce qu'ils se reproduiront.
   `édition\s+\w+` laisse passer `Caligula Edition Ultime`, que TMDB ne trouve
   pas. Même famille que les accents en majuscules et que `translate()` appliqué
   avant `lower()`.
+- **Un nettoyage qui arrive après le découpage ne sert à rien.** Le découpage
+  des doubles programmes coupe sur ` + `, et `(VF + STFR)` en porte un :
+  `Speak No Evil (VF + STFR)` devenait `Speak No Evil (VF` puis `STFR)`, deux
+  fragments que TMDB ne trouve pas. Le retrait de la mention de langue
+  existait, mais dans la fabrique de requêtes, donc **après** l'éclatement.
+  171 orphelines Metaluna portaient ce motif, et ce ne sont pas des raretés :
+  `Inception`, `Furiosa`, `John Wick: Chapter 4`, `Tar`.
+
+  **Symptôme à reconnaître, parce qu'il est trompeur** : le film est en base,
+  la résolution le retrouve quand on la rejoue **à la main** sur la fiche, et
+  l'édition reste orpheline malgré tout. Le verdict enregistré le disait
+  pourtant, `"morceaux": 2` sur un titre qui n'en porte qu'un. Relire le
+  verdict, pas seulement rejouer la fonction.
+
+  Corollaire d'ordre : retirer le vocabulaire **avant** de découper, comme on
+  retire les balises avant de déséchapper.
+- **Deux estimations de rendement fausses le même soir**, l'une d'un facteur
+  cinquante. Annoncer « 250 à 350 liens » sur une population de 171 supposait
+  que le motif relevé était la **cause** de l'échec ; il n'en était qu'une
+  corrélation. La preuve tenait en une ligne et je ne l'avais pas cherchée :
+  `Speak No Evil` sans aucune mention de langue était orpheline aussi.
+
+  **Compter une population n'est pas mesurer un rendement.** Tant qu'un
+  échantillon n'a pas été rejoué de bout en bout, l'ordre de grandeur ne se
+  donne pas.
 - **Le signal du tri d'images change d'une boutique à l'autre, et se vérifie.**
   Chez Le Chat qui fume le nom de fichier dit vrai (`IMAGEGRAB`) et
   l'orientation trompe, le packshot étant carré. Chez Metaluna c'est l'inverse :
