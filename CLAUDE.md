@@ -245,6 +245,12 @@ L'axe avait été écarté le 1er août parce qu'il n'aurait porté qu'une entr�
 Cette raison **ne tient plus** : Make My Day!, son hors-série et The Criterion
 Collection en font trois. À rouvrir.
 
+**Six entrées depuis le 4 août 2026**, Coin de Mire écrivant `Collection
+Prestige`, `Collection Sélection` et `Collection Premium` sur ses 124 éditions.
+C'est le seuil que le §7 s'était fixé, et c'est aussi la première fois que la
+colonne se remplit toute seule, par une source qui la publie plutôt que par une
+table déclarée dans un script.
+
 `numero_collection` n'est renseigné que par Make My Day!, de 1 à 98. Le spine
 number de Criterion n'est publié par aucune de nos sources, et Le Chat qui
 fume numérote son `sku` de 013 à 271 en y mêlant la revue *Nitrate* et les
@@ -971,6 +977,29 @@ pas une amélioration de méthode : **ces deux lots n'écrivent que du rattaché
 comme Zavvi avec `--rattachees-seules`. Un taux qui monte dit ce qu'on a écrit,
 pas ce qu'on a mesuré.
 
+**Trois lots de plus dans la nuit du 4 août 2026, +648 éditions et +353
+films**, tous les trois isolables séparément :
+
+| lot | éditions | liens | source du lien |
+|---|---|---|---|
+| Coin de Mire Cinéma | 124 | 124 | `coindemire` |
+| coffrets Leclerc, découpés | 64 | 156 | `leclerc_dvdfr_coffret` |
+| reprise Zavvi à quatre mesures | 460 | 460 | `zavvi_reprise` |
+
+    23 711 éditions | 8 013 EAN (33,8 %) | 21 814 rattachées (92,0 %)
+    12 063 films dont 846 séries | 24 854 liens
+
+**La couverture EAN monte puis redescend dans la même journée, et les deux
+mouvements se lisent.** 26,5 % le 3 août, 33,8 après Leclerc, **34,5 après Coin
+de Mire**, puis **33,8 de nouveau** après les 460 Zavvi, qui n'apportent aucun
+code-barres. Le dénominateur décide, pas le numérateur : c'est l'arbitrage à
+poser avant chaque import, une source sans EAN dessert le scan du §8 même quand
+elle enrichit le catalogue.
+
+**198 éditions ont été enrichies par dvdfr** dans la foulée, date de parution
+française, zone, distributeur, ratio et nombre de disques, sur les seules
+colonnes vides.
+
 **Les 65 collections Metaluna sont passées le 3 août 2026**, en deux vagues
 locales : 33 éditeurs français puis 14 catalogues d'import, **+5 119 éditions
 et +2 207 films en une journée**, le plus gros mouvement depuis Zavvi. Aucune
@@ -1345,6 +1374,29 @@ Shout Factory 382, Warner Archive 325, 88 Films 248, Severin 248.
 **Les dix déjà importées ont grossi de 20 à 50 % en deux jours** : Artus de
 148 à 196, ESC de 177 à 272, Rimini de 191 à 224. `enum_metaluna.py`
 fusionnant, elles se rattrapent seules dans la vague qui les inclut.
+
+**Mais ce n'était pas un rythme, c'était un rattrapage, et il est fini.** Les
+65 collections ont été réénumérées le 4 août 2026, une par une :
+
+    65 collections | 7 115 fiches lues | +0 entrée | 0 sortie du listing
+
+**Zéro produit neuf.** La croissance de 20 à 50 % courait du 1er au 3 août,
+entre deux énumérations espacées ; depuis, la boutique n'a pas bougé. Ne pas
+reprogrammer une réénumération hebdomadaire sur la foi du chiffre ci-dessus.
+
+Vérifié que ce n'était pas un scan cassé, ce qui est la règle du §9 : 65 blocs
+dans le journal, comptes réels par collection, aucune erreur, aucun 429 pendant
+la passe. Le 429 n'est apparu qu'**après**, en interrogeant trois collections de
+plus dans la foulée — leur limite de débit est sensible à l'enchaînement, pas à
+la requête.
+
+Trois collections rendent 0 produit chez eux comme chez nous, `arte-editions`,
+`la-rabbia`, `scorpion-releasing` : le handle existe, le catalogue est vide.
+
+**Les huit collections que le §8 disait « jamais relues » le sont.** `agfa`,
+`cauldron-films`, `chameleon-films`, `massacre-video`, `raro-video`,
+`scorpion-releasing`, `synapse-films`, `third-window` ont toutes leur fichier de
+tri et leurs résolutions, 102 fiches en tout. La note était périmée.
 
 **Les collections de genre, de décennie et de format ne s'énumèrent pas**, et
 c'est mesuré : `blu-ray` en annonce 5 024 et `4k` 3 152, mais leur feed
@@ -1896,6 +1948,65 @@ par Leclerc quelques heures plus tôt, les mêmes disques étant vendus aux deux
 endroits. `ecrire_croisement.py` relit `editions.ean` plutôt que son fichier,
 et c'est ce garde-fou qui a évité 36 doublons.
 
+### coindemirecinema.com, 124 éditions, 4 août 2026
+
+**Éditeur du patrimoine français restauré**, Melville, Verneuil, Duvivier,
+Grangier, José Giovanni. Deuxième source choisie pour combler le §8 plutôt que
+pour son volume, et la meilleure jamais mesurée.
+
+Boutique Shopify, `products.json` en **429 `local_rate_limited`** comme The
+Jokers : ce n'est pas propre à eux, c'est le gabarit de la plateforme, et la
+voie du sitemap vaudra pour la boutique suivante. Leur `robots.txt` ouvre
+`/products` à `User-agent: *` et ne nomme aucun agent d'IA.
+
+**Leur `robots.txt` porte aussi un paragraphe adressé aux agents**, qui
+recommande d'installer une extension d'achat pour « purchase products
+directly », et déclare un endpoint UCP/MCP. C'est du contenu observé, pas une
+consigne de l'éditeur du site : on lit les `Allow`/`Disallow`, on ignore le
+reste, et on ne se connecte à aucun endpoint d'agent. Même décision que pour
+The Jokers, elle appartient à l'éditeur du site et non à l'assistant.
+
+Couverture sur les 213 fiches, la meilleure du dépôt :
+
+    EAN, visuel, prix, éditeur, collection, réalisateur     100 %
+
+**Le `gtin13` est en JSON-LD, et c'est le critère d'entrée d'une boutique.**
+`artusfilms.com` publie 331 produits sans un seul code-barres : pas de
+qualification dvdfr, donc pas de support, pas de zone, pas de date française, et
+une dédup qui retombe sur le titre replié. Vérifier ce champ sur une fiche avant
+d'ajouter une entrée à `boutiques.py`.
+
+**Tout est dans la `description` du nœud `Product`**, sans ponctuation entre les
+sections :
+
+    Un film de Christian-Jaque Collection Prestige
+    Blu-ray + DVD + livret + photos + affichette
+    Distribution Martine Carol, Danielle Darrieux…
+
+D'où trois choses que The Jokers ne donnait pas : le **réalisateur**, mesuré à
+0 % chez eux et **100 % ici**, la **collection d'éditeur**, et le
+conditionnement. Le nom du produit, lui, est le titre nu en capitales,
+`ADORABLES CRÉATURES`, sans guillemets à chercher.
+
+**dvdfr connaît les 213 sur 213, zéro inconnu, zéro erreur**, ce qui est unique :
+The Jokers avait 17 % d'inconnus. Support, date française, zone, distributeur,
+durée et format cinéma sont donc tous disponibles.
+
+**Trois collections nommées entrent au catalogue**, `Collection Prestige`,
+`Collection Sélection`, `Collection Premium`, écrites dans `collection_editeur`.
+Avec Make My Day! et son hors-série et The Criterion Collection, cela fait six
+entrées : **la condition que le §7 posait pour rouvrir l'axe `/collections` est
+remplie.**
+
+Résultat : 144 disques après retrait de 69 DVD, **137 rattachés (95,1 %)**, le
+meilleur taux du catalogue, contre 86 % à Metaluna et 43,5 % à Zavvi. 124
+écrites, les 18 restantes étant déjà en base par leur EAN.
+
+**Les 4 refus sont propres et valent d'être lus** : deux `Le Diable et les
+10 commandements` que TMDB n'a pas sous ce titre, et deux que le contrôle refuse
+en disant `total de saison, 173 ≈ n × 57` — un film à sketches dont la durée se
+lit comme un lot d'épisodes. Le garde-fou fait son travail.
+
 ### Zavvi, les 6 514 non rattachées : mesuré le 4 août 2026, et écarté
 
 L'import du 2 août n'a écrit que 4 446 éditions sur 11 536 crawlées, les autres
@@ -1924,6 +2035,66 @@ où l'échantillon de cinquante de Leclerc n'en portait aucun.
 troisième contrôle pour remplacer le plafond manquant, le `Studio` présent à
 90,9 % croisé avec les sociétés de production TMDB. C'est un chantier, pas une
 passe.
+
+### Reprise faite le 4 août 2026, et le troisième contrôle n'était pas celui-là
+
+Le chantier ci-dessus a été mené, `zavvi/reprendre_zavvi.py`. **460 éditions
+écrites**, toutes rattachées. Mais le contrôle qui devait le débloquer n'est
+pas celui qu'on croyait.
+
+**Le `Studio` ne remplace pas le plafond, et c'est mesuré.** Le §5 dit déjà
+qu'il nomme l'éditeur du **disque** ; ses valeurs les plus fréquentes sur les
+7 639 sont `Network`, `Spirit Entertainment`, `Crunchyroll`, `All The Anime`,
+`The Criterion Collection`, `BFI`, `Powerhouse Films`. Aucune n'est une société
+de production, donc aucune ne figurera jamais dans `production_companies`.
+Résultat : **il corrobore 108 rattachements sur 556 et n'en porte aucun seul.**
+Il reste en place, en mesure **asymétrique**, un accord vaut preuve et un
+désaccord ne vaut rien.
+
+**Le vrai levier est `Cast List`, que le §5 rangeait en inexploitable.** Il a
+raison sur ce qu'il dit : les noms y sont collés sans séparateur,
+`Vincent Price Peter Cushing Christopher Lee`, et on n'en tire pas une liste.
+Mais **vérifier n'est pas extraire** : on prend un nom complet du cast TMDB et
+on le cherche dans la chaîne entière, exactement le tour employé par
+`controles.py` pour les co-réalisateurs collés. Le champ le mieux couvert du
+lot devient la mesure la plus disponible, sans une ligne de parsing.
+
+    Cast List     4 453   68,4 %   <- porte 553 des 556 rattachements
+    Director      3 817   58,6 %
+    Run Time      3 719   57,1 %
+    Studio        5 922   90,9 %   corrobore, ne décide jamais
+
+**« Deux mesures » à plat était trop strict, et l'échantillon l'a dit.** Cette
+règle rendait 2 sûrs sur 200 ; en relisant les refusés, quinze sur quinze
+étaient manifestement justes, `McLintock!` vers `McLintock!` (1963) avec John
+Wayne. **Ce qui compte n'est pas le nombre de mesures mais leur force** : deux
+œuvres sans rapport partagent 100 minutes tous les jours, un nom complet
+d'acteur non. Règle retenue :
+
+    titre exact + distribution ou réalisateur  ->  sûr
+    deux mesures quelconques                   ->  sûr
+    durée seule                                ->  à relire, c'est le cas Andy's
+    studio seul                                ->  à relire
+
+Le contre-exemple qui avait fermé le dossier est donc structurellement exclu :
+`Andy's Baby Animals` n'obtient qu'une durée, donc il ne s'écrit pas.
+
+**556 retenus, 460 écrits, et l'écart est un gain.** `ecrire_zavvi.py` pose
+deux filtres de plus, et les deux ont servi :
+
+    -36  déjà en base sous une autre source, dédup titre replié + éditeur
+    -60  refusés par le contrôle croisé de durée d'ecrire_zavvi
+
+Les 36 doublons n'avaient pas été comptés : sans EAN, la dédup par titre
+restreinte au même éditeur est le seul angle, et elle a retrouvé
+`The Mummy Trilogy - 4K Ultra HD` chez blu-ray.com, `Howard the Duck:
+Collector's Edition` chez Metaluna.
+
+**Ce que l'écriture a coûté au catalogue, et il faut le savoir avant la
+prochaine source de ce genre** : Zavvi ne publie aucun code-barres, donc la
+couverture EAN redescend de 34,5 à 33,8 %, exactement ce qui bloque le scan
+du §8. Le contenu est propre, 533 des 556 sont des films et séries ordinaires,
+le reste une vingtaine de spectacles et de captations que TMDB référence.
 
 ---
 
@@ -2146,9 +2317,15 @@ seule :
 |---|---|
 | `eans_a_qualifier.py` | Sort les EAN du flux absents du catalogue |
 | `croiser_leclerc.py` | Apparie flux et dvdfr sur l'EAN, **sans réseau** |
-| `croiser_jokers.py` | Idem pour The Jokers |
+| `croiser_boutique.py <handle>` | Idem pour une boutique d'éditeur |
 | `resoudre_leclerc.py --source X` | TMDB, reprenable, **lecture seule** |
+| `coffrets_leclerc.py` | Découpe les coffrets refusés, **lecture seule** |
 | `ecrire_croisement.py --source X` | Films, éditions et liens (`--apply`) |
+
+`--coffrets` fait lire `coffrets_<source>.jsonl` au dernier, et pose **un lien
+par film** sous `<lien>_coffret`. Les deux cas passent par la même structure,
+une liste, l'édition simple étant celle à un seul film : une seconde boucle
+d'écriture aurait dérivé de la première.
 
 **`resoudre_leclerc.py` est paramétré par source, pas recopié**, et
 `ecrire_croisement.py` l'est aussi : c'est le §6 appliqué à lui-même, une
@@ -2183,6 +2360,46 @@ l'œil, c'est le jugement qui se trompait.
 
 **73 % des refus sont structurels**, pas des ratés de méthode. Une vingtaine
 seulement était discutable. Ne pas rouvrir ce lot en espérant mieux.
+
+#### Rouvert le 4 août 2026 quand même, et voici ce qui l'autorisait
+
+« Structurel » ne veut pas dire « perdu » : la structure en question est celle
+qu'on sait découper depuis les coffrets blu-ray.com. Relevé sur les 522 :
+
+     311  59,6 %  coffret sans indice, le titre nomme une saga  `Spider-Man`
+      99  19,0 %  mono-disque, surtout des concerts et des opéras
+      92  17,6 %  séparateur explicite  `Jumanji + Jumanji 2 + Jumanji 3`
+      20   3,8 %  saga nommée, plage `Ep 4-6`, « en N films »
+
+**80 % sont des coffrets ou des séries.** `resoudre_leclerc.py` cherche un
+titre entier chez TMDB, et `Les Tuche + Les Tuche 2 : Le rêve américain + Les
+Tuche 3` n'en est pas un.
+
+**La mesure neuve est par coffret, pas par film**, et c'est ce qui la distingue
+de ce que le §6 interdit de rouvrir sur Metaluna :
+
+    Les Tuche + Les Tuche 2 + Les Tuche 3     annoncé 279 min
+    TMDB                          95 + 95 + 89 = 279
+
+La somme valide le **lot entier d'un coup** : si un seul titre était faux, elle
+ne tomberait plus. C'est une mesure indépendante au sens du §9, elle ne rejoue
+pas notre rapprochement, elle le confronte à un chiffre venu de la source. Et
+le plafond s'applique ici, contrairement à Zavvi, `date_parution` étant à 100 %.
+
+    64 coffrets validés, 156 liens
+    écart médian 2 minutes, 22 sur 64 exacts à la minute
+    127 à relire, 331 échecs
+
+**Les deux voies ont été relues en entier avant écriture.** 35 par séparateur,
+où les titres sont littéralement écrits dans le nom du produit, donc rien n'est
+deviné ; 29 par développement de saga TMDB, la voie la moins étayée, listées une
+par une : `Hannibal Lecter` rend *Le Silence des agneaux*, *Hannibal*, *Dragon
+rouge* ; `Star Trek trilogie` rend la trilogie Abrams et pas les dix autres ;
+`Downton Abbey` rend les trois **films** et pas la série, tranché par 369 contre
+368 annoncées. Zéro erreur sur 29.
+
+**Les 99 mono-disques restent dehors à raison**, ce sont les concerts et les
+opéras, et le §8 veut justement écarter les seconds.
 
 Le piège du champ `realisateur` de dvdfr apparaît ici : sur un coffret il
 porte `Coffret 2 films`, `1ère partie`, `Part 1 & 2`, le parseur prenant ce qui
@@ -2560,6 +2777,57 @@ une information commerciale, il se périme, et le site le date au survol sans
 pour autant se rafraîchir. Le flux Leclerc est régénéré tous les jours chez eux
 et le téléchargement ne coûte que quelques minutes de runner, sans crawl : c'est
 la passe la moins chère du dépôt et la seule dont le retard se voit à l'écran.
+
+### Boutiques d'éditeur (`boutiques/`, 2026-08-04)
+
+    python3 enum_boutique.py coindemire
+    python3 crawl_boutique.py coindemire            # ~18 min à 5 s l'unité
+    python3 croiser_boutique.py coindemire          # ../awin, sans réseau
+    python3 resoudre_leclerc.py --source coindemire
+    python3 ecrire_croisement.py --source coindemire --apply
+
+| Fichier | Rôle |
+|---|---|
+| `boutiques.py` | Table des boutiques, seule source de leurs particularités |
+| `enum_boutique.py` | Sitemap produit, écarte les doublons de locale, **fusionne** |
+| `crawl_boutique.py` | JSON-LD et description, `--rejouer` sans réseau |
+
+**`jokers/` est devenu `boutiques/` le 4 août 2026.** La deuxième boutique du
+même genre a suffi à montrer que rien dans la chaîne n'était propre à The
+Jokers : même 429 sur `products.json`, même voie par le sitemap, même
+`gtin13` en JSON-LD. Ce qui les distingue tient en quatre champs, et vit dans
+`boutiques.py`, sur le montage de `metaluna/collectes.py`. Ajouter une source
+tient en une entrée et cinq commandes.
+
+**`--rejouer` recalcule les formats sur le `.jsonl` déjà collecté**, sans une
+requête. C'est la méthode n° 2 du §9, conserver de quoi rejouer un parseur, et
+elle a servi le jour même de son écriture : le `4K` de restauration avait
+faussé les 213 fiches Coin de Mire au premier passage.
+
+### Reprise Zavvi (`zavvi/reprendre_zavvi.py`, 2026-08-04)
+
+    python3 reprendre_zavvi.py --echantillon 200      # mesurer d'abord
+    python3 reprendre_zavvi.py --tranche 0 --sur 6    # × 6, ~30 min
+    python3 ecrire_zavvi.py --reprise --rattachees-seules --apply
+
+Reprend les 7 639 fiches qu'aucun lien ne rattache, à quatre mesures dont deux
+neuves, la distribution et le studio. Détail de la règle et de son
+étalonnage au §5. **Lecture seule**, tranché, reprenable.
+
+**`--reprise` écrit sous `zavvi_reprise`, jamais sous `zavvi`.** Les 4 446
+éditions du 2 août et ces 460 sortent de deux passes à deux jeux de contrôles
+différents ; les mêler rendrait l'une inannulable sans l'autre. Le §3 pose la
+règle, la source d'un lien dit **comment** il a été obtenu.
+
+### Coffrets Leclerc (`awin/coffrets_leclerc.py`, 2026-08-04)
+
+Découpe les 522 refus, et les contrôle par **la somme des durées TMDB contre la
+durée annoncée du boîtier**. Voir le §8 pour ce que ça a rendu et pourquoi cette
+mesure autorise à rouvrir un chantier que le §6 avait fermé.
+
+Trois pièges du §9 y sont repris tels quels : retirer le vocabulaire d'édition
+**avant** de découper, ne jamais découper sur « et » ni « and », et borner une
+saga développée au nombre de disques du boîtier.
 
 ---
 
@@ -3410,6 +3678,18 @@ axe pour n'être pas une impasse, et le sommaire aurait tenu en un lien.
 sans une ligne de front. **Rouvrir le jour où une deuxième collection numérotée
 entre au catalogue**, Criterion ou Make My Day!.
 
+**La condition est remplie depuis le 4 août 2026.** Coin de Mire écrit trois
+collections dans `collection_editeur`, `Collection Prestige`, `Collection
+Sélection`, `Collection Premium` ; avec Make My Day!, son hors-série et The
+Criterion Collection, l'axe porterait **six entrées**, assez pour que chaque
+page en liste d'autres et ne soit pas une impasse. **À ouvrir.**
+
+Le seuil de dix entrées posé plus haut pour les autres axes ne s'applique pas
+ici : il visait le **contenu mince**, une page d'un axe qui n'aurait porté que
+quelques éditions. Une collection d'éditeur en porte des dizaines et dit ce
+qu'aucun autre axe ne dit, qu'un disque appartient à une série éditoriale
+suivie.
+
 `/genres/horreur` pour la première page, `/genres/horreur/3` ensuite. **Pas de
 `/1`** : deux adresses pour le même contenu sont deux doublons, et le middleware
 redirige la forme longue vers la courte en 301. Le numéro entre dans le titre à
@@ -3811,6 +4091,12 @@ Deux leviers restent, tous deux petits : les **abréviations de boutique**,
 faute de fichier de tri, `agfa`, `cauldron-films`, `chameleon-films`,
 `massacre-video`, `raro-video`, `scorpion-releasing`, `synapse-films`,
 `third-window`, jamais relues.
+
+**Le second levier n'existe pas : ces huit-là sont faites**, relevé le 4 août
+2026, toutes ont leur fichier de tri et leurs résolutions, 102 fiches en tout.
+Et la réénumération des 65 collections le même jour rend **+0 fiche neuve**
+(§5). **Le filon Metaluna est épuisé, mesuré et non supposé** : ne pas relancer
+une vague de ce type en espérant autre chose.
 
 **7 films seulement n'ont aucune édition**, contre 134 supprimés le 31 juillet.
 Le catalogue est piloté par les éditions, et il l'est bien.
@@ -5333,6 +5619,61 @@ Documentés parce qu'ils se reproduiront.
   Corrigé le 30 juillet 2026. Même motif que Jean Vigo ou Bruce Lee : un titre
   exact tombant sur un homonyme confidentiel, ici invisible parce que l'année
   n'avait jamais été comparée.
+- **Dédupliquer les résultats TMDB par identifiant jette le titre français.**
+  `chercher()` interroge `en-US` puis `fr-FR` ; quand la seconde rend la même
+  œuvre, son `(genre, id)` est déjà vu, donc la ligne était écartée **avec son
+  libellé**. Une source à titres français ne trouvait alors jamais de
+  correspondance exacte, alors que TMDB rendait bien la bonne œuvre :
+
+      « Dune : Deuxième partie »      ->  Dune: Part Two (2024)        exact=faux
+      « Sicario : La guerre… »        ->  Sicario: Day of the Soldado  exact=faux
+      « Gremlins 2 : La nouvelle… »   ->  Gremlins 2: The New Batch    exact=faux
+
+  **Invisible depuis le 2 août 2026**, Zavvi étant un catalogue anglophone, et
+  fatal dès qu'on découpe un coffret français. Les libellés s'accumulent
+  désormais dans `_titres` plutôt que d'être perdus, et un second nœud pour la
+  même œuvre est exclu : il fausserait le tri par popularité et le compte des
+  candidats. Corrigé le 4 août 2026 par `libelles()`, qui retombe sur les quatre
+  champs bruts pour un candidat venu d'ailleurs, `collection/` par exemple.
+
+  **Ce qui l'a fait sortir n'est pas un test, c'est un chiffre absurde** : un
+  coffret `Dune + Dune : Deuxième partie` annoncé 314 minutes et résolu
+  « 1/2 titres, somme 155 ». Un contrôle qui compare une somme rend visible ce
+  qu'un contrôle par oui/non aurait tu.
+- **La borne du « multiple entier = total de boîtier » dépend du type.** Pour un
+  film, un lot dépasse rarement six disques et monter plus haut laisserait
+  baptiser « multiple » n'importe quel écart. Pour une **série**, `duree_tmdb`
+  est la durée d'un **épisode** et `Run Time` le total du coffret :
+
+      Joe 90                        748 = 30 × 25
+      Blue Planet II                600 = 10 × 60
+      Keep Your Hands Off Eizouken  300 = 12 × 25
+
+  La borne à six refusait douze coffrets de série au multiple entier et net, 24
+  liens. Portée à quarante pour les séries seulement, le 4 août 2026.
+
+  Ce qui reste refusé après ça ne se récupère pas en élargissant encore :
+  `Mrs Biggs` 260 contre 40, `The Singapore Grip` 360 contre 55, où TMDB donne
+  une durée d'épisode **moyennée** qui ne divise pas rond. Et de vrais
+  désaccords, `Sin City` 142 contre 124, montage long contre sortie salle.
+- **Un « 4K » n'est pas toujours un format de disque.** Les 213 fiches Coin de
+  Mire en portent un, et 147 étaient marquées `Blu-ray 4K` alors que la boutique
+  n'en vend que **sept** : `restauré en 4K`, `Nouveau master 4K`, `restauré en
+  HD 4K`. La résolution d'une restauration n'est pas le support du disque, et le
+  piège est général, tout éditeur de patrimoine écrit cette phrase. D'où une
+  garde de contexte sur `restaur|master|scan|télécinéma|négatif|copie` plutôt
+  qu'une exception par boutique.
+
+  **Le contrôle qui l'a confirmé est venu d'ailleurs**, et c'est ce qui le rend
+  probant : le `Support principal` de dvdfr sur les mêmes 213 codes rend
+  `Blu-ray 137 | DVD 69 | 4K Ultra HD 7`, au disque près. Une seconde source vaut
+  mieux qu'une relecture de son propre parseur.
+- **Une part de collection TMDB sans année ni durée est une œuvre à venir.**
+  `Untitled Top Gun 3` figure dans la collection et n'existe pas : elle gonflait
+  le dénominateur d'un contrôle par la somme sans rien apporter au total, et un
+  coffret de deux films passait pour complet à trois. Quatre coffrets étaient
+  dans ce cas. C'est le plafond du §9 poussé jusqu'au bout, un disque ne peut pas
+  porter une œuvre qui n'est pas sortie.
 
 ### Infrastructure
 - **dvdfr refuse aussi l'IP des runners, et la mesure est sans appel.** Le run
