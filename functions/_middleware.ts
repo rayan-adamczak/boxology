@@ -1145,19 +1145,35 @@ const PAGES_LEGALES: Record<
   string,
   { titre: string; description: string; sections: [string, string][] }
 > = {
+  /*
+   * Aligné sur `MentionsLegalesPage.tsx` le 4 août 2026.
+   *
+   * Ce corps annonçait encore « site personnel édité à titre non
+   * professionnel », trois fois, sans SIREN ni mention d'affiliation, alors que
+   * l'activité est professionnelle depuis le 3 août et que la page React le dit
+   * (§10). Un client sans JavaScript, un aperçu de lien, un moteur qui ne rend
+   * pas, lisaient donc des mentions fausses là où la LCEN en exige d'exactes.
+   *
+   * L'adresse postale et le téléphone ne sont **pas** repris ici, à dessein :
+   * la page les porte, ce qui satisfait l'obligation d'accessibilité, et le §7
+   * rappelle que `/legal` est en `noindex` précisément pour qu'ils ne remontent
+   * pas dans les résultats. Les recopier dans un corps servi à tout le monde
+   * défairait ce choix.
+   */
   "/legal": {
     titre: `Mentions légales | ${SITE_NOM}`,
     description:
-      `Éditeur, hébergement, propriété intellectuelle et signalement pour ${SITE_NOM}. ` +
-      `Site personnel édité à titre non professionnel.`,
+      `Éditeur, hébergement, liens affiliés, propriété intellectuelle et signalement ` +
+      `pour ${SITE_NOM}.`,
     sections: [
-      ["Éditeur du site", "Rayan Adamczak, designer, agissant à titre non professionnel (LCEN art. 6)."],
-      ["Directeur de la publication", "L'éditeur du site."],
+      ["Éditeur du site", "Rayan Adamczak, entrepreneur individuel, SIREN 852 258 680, SIRET 852 258 680 00028, inscrit au Registre national des entreprises. TVA non applicable, article 293 B du code général des impôts. Coordonnées complètes sur la page."],
+      ["Directeur de la publication", "Rayan Adamczak."],
+      ["Liens affiliés", "Certains liens vers les marchands sont des liens affiliés : une commande passée après un clic peut donner lieu à une commission, sans surcoût. Programme Awin, marchand partenaire à ce jour E.Leclerc. Ces liens sont déclarés comme tels dans la page."],
+      ["Nature du service", "Catalogue informatif. Le site ne vend rien, n'encaisse rien et n'est pas intermédiaire de vente : toute commande se conclut chez le marchand, dont les conditions et le prix affiché au moment de la commande font seuls foi."],
       ["Hébergement", "Cloudflare Pages pour le site, Supabase pour la base, hébergée dans l'Union européenne."],
       ["Propriété intellectuelle", "Les visuels de jaquettes appartiennent à leurs éditeurs, les métadonnées de films viennent de TMDB."],
       ["Base de données", "Extraction substantielle interdite au titre des articles L. 341-1 et suivants du code de la propriété intellectuelle. Consultation, usage privé et citation avec lien restent libres."],
       ["Signalement", "Une erreur, une édition manquante, une demande de retrait : contact@jaquette.app."],
-      ["Nature du service", "Catalogue informatif. Le site ne vend rien et ne permet aucun achat."],
     ],
   },
   "/privacy": {
@@ -1170,7 +1186,10 @@ const PAGES_LEGALES: Record<
       ["Avec un compte", "L'adresse et l'identifiant Google du compte, plus la liste des éditions marquées. Rien d'autre."],
       ["Votre page publique", "Votre identifiant ouvre une page présentant votre collection, consultable sans compte et indexée par les moteurs de recherche. Elle n'affiche jamais votre adresse électronique. Elle se masque depuis la page Mon compte."],
       ["Ce que le site ne fait pas", "Ni revente, ni partage à des tiers, ni mesure d'audience publicitaire."],
-      ["Services tiers", "Google pour la connexion, Supabase pour la base, Cloudflare pour l'hébergement, TMDB pour les métadonnées."],
+      ["Services tiers", "Google pour la connexion, Supabase pour la base, Cloudflare pour l'hébergement et les visuels, TMDB pour les métadonnées."],
+      /* Le §10 veut la mention d'affiliation aux trois endroits, `/legal`,
+         `/privacy` et `/about`. Elle manquait ici, dans le corps servi. */
+      ["Liens affiliés", "Les liens vers les marchands passent par Awin, qui dépose un cookie de suivi lors du clic pour attribuer la commande. Aucun traceur n'est posé par le site lui-même, et rien n'est déposé tant qu'aucun lien marchand n'est cliqué."],
       ["Vos droits", "Accès, rectification et effacement (RGPD art. 17). La suppression du compte et des listes se fait depuis la page Mon compte."],
     ],
   },
