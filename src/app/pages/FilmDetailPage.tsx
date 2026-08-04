@@ -23,6 +23,7 @@ import { useSession } from "../lib/auth";
 import { useSeo, extrait, type Seo } from "../lib/seo";
 import { lienFilm } from "../lib/liens";
 import { formaterMontant, formaterPrix } from "../lib/prix";
+import { vignette } from "../lib/visuels";
 
 /* ---- helpers ---- */
 
@@ -1211,8 +1212,11 @@ export function FilmDetailPage() {
                               className="group shrink-0 overflow-hidden rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] disabled:cursor-default"
                               style={{ width: 56, height: 84, backgroundColor: "var(--reel-bg)" }}
                             >
+                              {/* 200 px pour un cadre de 56 : de quoi rester net
+                                  sur un écran à densité double, sans payer les
+                                  928 Ko de l'original Leclerc (cf. `vignette`). */}
                               <ImageWithFallback
-                                src={ed.image_url ?? ""}
+                                src={vignette(ed.image_url, 200) ?? ""}
                                 alt={nom}
                                 className="w-full h-full object-cover transition duration-200 group-enabled:group-hover:scale-[1.06]"
                               />

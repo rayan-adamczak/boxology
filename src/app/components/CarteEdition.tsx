@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { lienFilm } from "../lib/liens";
 import { splitList, type EditionWithFilm } from "../lib/reelio-db";
+import { vignette } from "../lib/visuels";
 
 /**
  * Une jaquette de rail : le visuel du boîtier, le titre du film, les formats.
@@ -22,7 +23,7 @@ export function CarteEdition({ edition, largeur = "rail" }: { edition: EditionWi
         style={{ aspectRatio: "2 / 3", backgroundColor: "var(--reel-surface-2)" }}
       >
         <ImageWithFallback
-          src={edition.image_url ?? edition.film?.affiche_url ?? ""}
+          src={vignette(edition.image_url, 400) ?? edition.film?.affiche_url ?? ""}
           secours={edition.film?.affiche_url}
           alt={edition.titre ?? "Édition"}
           className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
