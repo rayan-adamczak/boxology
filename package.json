@@ -7,7 +7,8 @@
     "build": "tsc --noEmit && node scripts/generer-regroupements.mjs && vite build && node scripts/generer-sitemap.mjs",
     "typecheck": "tsc --noEmit",
     "dev": "vite",
-    "sitemap": "node scripts/generer-sitemap.mjs"
+    "sitemap": "node scripts/generer-sitemap.mjs",
+    "carrousel": "node scripts/carrousel/carrousel.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "1.2.3",

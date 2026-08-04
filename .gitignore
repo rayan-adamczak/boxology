@@ -37,3 +37,6 @@ Thumbs.db
 
 # Archive de session, conservee en local
 TRANSCRIPT.md
+
+# Planches de carrousel générées par scripts/carrousel (images lourdes, non versionnées)
+carrousels/

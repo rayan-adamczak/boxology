@@ -1,0 +1,485 @@
+/**
+ * Les cinq formats de carrousel, un par intention éditoriale.
+ *
+ * Chacun rend une liste de **descripteurs** de planche, pas du HTML : c'est
+ * l'orchestrateur qui attribue le rang, la couleur et le total, sans quoi
+ * chaque format aurait sa propre façon de compter et les couleurs cesseraient
+ * de se suivre d'un carrousel à l'autre.
+ *
+ * Tous sont en **lecture seule**. Rien ici n'écrit en base ni ne poste quoi que
+ * ce soit : la publication reste un geste manuel, c'est-à-dire une relecture.
+ *
+ * Chaque format rend aussi sa légende. Elle porte le nom de l'éditeur du
+ * disque, systématiquement et pas quand on y pense : c'est ce qui transforme
+ * la reprise d'un packshot en promotion à ses yeux, et le §10 rappelle que les
+ * visuels des cinq sources non licenciées sont repris en connaissance de cause.
+ */
+
+import { lire, compter, visuel, zonesDe, dateFr, titreEdition, filmDe } from "./donnees.mjs";
+
+const COLONNES = [
+  "id", "titre", "ean", "date_parution", "editeur", "distributeur", "formats_extraits",
+  "region", "resolution", "hdr", "disques", "packaging", "image_url", "images_secondaires",
+  "collection_editeur", "numero_collection", "source",
+].join(",");
+
+const AVEC_FILM = `${COLONNES},edition_films(films(id,titre,annee,slug))`;
+
+/** Aujourd'hui en ISO, sans passer par `new Date().toISOString()` qui bascule en UTC. */
+function aujourdhui() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function ilYA(jours) {
+  const d = new Date();
+  d.setDate(d.getDate() - jours);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/**
+ * Badges d'une édition : format, zone, définition.
+ *
+ * Le premier prend la couleur de la planche, d'où l'ordre : c'est le format qui
+ * dit ce qu'on regarde, pas la zone. Le titre de source porte déjà le format
+ * mais il porte aussi le reste, on ne s'en sert pas comme d'une donnée (§9).
+ */
+function badgesDe(edition) {
+  const formats = Array.isArray(edition.formats_extraits) ? edition.formats_extraits : [];
+  const badges = [...formats.slice(0, 3), ...zonesDe(edition.region).slice(0, 1)];
+  if (edition.resolution && !formats.some((f) => /4k/i.test(f))) {
+    badges.push(edition.resolution.split(/[,/]/)[0].trim());
+  }
+  return [...new Set(badges.filter(Boolean))].slice(0, 4);
+}
+
+/** Lignes de pied d'une planche édition. Aucun prix, jamais : voir `gabarit.fin`. */
+function lignesDe(edition) {
+  const lignes = [];
+  if (edition.editeur) lignes.push(`Éditeur <b>${edition.editeur}</b>`);
+  if (edition.collection_editeur) {
+    const rang = edition.numero_collection ? ` nº&nbsp;${edition.numero_collection}` : "";
+    lignes.push(`Collection <b>${edition.collection_editeur}</b>${rang}`);
+  }
+  const date = dateFr(edition.date_parution);
+  if (date) lignes.push(`Paru le <b>${date}</b>`);
+  if (edition.disques) lignes.push(`<b>${edition.disques}</b> disque(s)`);
+  if (edition.ean) lignes.push(`Code-barres <b>${edition.ean}</b>`);
+  return lignes.slice(0, 4);
+}
+
+/**
+ * Attache son visuel à chaque édition et **écarte celles qui n'en ont pas
+ * d'exploitable**.
+ *
+ * C'est le seul endroit qui décide de la qualité du carrousel. Une planche
+ * floue ne lève aucune erreur et ne se voit qu'une fois publiée ; la sortir ici
+ * coûte une édition et sauve la série.
+ */
+async function avecVisuels(editions, options = {}) {
+  const sorties = [];
+  for (const edition of editions) {
+    const v = await visuel(edition, options);
+    if (v) sorties.push({ ...edition, visuel: v });
+  }
+  return sorties;
+}
+
+/** Les éditeurs cités dans un lot, pour la légende. */
+function editeursDe(editions) {
+  return [...new Set(editions.map((e) => e.editeur).filter(Boolean))];
+}
+
+function mentionEditeurs(editions) {
+  const noms = editeursDe(editions);
+  if (!noms.length) return "";
+  return `\n\nVisuels : ${noms.join(", ")}.`;
+}
+
+const MOTS_CLES =
+  "#bluray #4kultrahd #steelbook #collectionbluray #cinephile #filmcollection " +
+  "#physicalmedia #jaquetteapp";
+
+/* ================================================================ comparatif */
+
+/**
+ * Toutes les éditions d'un même film, une par planche.
+ *
+ * C'est le format qui vaut le plus, et pour une raison structurelle : personne
+ * d'autre ne peut le produire. My Movies compte un coffret comme un seul film,
+ * SensCritique n'a pas de couche édition, et l'utilisateur y dédouble l'œuvre à
+ * la main pour distinguer une Ultimate Edition de la version cinéma (§8). Ici
+ * c'est le modèle de données qui répond.
+ */
+async function comparatif(argument, { max = 8 } = {}) {
+  if (!argument) throw new Error("comparatif : donner un id de film ou un slug");
+
+  const filtre = /^\d+$/.test(argument)
+    ? `id=eq.${argument}`
+    : `slug=eq.${encodeURIComponent(argument)}`;
+  const [film] = await lire(
+    `films?select=id,titre,annee,realisateur,slug,type&${filtre}&limit=1`);
+  if (!film) throw new Error(`comparatif : aucun film pour « ${argument} »`);
+
+  const liens = await lire(
+    `edition_films?film_id=eq.${film.id}&select=editions(${COLONNES})&limit=200`);
+  const brutes = liens.map((l) => l.editions).filter(Boolean);
+  if (!brutes.length) throw new Error(`comparatif : « ${film.titre} » n'a aucune édition`);
+
+  /* Les éditions datées d'abord, la plus récente en tête : sur une fiche à
+     dix-huit éditions, c'est ce que quelqu'un cherche. `date_parution` est nulle
+     sur les sources qui ne datent pas, elles passent derrière plutôt que
+     devant. */
+  brutes.sort((a, b) => (b.date_parution ?? "").localeCompare(a.date_parution ?? ""));
+
+  const editions = (await avecVisuels(brutes)).slice(0, max);
+  if (!editions.length) {
+    throw new Error(`comparatif : aucune édition de « ${film.titre} » n'a de visuel net`);
+  }
+
+  const total = brutes.length;
+  const planches = [
+    {
+      type: "couverture",
+      surtitre: `${total} éditions au catalogue`,
+      titre: film.titre,
+      sous: `${film.annee ?? ""}${film.realisateur ? ` · ${film.realisateur}` : ""}` +
+        `<br />Laquelle as-tu&nbsp;?`,
+      mosaique: editions.map((e) => e.visuel),
+    },
+    ...editions.map((e, i) => ({
+      type: "edition",
+      surtitre: `Édition ${i + 1} sur ${total}`,
+      titre: film.titre,
+      annee: film.annee,
+      edition: titreEdition(e),
+      badges: badgesDe(e),
+      lignes: lignesDe(e),
+      visuel: e.visuel,
+    })),
+    {
+      type: "fin",
+      titre: `Les ${total} éditions de ${film.titre}`,
+      sous: "Fiche technique, code-barres et zone pour chacune.",
+      chemin: `/movies/${film.slug ?? film.id}${film.slug ? `/${film.id}` : ""}`,
+    },
+  ];
+
+  const legende =
+    `${film.titre}${film.annee ? ` (${film.annee})` : ""} existe en ${total} éditions ` +
+    `physiques différentes. On les a toutes recensées.\n\n` +
+    `Format, zone, éditeur, code-barres : tout est sur la fiche, lien en bio.` +
+    `${mentionEditeurs(editions)}\n\n${MOTS_CLES}`;
+
+  return { nom: `comparatif-${film.slug ?? film.id}`, planches, legende };
+}
+
+/* =================================================================== sorties */
+
+/**
+ * Les parutions récentes, rendez-vous hebdomadaire.
+ *
+ * Les dates françaises viennent de l'enrichissement dvdfr ; `date_sortie` reste
+ * du texte anglais dont un `order by` serait alphabétique, donc faux (§3). On
+ * borne à aujourd'hui : la colonne porte aussi des dates à venir, et annoncer
+ * comme paru un disque qui ne l'est pas serait le même défaut qu'un prix
+ * périmé.
+ */
+async function sorties(argument, { max = 6, jours = 30 } = {}) {
+  const debut = argument || ilYA(jours);
+  const fin_ = aujourdhui();
+
+  const brutes = await lire(
+    `editions?select=${AVEC_FILM}&date_parution=gte.${debut}&date_parution=lte.${fin_}` +
+    `&image_url=not.is.null&order=date_parution.desc,id.desc&limit=80`);
+  if (!brutes.length) {
+    throw new Error(`sorties : aucune parution datée entre ${debut} et ${fin_}`);
+  }
+
+  const editions = (await avecVisuels(brutes)).slice(0, max);
+  if (!editions.length) throw new Error("sorties : aucun visuel net sur la période");
+
+  const planches = [
+    {
+      type: "couverture",
+      surtitre: "Parutions",
+      titre: "Sorties récentes",
+      sous: `${dateFr(debut)} au ${dateFr(fin_)}<br />` +
+        `${editions.length} disques entrés au catalogue.`,
+      mosaique: editions.map((e) => e.visuel),
+    },
+    ...editions.map((e) => {
+      const film = filmDe(e);
+      return {
+        type: "edition",
+        surtitre: dateFr(e.date_parution) ?? "",
+        titre: film?.titre ?? titreEdition(e),
+        annee: film?.annee,
+        edition: film ? titreEdition(e) : null,
+        badges: badgesDe(e),
+        lignes: lignesDe(e),
+        visuel: e.visuel,
+      };
+    }),
+    {
+      type: "fin",
+      titre: "Toutes les parutions",
+      sous: "Le catalogue se met à jour tous les jours.",
+      chemin: "/catalogue",
+    },
+  ];
+
+  const legende =
+    `Les sorties Blu-ray et 4K du moment, du ${dateFr(debut)} au ${dateFr(fin_)}.\n\n` +
+    `Laquelle rejoint ta collection&nbsp;? Fiches complètes, lien en bio.` +
+    `${mentionEditeurs(editions)}\n\n${MOTS_CLES}`;
+
+  return { nom: `sorties-${fin_}`, planches, legende };
+}
+
+/* ================================================================ collection */
+
+/**
+ * Une collection d'éditeur en cases à cocher.
+ *
+ * `numero_collection` n'est renseigné que par Make My Day!, de 1 à 98 : c'est la
+ * seule série du catalogue dont le rang est publié par la source (§3). Les
+ * autres collections n'ont pas de numéro, la grille les range alors par date.
+ * Le sens de la planche est le décompte : le lecteur compte les siennes.
+ */
+async function collection(argument, { parPlanche = 12, max = 6 } = {}) {
+  if (!argument) {
+    const toutes = await lire(
+      "editions?select=collection_editeur&collection_editeur=not.is.null&limit=1000");
+    const noms = [...new Set(toutes.map((e) => e.collection_editeur))];
+    throw new Error(`collection : donner un nom parmi\n  ${noms.join("\n  ")}`);
+  }
+
+  const nom = argument;
+  const brutes = await lire(
+    `editions?select=${AVEC_FILM}&collection_editeur=eq.${encodeURIComponent(nom)}` +
+    `&order=numero_collection.asc.nullslast,date_parution.asc.nullslast&limit=200`);
+  if (!brutes.length) throw new Error(`collection : « ${nom} » ne rend aucune édition`);
+
+  /* La vignette de grille fait 210 px de large : le seuil de netteté descend
+     avec elle, sinon on écarterait des éditions qui passeraient très bien. */
+  const editions = (await avecVisuels(brutes, { minLargeur: 220 }))
+    .slice(0, parPlanche * max);
+
+  const lots = [];
+  for (let i = 0; i < editions.length; i += parPlanche) {
+    lots.push(editions.slice(i, i + parPlanche));
+  }
+
+  const planches = [
+    {
+      type: "couverture",
+      surtitre: "Collection",
+      titre: nom,
+      sous: `${brutes.length} disques recensés.<br />Combien en as-tu&nbsp;?`,
+      mosaique: editions.map((e) => e.visuel),
+    },
+    ...lots.map((lot, i) => ({
+      type: "grille",
+      titre: nom,
+      sous: `${i * parPlanche + 1} à ${i * parPlanche + lot.length} sur ${brutes.length}`,
+      cases: lot.map((e) => ({
+        rang: e.numero_collection ? String(e.numero_collection) : null,
+        nom: filmDe(e)?.titre ?? titreEdition(e),
+        visuel: e.visuel,
+      })),
+    })),
+    {
+      type: "fin",
+      titre: `La collection ${nom} au complet`,
+      sous: "Coche ce que tu possèdes, garde le reste en envies.",
+      chemin: `/collections/${nom.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
+    },
+  ];
+
+  const legende =
+    `La collection ${nom}, ${brutes.length} disques recensés.\n\n` +
+    `Combien en as-tu&nbsp;? Dis-le en commentaire.` +
+    `${mentionEditeurs(editions)}\n\n${MOTS_CLES}`;
+
+  return { nom: `collection-${nom.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, planches, legende };
+}
+
+/* =================================================================== éditeur */
+
+/**
+ * Le catalogue d'un éditeur.
+ *
+ * C'est le format qui rapporte le plus de portée à zéro abonné : les petits
+ * éditeurs repartagent. Il suppose que `editeur` porte la forme canonique, ce
+ * qui est le cas depuis la normalisation du 3 août 2026, 478 écritures ramenées
+ * à 70 familles (§7).
+ */
+async function editeur(argument, { parPlanche = 12, max = 4 } = {}) {
+  if (!argument) throw new Error("editeur : donner un nom, par exemple « Carlotta Films »");
+
+  const nom = argument;
+  const total = await compter(`editions?select=id&editeur=eq.${encodeURIComponent(nom)}`);
+  if (!total) throw new Error(`editeur : « ${nom} » ne rend aucune édition`);
+
+  const brutes = await lire(
+    `editions?select=${AVEC_FILM}&editeur=eq.${encodeURIComponent(nom)}` +
+    `&image_url=not.is.null&order=date_parution.desc.nullslast,id.desc&limit=120`);
+
+  const editions = (await avecVisuels(brutes, { minLargeur: 220 }))
+    .slice(0, parPlanche * max);
+  if (!editions.length) throw new Error(`editeur : aucun visuel net chez « ${nom} »`);
+
+  /* Deux planches en gros plan avant la grille : une grille seule se lit comme
+     une planche-contact, elle ne donne envie d'aucun disque en particulier. */
+  const vedettes = editions.slice(0, 2);
+  const reste = editions.slice(2);
+
+  const lots = [];
+  for (let i = 0; i < reste.length; i += parPlanche) {
+    lots.push(reste.slice(i, i + parPlanche));
+  }
+
+  const planches = [
+    {
+      type: "couverture",
+      surtitre: "Éditeur",
+      titre: nom,
+      sous: `${total} éditions au catalogue.`,
+      mosaique: editions.map((e) => e.visuel),
+    },
+    ...vedettes.map((e) => {
+      const film = filmDe(e);
+      return {
+        type: "edition",
+        surtitre: nom,
+        titre: film?.titre ?? titreEdition(e),
+        annee: film?.annee,
+        edition: film ? titreEdition(e) : null,
+        badges: badgesDe(e),
+        lignes: lignesDe(e),
+        visuel: e.visuel,
+      };
+    }),
+    ...lots.slice(0, max).map((lot) => ({
+      type: "grille",
+      titre: nom,
+      sous: `${lot.length} des ${total} éditions recensées`,
+      cases: lot.map((e) => ({
+        rang: null,
+        nom: filmDe(e)?.titre ?? titreEdition(e),
+        visuel: e.visuel,
+      })),
+    })),
+    {
+      type: "fin",
+      titre: `Tout ${nom}`,
+      sous: "Le catalogue complet, fiche par fiche.",
+      chemin: `/publishers/${nom.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
+    },
+  ];
+
+  const legende =
+    `${nom}, ${total} éditions recensées sur jaquette.app.\n\n` +
+    `Le catalogue complet est en bio. Laquelle manque à ta collection&nbsp;?` +
+    `\n\nVisuels : ${nom}.\n\n${MOTS_CLES}`;
+
+  return { nom: `editeur-${nom.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, planches, legende };
+}
+
+/* ===================================================================== faces */
+
+/**
+ * Le dos, la tranche, l'intérieur d'un même boîtier.
+ *
+ * 2 877 éditions portent des `images_secondaires`, autour de 1 024 px, et
+ * aucune boutique ne les montre. C'est précisément ce que regarde l'acheteur de
+ * steelbook, et c'est le seul format dont la matière n'existe nulle part
+ * ailleurs.
+ */
+async function faces(argument, { max = 7 } = {}) {
+  if (!argument) throw new Error("faces : donner un id d'édition");
+
+  const [edition] = await lire(`editions?select=${AVEC_FILM}&id=eq.${argument}&limit=1`);
+  if (!edition) throw new Error(`faces : aucune édition ${argument}`);
+
+  const secondaires = Array.isArray(edition.images_secondaires)
+    ? edition.images_secondaires : [];
+  if (!secondaires.length) {
+    throw new Error(`faces : l'édition ${argument} n'a pas d'images secondaires`);
+  }
+
+  /* Chaque face est traitée comme une édition à visuel unique : c'est le seul
+     moyen de réutiliser le contrôle de netteté sans le redire. */
+  const vues = await avecVisuels(
+    [edition.image_url, ...secondaires].filter(Boolean)
+      .map((url) => ({ image_url: url, images_secondaires: [] })));
+  if (!vues.length) throw new Error(`faces : aucun visuel net sur l'édition ${argument}`);
+
+  const film = filmDe(edition);
+  const titre = film?.titre ?? titreEdition(edition);
+  const vuesGardees = vues.slice(0, max);
+
+  const planches = [
+    {
+      type: "couverture",
+      surtitre: "Sous toutes les faces",
+      titre,
+      sous: `${titreEdition(edition)}<br />${vuesGardees.length} vues du boîtier.`,
+      mosaique: vuesGardees.map((v) => v.visuel),
+    },
+    ...vuesGardees.map((v, i) => ({
+      type: "edition",
+      surtitre: i === 0 ? "Face avant" : `Vue ${i + 1}`,
+      titre,
+      annee: film?.annee,
+      edition: titreEdition(edition),
+      badges: badgesDe(edition),
+      lignes: i === 0 ? lignesDe(edition) : [],
+      visuel: v.visuel,
+    })),
+    {
+      type: "fin",
+      titre: `${titre}, toutes les éditions`,
+      sous: "Chaque boîtier, chaque zone, chaque code-barres.",
+      chemin: film?.slug ? `/movies/${film.slug}/${film.id}` : "/catalogue",
+    },
+  ];
+
+  const legende =
+    `${titre} : le boîtier sous toutes ses faces.\n\n` +
+    `${titreEdition(edition)}${edition.editeur ? `, ${edition.editeur}` : ""}. ` +
+    `Fiche complète en bio.${mentionEditeurs([edition])}\n\n${MOTS_CLES}`;
+
+  return { nom: `faces-${edition.id}`, planches, legende };
+}
+
+export const FORMATS = {
+  comparatif: {
+    construire: comparatif,
+    usage: "comparatif <id film | slug>",
+    quoi: "Toutes les éditions d'un même film, une par planche.",
+  },
+  sorties: {
+    construire: sorties,
+    usage: "sorties [AAAA-MM-JJ de début]",
+    quoi: "Les parutions datées des trente derniers jours.",
+  },
+  collection: {
+    construire: collection,
+    usage: "collection <nom exact>",
+    quoi: "Une collection d'éditeur en cases à cocher.",
+  },
+  editeur: {
+    construire: editeur,
+    usage: "editeur <nom exact>",
+    quoi: "Le catalogue d'un éditeur, deux gros plans puis la grille.",
+  },
+  faces: {
+    construire: faces,
+    usage: "faces <id édition>",
+    quoi: "Dos, tranche et intérieur d'un même boîtier.",
+  },
+};
