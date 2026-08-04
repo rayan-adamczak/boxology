@@ -133,22 +133,14 @@ const CSS = `
     font-family: 'Bricolage Grotesque', sans-serif;
     font-weight: 800; font-size: 37px; letter-spacing: -0.035em; line-height: 1;
   }
-  .compteur {
-    font-size: 28px; font-weight: 600; color: ${DISCRET};
-    font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
-  }
-  .compteur b { font-weight: 700; }
+  .corps { flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 34px; }
 
-  .corps { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-
-  /* --- pied : compteur, rail d'avancement, puis filet tricolore ---
-     Le compteur est ici et non en tête, où il tombait exactement sous la
-     pastille « 3/8 » que l'application pose elle-même en haut à droite : deux
-     compteurs superposés, dont le nôtre à moitié caché. En bas il ne gêne rien
-     et il sert encore quand les planches sont regardées comme des fichiers. */
-  .pied-rail { display: flex; align-items: center; gap: 20px; padding-bottom: 26px; }
-  .rail { display: flex; gap: 7px; flex: 1; }
-  .rail span { height: 5px; flex: 1; border-radius: 3px; background: ${BORDURE}; }
+  /* --- pied : le filet tricolore, et rien d'autre ---
+     Le compteur « 3/8 » et le rail d'avancement ont été retirés. L'application
+     pose déjà sa pastille et ses puces : les redire, c'est occuper deux fois la
+     même place pour la même information, et une planche n'a de la place que
+     pour ce qu'elle est seule à dire. Reste le filet, qui n'informe pas mais
+     signe. */
   .filet {
     position: absolute; left: 0; right: 0; bottom: 0; height: 14px;
     display: flex; z-index: 3;
@@ -196,10 +188,7 @@ const CSS = `
 `;
 
 /** Le squelette commun. `contenu` est déjà échappé par l'appelant. */
-function planche({ index, total, accent, contenu, fondSupplementaire = "" }) {
-  const rail = Array.from({ length: total }, (_, i) =>
-    `<span style="background:${i === index ? accent : BORDURE}"></span>`).join("");
-
+function planche({ accent, contenu, fondSupplementaire = "" }) {
   return `<!doctype html>
 <html lang="fr"><head><meta charset="utf-8" /><style>${CSS}
   .halo-a { background: radial-gradient(circle, ${accent}26 0%, ${accent}00 62%); }
@@ -213,10 +202,6 @@ function planche({ index, total, accent, contenu, fondSupplementaire = "" }) {
       <div class="lockup">${LOGO}<span class="nom">jaquette.app</span></div>
     </div>
     <div class="corps">${contenu}</div>
-    <div class="pied-rail">
-      <div class="compteur"><b style="color:${accent}">${index + 1}</b>/${total}</div>
-      <div class="rail">${rail}</div>
-    </div>
   </div>
   <div class="filet">
     <i style="background:${COULEURS[0]}"></i>
@@ -235,7 +220,7 @@ function planche({ index, total, accent, contenu, fondSupplementaire = "" }) {
  * elle doit dire « catalogue » d'un coup d'œil sans disputer la lisibilité au
  * titre. Même traitement que le héros de la fiche film, opacité et dégradés.
  */
-export function couverture({ index, total, accent, surtitre, titre, sous, mosaique = [] }) {
+export function couverture({ accent, surtitre, titre, annee, sous, mosaique = [] }) {
   /* La grille est **toujours pleine**, au besoin en reprenant les visuels du
      début. Une dernière rangée à moitié vide se lit comme un défaut d'affichage
      et non comme un parti pris, or le nombre de visuels nets dépend de la
@@ -278,22 +263,24 @@ export function couverture({ index, total, accent, surtitre, titre, sous, mosaiq
             rgba(16,23,32,.92) 54%, ${FOND} 68%),
           linear-gradient(90deg, rgba(16,23,32,.86) 0%, rgba(16,23,32,0) 62%);
       }
-      .bloc { margin-top: auto; padding-bottom: 44px; position: relative; z-index: 2; }
-      .bloc h1 { font-size: 92px; margin-top: 26px; }
-      .bloc .sous { font-size: 38px; color: ${DISCRET}; margin-top: 26px; line-height: 1.38;
-                    max-width: 860px; }
-      .balaye { display: flex; align-items: center; gap: 14px; margin-top: 40px;
-                font-size: 32px; font-weight: 600; letter-spacing: 0.04em; }
-      .balaye .fleche { font-size: 38px; }
+      /* Trois éléments et pas un de plus : ce que le carrousel montre, de quoi
+         il parle, la question posée. L'invitation « → Balaye » a été retirée,
+         l'application affiche déjà ses puces et personne n'apprend à balayer
+         sur une planche. */
+      .bloc { margin-top: auto; padding-bottom: 46px; position: relative; z-index: 2; }
+      .bloc h1 { font-size: 96px; margin-top: 24px; }
+      .bloc h1 .annee { font-weight: 300; color: ${DISCRET}; }
+      .bloc .sous { font-size: 40px; color: ${TEXTE}; margin-top: 30px; line-height: 1.3;
+                    max-width: 860px; font-weight: 500; }
     </style>
     <div class="bloc">
       <div class="surtitre" style="color:${accent}">${echapper(surtitre)}</div>
-      <h1>${echapper(titre)}</h1>
+      <h1>${echapper(titre)}${
+        annee ? `<span class="annee">&nbsp;&nbsp;${annee}</span>` : ""}</h1>
       ${sous ? `<div class="sous">${sous}</div>` : ""}
-      <div class="balaye" style="color:${accent}"><span class="fleche">→</span> Balaye</div>
     </div>`;
 
-  return planche({ index, total, accent, contenu, fondSupplementaire: fond });
+  return planche({ accent, contenu, fondSupplementaire: fond });
 }
 
 /* ------------------------------------------------------------------ édition */
@@ -307,7 +294,7 @@ export function couverture({ index, total, accent, surtitre, titre, sous, mosaiq
  * sur une jaquette se voit immédiatement.
  */
 export function planchEdition({
-  index, total, accent, surtitre, titre, annee, edition, badges = [], lignes = [], visuel,
+  accent, surtitre, titre, annee, edition, badges = [], lignes = [], visuel,
 }) {
   const rapport = visuel?.rapport ?? 2 / 3;
   /* La largeur est la plus petite des deux contraintes, la seconde étant la
@@ -382,7 +369,7 @@ export function planchEdition({
       </div>
     </div>`;
 
-  return planche({ index, total, accent, contenu });
+  return planche({ accent, contenu });
 }
 
 /* ------------------------------------------------------------------- grille */
@@ -394,7 +381,7 @@ export function planchEdition({
  * est publié par la source (§3). La case à cocher est le sens de la planche :
  * le lecteur compte les siennes.
  */
-export function grille({ index, total, accent, titre, sous, cases }) {
+export function grille({ accent, titre, sous, cases }) {
   const tuiles = cases.map((c) => `
     <div class="case">
       <div class="cadre-v">
@@ -451,7 +438,7 @@ export function grille({ index, total, accent, titre, sous, cases }) {
     </div>
     <div class="cases">${tuiles}</div>`;
 
-  return planche({ index, total, accent, contenu });
+  return planche({ accent, contenu });
 }
 
 /* ---------------------------------------------------------------- fin, CTA */
@@ -466,7 +453,7 @@ export function grille({ index, total, accent, titre, sous, cases }) {
  * prix périmé affiché comme actuel est une pratique commerciale trompeuse
  * (§10).
  */
-export function fin({ index, total, accent, titre, sous, chemin = "" }) {
+export function fin({ accent, titre, sous, chemin = "" }) {
   const contenu = `
     <style>
       .fin { flex: 1; display: flex; flex-direction: column; justify-content: center;
@@ -500,5 +487,5 @@ export function fin({ index, total, accent, titre, sous, chemin = "" }) {
       </div>
     </div>`;
 
-  return planche({ index, total, accent, contenu });
+  return planche({ accent, contenu });
 }

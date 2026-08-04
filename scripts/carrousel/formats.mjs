@@ -178,26 +178,26 @@ async function comparatif(argument, { max = 8 } = {}) {
   const planches = [
     {
       type: "couverture",
-      surtitre: `${total} éditions au catalogue`,
-      titre: film.titre,
-      sous: `${film.annee ?? ""}${film.realisateur ? ` · ${film.realisateur}` : ""}` +
-        `<br />Laquelle as-tu&nbsp;?`,
-      mosaique: editions.map((e) => e.visuel),
-    },
-    ...editions.map((e, i) => ({
-      type: "edition",
-      surtitre: `Édition ${i + 1} sur ${total}`,
+      surtitre: `${total} éditions`,
       titre: film.titre,
       annee: film.annee,
-      edition: nomEdition(e, film.titre),
-      badges: badgesDe(e),
-      lignes: lignesDe(e),
-      visuel: e.visuel,
-    })),
+      sous: "Laquelle as-tu&nbsp;?",
+      mosaique: editions.map((e) => e.visuel),
+    },
+    ...editions.map((e) => {
+      const nom = nomEdition(e, film.titre);
+      return {
+        type: "edition",
+        titre: nom ?? film.titre,
+        annee: nom ? null : film.annee,
+        badges: badgesDe(e),
+        lignes: lignesDe(e),
+        visuel: e.visuel,
+      };
+    }),
     {
       type: "fin",
       titre: `Les ${total} éditions de ${film.titre}`,
-      sous: "Fiche technique, code-barres et zone pour chacune.",
       chemin: `/movies/${film.slug ?? film.id}${film.slug ? `/${film.id}` : ""}`,
     },
   ];
@@ -249,7 +249,6 @@ async function sorties(argument, { max = 6, jours = 30 } = {}) {
       const film = filmDe(e);
       return {
         type: "edition",
-        surtitre: dateFr(e.date_parution) ?? "",
         titre: film?.titre ?? titreEdition(e),
         annee: film?.annee,
         edition: film ? nomEdition(e, film.titre) : null,
@@ -261,7 +260,6 @@ async function sorties(argument, { max = 6, jours = 30 } = {}) {
     {
       type: "fin",
       titre: "Toutes les parutions",
-      sous: "Le catalogue se met à jour tous les jours.",
       chemin: "/catalogue",
     },
   ];
@@ -319,7 +317,6 @@ async function collection(argument, { parPlanche = 9, max = 6 } = {}) {
     ...lots.map((lot, i) => ({
       type: "grille",
       titre: nom,
-      sous: `${i * parPlanche + 1} à ${i * parPlanche + lot.length} sur ${brutes.length}`,
       cases: lot.map((e) => ({
         rang: e.numero_collection ? String(e.numero_collection) : null,
         nom: filmDe(e)?.titre ?? titreEdition(e),
@@ -329,7 +326,6 @@ async function collection(argument, { parPlanche = 9, max = 6 } = {}) {
     {
       type: "fin",
       titre: `La collection ${nom} au complet`,
-      sous: "Coche ce que tu possèdes, garde le reste en envies.",
       chemin: `/collections/${nom.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
     },
   ];
@@ -389,7 +385,6 @@ async function editeur(argument, { parPlanche = 9, max = 4 } = {}) {
       const film = filmDe(e);
       return {
         type: "edition",
-        surtitre: nom,
         titre: film?.titre ?? titreEdition(e),
         annee: film?.annee,
         edition: film ? nomEdition(e, film.titre) : null,
@@ -401,7 +396,6 @@ async function editeur(argument, { parPlanche = 9, max = 4 } = {}) {
     ...lots.slice(0, max).map((lot) => ({
       type: "grille",
       titre: nom,
-      sous: `${lot.length} des ${total} éditions recensées`,
       cases: lot.map((e) => ({
         rang: null,
         nom: filmDe(e)?.titre ?? titreEdition(e),
@@ -411,7 +405,6 @@ async function editeur(argument, { parPlanche = 9, max = 4 } = {}) {
     {
       type: "fin",
       titre: `Tout ${nom}`,
-      sous: "Le catalogue complet, fiche par fiche.",
       chemin: `/publishers/${nom.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
     },
   ];
@@ -467,18 +460,19 @@ async function faces(argument, { max = 7 } = {}) {
     },
     ...vuesGardees.map((v, i) => ({
       type: "edition",
-      surtitre: i === 0 ? "Face avant" : `Vue ${i + 1}`,
       titre,
       annee: film?.annee,
       edition: nomEdition(edition, titre),
-      badges: badgesDe(edition),
+      /* Badges et ligne de pied sur la première seule : les cinq vues décrivent
+         le même disque, les répéter n'ajoute rien et vole la place au visuel,
+         qui est tout le propos de ce format. */
+      badges: i === 0 ? badgesDe(edition) : [],
       lignes: i === 0 ? lignesDe(edition) : [],
       visuel: v.visuel,
     })),
     {
       type: "fin",
       titre: `${titre}, toutes les éditions`,
-      sous: "Chaque boîtier, chaque zone, chaque code-barres.",
       chemin: film?.slug ? `/movies/${film.slug}/${film.id}` : "/catalogue",
     },
   ];
