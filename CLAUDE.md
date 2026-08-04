@@ -863,13 +863,50 @@ aucun contrôle du dépôt ne pouvait le voir : voir §2, le fichier de secrets 
   `etat_identifiant` répond encore. **Un verdict de relecture se vérifie comme
   le reste.**
 
-**Restent ouverts, mesurés et assumés** : `http://localhost:5173` figure dans la
-liste blanche de redirection du projet de production ; `/legal` servi sans
-JavaScript porte encore les mentions d'avant le régime professionnel ; 51 des 57
-dépendances directes ne sont atteintes par aucun code, les `ui/` de shadcn n'étant
-importées nulle part ; la file de `signalements` n'a **aucune sortie dans le
-produit**, son plafond de 50 ne redescend jamais et personne n'est prévenu
-quand un signalement arrive.
+#### Les quatre points mineurs, fermés le 4 août 2026
+
+**La liste blanche de redirection ne porte plus d'adresse locale.**
+`http://localhost:5173` y était, et **une seconde que l'audit n'avait pas vue**,
+`http://localhost:50405`, parce qu'il n'avait sondé que le port qu'il
+connaissait. Une sonde qui cherche une valeur précise ne trouve que celle-là :
+regarder la liste entière valait mieux que l'interroger. Restent trois entrées,
+le domaine et les deux formes `pages.dev`, nécessaires aux prévisualisations.
+
+    redirect_to=http://localhost:5173/x   ->  https://jaquette.app   (refusé)
+    redirect_to=https://jaquette.app/x    ->  https://jaquette.app/x (honoré)
+
+Contrepartie assumée : la connexion Google ne fonctionne plus depuis un serveur
+de développement local pointant sur le projet de production. Pour la retrouver,
+réajouter l'entrée dans Supabase, Authentication puis URL Configuration, ou
+faire pointer le développement sur une branche du projet.
+
+**`/legal` et `/privacy` servis sans JavaScript disent enfin la même chose que
+la page.** Le corps injecté annonçait « site personnel édité à titre non
+professionnel », trois fois, sans SIREN ni mention d'affiliation. Mesuré en
+production après correction : zéro occurrence de « non professionnel », SIREN,
+franchise en base, liens affiliés et « n'est pas intermédiaire de vente »
+présents. **L'adresse et le téléphone n'y sont pas**, et c'est délibéré : la
+page les porte, ce qui satisfait l'obligation d'accessibilité, et `/legal` est
+en `noindex` justement pour qu'ils ne remontent pas dans les résultats (§7).
+
+**14 dépendances directes retirées**, celles qu'aucun fichier n'importe, pas
+même les `ui/` : MUI et emotion, react-dnd, react-slick, recharts, date-fns,
+motion, et le reste du bac à sable Figma Make. Les 37 autres des 51 relevées
+sont importées par les `ui/` eux-mêmes ; les retirer suppose de supprimer ces
+47 composants, ce qui ne se fait pas pendant que d'autres écrans s'écrivent.
+
+**Le retrait a révélé une fragilité que l'audit n'avait pas vue** :
+`@types/react` et `@types/react-dom` n'étaient déclarés nulle part et
+n'arrivaient que par transitivité, sans doute par MUI. Sans eux, `tsc` ne trouve
+plus le namespace React et le build casse. Ils sont désormais des
+devDependencies explicites. **Une dépendance qu'on n'a jamais déclarée est une
+dépendance qu'on perdra sans comprendre pourquoi.**
+
+**La file de `signalements` a une sortie**, `signalements.yml` dans le dépôt de
+collecte (§6). Rien de nominatif n'entre dans l'issue, ni le compte visé, ni
+l'auteur, ni le commentaire : un signalement nomme quelqu'un et une issue garde
+son texte pour toujours. Le triage reste manuel, par l'éditeur SQL, et c'est
+voulu, décider qu'un signalement est fondé n'est pas une opération de script.
 
 ---
 
@@ -1751,6 +1788,27 @@ Sept secrets : `SUPABASE_SERVICE_ROLE_KEY`, `TMDB_READ_TOKEN`, les quatre
 | `recapituler.yml` | appelé par les passes | ouvre une issue de récapitulatif |
 | `maj-ec.yml` | vendredi 7 h UTC | énumérer le delta, trier, résoudre, écrire |
 | `dvdfr.yml` | à la main | enrichit par code-barres, **n'élargit rien** |
+| `signalements.yml` | tous les jours 9 h UTC | ouvre une issue si des signalements attendent |
+
+**`signalements.yml` est la seule passe dont l'issue reste ouverte.** Celle de
+`recapituler.yml` est une trace et se referme aussitôt ; celle-ci est une
+**tâche**. Elle existe parce que la table `signalements` est en `revoke all`
+pour `anon` et `authenticated` : rien dans le site ne peut la lire, la seule voie
+est l'éditeur SQL, et un signalement réel n'était donc vu par personne alors que
+la modale promet une relecture.
+
+Elle annonce aussi les profils qui approchent du plafond de 50, lequel ne
+redescend jamais tout seul : sans triage, cinquante comptes suffiraient à mettre
+un profil hors de portée de tout signalement ultérieur, y compris fondé.
+
+**Rien de nominatif n'entre dans l'issue**, ni le compte visé, ni l'auteur, ni le
+commentaire, seulement un décompte, un motif et un identifiant de ligne. Un
+signalement nomme quelqu'un et une issue garde son texte pour toujours.
+
+L'instantané dans R2, `etat/signalements.json`, évite de renotifier la même file
+chaque jour, faute de quoi la notification finirait ignorée, ce qui est le défaut
+qu'elle répare. **La file vide, cas de tous les jours, sort avant de toucher
+R2** : rien à comparer, donc rien à télécharger.
 
 **Les cinq passes n'ont pas tourné du 2 août 14 h 04 au 3 août**, et rien ne
 l'a signalé. `recapituler.yml`, ajouté ce jour-là, déclare
@@ -5046,6 +5104,17 @@ Documentés parce qu'ils se reproduiront.
   neuves », ce qui se lit comme une fin de listing. Dédoublonner sur
   l'**empreinte du corps** et non sur l'URL, comparer les URL sans la casse
   étant un pari que deux chemins ne diffèrent jamais que par là.
+- **Le `venv` de `~/jaquette-scraping` est mort depuis le déménagement du
+  dépôt.** Son shebang pointe encore
+  `/Users/rayan/Documents/boxology-scraping/venv/bin/python3`, chemin qui
+  n'existe plus, donc `venv/bin/pip` rend « bad interpreter » et aucune
+  dépendance de `requirements.txt` n'est installée sur la machine. Les passes
+  s'en moquent, elles tournent sur Actions où le socle installe tout ; mais
+  **rien ne s'exécute plus localement**, y compris pour éprouver un script
+  qu'on vient d'écrire. Relevé le 4 août 2026 en testant `signalements.py`. Un
+  `python3 -m venv --clear venv` le répare ; en attendant, une exécution locale
+  se teste en injectant les modules manquants par `PYTHONPATH`, ce qui a le
+  mérite de ne rien installer sur la machine.
 - **Un agent launchd ne peut pas lire `~/Documents`.** Les deux agents
   échouaient en 127, `/bin/zsh: can't open input file`, et la passe de
   popularité affichait `runs = 0` depuis son installation : elle n'avait
