@@ -52,22 +52,57 @@ function badgesDe(edition) {
   if (edition.resolution && !formats.some((f) => /4k/i.test(f))) {
     badges.push(edition.resolution.split(/[,/]/)[0].trim());
   }
-  return [...new Set(badges.filter(Boolean))].slice(0, 4);
+  return [...new Set(badges.filter(Boolean))].slice(0, 3);
 }
 
-/** Lignes de pied d'une planche édition. Aucun prix, jamais : voir `gabarit.fin`. */
+/**
+ * **Une seule ligne de pied**, et c'est un arbitrage, pas une limite technique.
+ *
+ * Le premier jet en posait quatre : éditeur, collection, date, code-barres.
+ * Le gabarit d'aperçu a montré qu'à la taille d'un fil elles tombent sous 8 px,
+ * donc qu'elles n'informaient personne. À taille lisible elles ne tiennent plus
+ * à quatre, et il faut choisir : c'est l'éditeur qui reste, parce que c'est lui
+ * qui distingue deux disques du même film, et la date sinon.
+ *
+ * Le code-barres, la collection et le nombre de disques sortent de la planche.
+ * Ils se lisent sur la fiche, ce que la dernière planche invite à faire.
+ * Aucun prix, jamais : voir `gabarit.fin`.
+ */
 function lignesDe(edition) {
-  const lignes = [];
-  if (edition.editeur) lignes.push(`Éditeur <b>${edition.editeur}</b>`);
-  if (edition.collection_editeur) {
-    const rang = edition.numero_collection ? ` nº&nbsp;${edition.numero_collection}` : "";
-    lignes.push(`Collection <b>${edition.collection_editeur}</b>${rang}`);
-  }
   const date = dateFr(edition.date_parution);
-  if (date) lignes.push(`Paru le <b>${date}</b>`);
-  if (edition.disques) lignes.push(`<b>${edition.disques}</b> disque(s)`);
-  if (edition.ean) lignes.push(`Code-barres <b>${edition.ean}</b>`);
-  return lignes.slice(0, 4);
+  /* Pas de mot « Éditeur » devant : à 36 px il coûte 145 px de largeur, et
+     c'est exactement ce qui faisait passer la ligne à deux et pousser le rail
+     hors de la planche. Un nom propre en gras suivi d'une date se lit sans
+     étiquette. */
+  if (edition.editeur) {
+    return [`<b>${edition.editeur}</b>${date ? ` · ${date}` : ""}`];
+  }
+  if (date) return [`Paru le <b>${date}</b>`];
+  if (edition.disques) return [`<b>${edition.disques}</b> disques`];
+  return [];
+}
+
+/**
+ * Le nom de l'édition, ou rien quand il ne fait que répéter le titre du film.
+ *
+ * Les sources qui ne qualifient pas leur produit, Leclerc en tête, recopient le
+ * titre du film dans `editions.titre`. La planche affichait alors « The Batman »
+ * deux fois de suite, une fois en titre et une fois en sous-titre coloré, ce qui
+ * se lit comme un défaut d'affichage.
+ *
+ * Les diacritiques sont écrites en points de code et non en clair : un caractère
+ * combinant recopié dans un fichier source est invisible à la relecture, et une
+ * classe qui a perdu ses bornes ne replie plus rien sans le dire (§9).
+ */
+function replier(s) {
+  return (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function nomEdition(edition, titreFilm) {
+  const nom = titreEdition(edition);
+  if (!nom) return null;
+  return replier(nom) === replier(titreFilm) ? null : nom;
 }
 
 /**
@@ -154,7 +189,7 @@ async function comparatif(argument, { max = 8 } = {}) {
       surtitre: `Édition ${i + 1} sur ${total}`,
       titre: film.titre,
       annee: film.annee,
-      edition: titreEdition(e),
+      edition: nomEdition(e, film.titre),
       badges: badgesDe(e),
       lignes: lignesDe(e),
       visuel: e.visuel,
@@ -217,7 +252,7 @@ async function sorties(argument, { max = 6, jours = 30 } = {}) {
         surtitre: dateFr(e.date_parution) ?? "",
         titre: film?.titre ?? titreEdition(e),
         annee: film?.annee,
-        edition: film ? titreEdition(e) : null,
+        edition: film ? nomEdition(e, film.titre) : null,
         badges: badgesDe(e),
         lignes: lignesDe(e),
         visuel: e.visuel,
@@ -249,7 +284,7 @@ async function sorties(argument, { max = 6, jours = 30 } = {}) {
  * autres collections n'ont pas de numéro, la grille les range alors par date.
  * Le sens de la planche est le décompte : le lecteur compte les siennes.
  */
-async function collection(argument, { parPlanche = 12, max = 6 } = {}) {
+async function collection(argument, { parPlanche = 9, max = 6 } = {}) {
   if (!argument) {
     const toutes = await lire(
       "editions?select=collection_editeur&collection_editeur=not.is.null&limit=1000");
@@ -317,7 +352,7 @@ async function collection(argument, { parPlanche = 12, max = 6 } = {}) {
  * qui est le cas depuis la normalisation du 3 août 2026, 478 écritures ramenées
  * à 70 familles (§7).
  */
-async function editeur(argument, { parPlanche = 12, max = 4 } = {}) {
+async function editeur(argument, { parPlanche = 9, max = 4 } = {}) {
   if (!argument) throw new Error("editeur : donner un nom, par exemple « Carlotta Films »");
 
   const nom = argument;
@@ -357,7 +392,7 @@ async function editeur(argument, { parPlanche = 12, max = 4 } = {}) {
         surtitre: nom,
         titre: film?.titre ?? titreEdition(e),
         annee: film?.annee,
-        edition: film ? titreEdition(e) : null,
+        edition: film ? nomEdition(e, film.titre) : null,
         badges: badgesDe(e),
         lignes: lignesDe(e),
         visuel: e.visuel,
@@ -435,7 +470,7 @@ async function faces(argument, { max = 7 } = {}) {
       surtitre: i === 0 ? "Face avant" : `Vue ${i + 1}`,
       titre,
       annee: film?.annee,
-      edition: titreEdition(edition),
+      edition: nomEdition(edition, titre),
       badges: badgesDe(edition),
       lignes: i === 0 ? lignesDe(edition) : [],
       visuel: v.visuel,

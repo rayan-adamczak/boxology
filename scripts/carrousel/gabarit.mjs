@@ -57,6 +57,24 @@ export function echapper(s) {
     .replace(/"/g, "&quot;");
 }
 
+/**
+ * Plancher typographique, mesuré et non choisi.
+ *
+ * Un fil mobile affiche une planche sur environ 374 px de large, soit une
+ * réduction de 2,9. Tout ce qui est sous **34 px ici passe sous 12 px chez le
+ * lecteur**, et 12 px est le seuil en dessous duquel on ne lit plus, on devine.
+ *
+ * Le premier jet mettait les métadonnées à 22 px, donc 7,6 px dans un fil : le
+ * gabarit d'aperçu l'a montré d'un coup d'œil, ce qu'aucune relecture de la
+ * planche en grand ne pouvait faire. C'est la raison d'être de `apercu.mjs`.
+ *
+ * La conséquence n'est pas seulement de grossir : à taille lisible, tout ne
+ * tient plus. Une planche d'édition porte donc **une seule ligne de
+ * métadonnée** au lieu de quatre. Le code-barres, la collection et le nombre de
+ * disques sont sortis : ils se lisent sur la fiche, pas dans un fil.
+ */
+const PLANCHER = 34;
+
 const CSS = `
   @font-face {
     font-family: 'Bricolage Grotesque';
@@ -110,21 +128,26 @@ const CSS = `
   /* --- bandeau de tête, identique sur toutes les planches --- */
   .tete { display: flex; align-items: center; justify-content: space-between; }
   .lockup { display: flex; align-items: center; gap: 13px; }
-  .lockup svg { display: block; height: 27px; width: auto; }
+  .lockup svg { display: block; height: 30px; width: auto; }
   .lockup .nom {
     font-family: 'Bricolage Grotesque', sans-serif;
-    font-weight: 800; font-size: 33px; letter-spacing: -0.035em; line-height: 1;
+    font-weight: 800; font-size: 37px; letter-spacing: -0.035em; line-height: 1;
   }
   .compteur {
-    font-size: 21px; font-weight: 600; color: ${DISCRET};
+    font-size: 28px; font-weight: 600; color: ${DISCRET};
     font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
   }
   .compteur b { font-weight: 700; }
 
   .corps { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
-  /* --- pied : rail d'avancement puis filet tricolore --- */
-  .rail { display: flex; gap: 7px; padding: 0 0 26px; }
+  /* --- pied : compteur, rail d'avancement, puis filet tricolore ---
+     Le compteur est ici et non en tête, où il tombait exactement sous la
+     pastille « 3/8 » que l'application pose elle-même en haut à droite : deux
+     compteurs superposés, dont le nôtre à moitié caché. En bas il ne gêne rien
+     et il sert encore quand les planches sont regardées comme des fichiers. */
+  .pied-rail { display: flex; align-items: center; gap: 20px; padding-bottom: 26px; }
+  .rail { display: flex; gap: 7px; flex: 1; }
   .rail span { height: 5px; flex: 1; border-radius: 3px; background: ${BORDURE}; }
   .filet {
     position: absolute; left: 0; right: 0; bottom: 0; height: 14px;
@@ -134,7 +157,7 @@ const CSS = `
 
   /* --- éléments partagés --- */
   .surtitre {
-    font-size: 22px; font-weight: 700; letter-spacing: 0.16em;
+    font-size: ${PLANCHER}px; font-weight: 700; letter-spacing: 0.14em;
     text-transform: uppercase;
   }
   h1 {
@@ -151,12 +174,12 @@ const CSS = `
      Ici rien ne se clique, donc pas d'état de survol et pas de bordure vive. */
   .badges { display: flex; flex-wrap: wrap; gap: 10px; }
   .badge {
-    font-size: 21px; font-weight: 600; padding: 8px 16px; border-radius: 999px;
+    font-size: ${PLANCHER}px; font-weight: 600; padding: 12px 24px; border-radius: 999px;
     background: ${SURFACE_2}; color: ${TEXTE}; border: 1px solid ${BORDURE};
   }
-  .badge.accent { border-color: currentColor; background: transparent; }
+  .badge.accent { border-color: currentColor; background: transparent; border-width: 2px; }
 
-  .meta { font-size: 22px; color: ${DISCRET}; line-height: 1.5; }
+  .meta { font-size: ${PLANCHER + 2}px; color: ${DISCRET}; line-height: 1.45; }
   .meta b { color: ${TEXTE}; font-weight: 600; }
   .nombres { font-variant-numeric: tabular-nums; }
 
@@ -188,10 +211,12 @@ function planche({ index, total, accent, contenu, fondSupplementaire = "" }) {
   <div class="cadre">
     <div class="tete">
       <div class="lockup">${LOGO}<span class="nom">jaquette.app</span></div>
-      <div class="compteur"><b style="color:${accent}">${index + 1}</b>/${total}</div>
     </div>
     <div class="corps">${contenu}</div>
-    <div class="rail">${rail}</div>
+    <div class="pied-rail">
+      <div class="compteur"><b style="color:${accent}">${index + 1}</b>/${total}</div>
+      <div class="rail">${rail}</div>
+    </div>
   </div>
   <div class="filet">
     <i style="background:${COULEURS[0]}"></i>
@@ -255,11 +280,11 @@ export function couverture({ index, total, accent, surtitre, titre, sous, mosaiq
       }
       .bloc { margin-top: auto; padding-bottom: 44px; position: relative; z-index: 2; }
       .bloc h1 { font-size: 92px; margin-top: 26px; }
-      .bloc .sous { font-size: 30px; color: ${DISCRET}; margin-top: 26px; line-height: 1.42;
-                    max-width: 800px; }
+      .bloc .sous { font-size: 38px; color: ${DISCRET}; margin-top: 26px; line-height: 1.38;
+                    max-width: 860px; }
       .balaye { display: flex; align-items: center; gap: 14px; margin-top: 40px;
-                font-size: 23px; font-weight: 600; letter-spacing: 0.04em; }
-      .balaye .fleche { font-size: 30px; }
+                font-size: 32px; font-weight: 600; letter-spacing: 0.04em; }
+      .balaye .fleche { font-size: 38px; }
     </style>
     <div class="bloc">
       <div class="surtitre" style="color:${accent}">${echapper(surtitre)}</div>
@@ -292,7 +317,11 @@ export function planchEdition({
      Le visuel est **au-dessus** du texte et non à côté : sur une toile 4/5, une
      colonne de texte à côté d'une jaquette ne laisse que 320 px, où un titre de
      film passe à la ligne trois fois. Empilé, il a les 928 px du cadre. */
-  const largeur = Math.min(928, Math.round(700 * rapport));
+  /* La hauteur disponible est tombée de 700 à 620 le jour où le texte est
+     passé au-dessus du plancher de lisibilité : à taille lisible, le bloc de
+     texte prend la place, et c'est le bon arbitrage. Un boîtier un peu plus
+     petit se voit encore, une ligne de 7 px ne se lit pas. */
+  const largeur = Math.min(928, Math.round(590 * rapport));
 
   const contenu = `
     <style>
@@ -309,20 +338,26 @@ export function planchEdition({
         width: 400px; aspect-ratio: 2/3; border-radius: 6px; background: ${SURFACE};
         border: 1px dashed ${BORDURE};
       }
-      .bloc-texte { padding-bottom: 34px; }
-      .bloc-texte .surtitre { font-size: 20px; }
-      .bloc-texte h2 { font-size: 56px; margin-top: 14px; -webkit-line-clamp: 2; }
+      .bloc-texte { padding-bottom: 30px; }
+      .bloc-texte h2 { font-size: 74px; margin-top: 16px; -webkit-line-clamp: 2; }
       .bloc-texte .annee { font-weight: 300; color: ${DISCRET}; }
       .edition-nom {
-        font-size: 27px; font-weight: 600; margin-top: 16px; line-height: 1.3;
+        font-size: 42px; font-weight: 600; margin-top: 18px; line-height: 1.22;
         -webkit-line-clamp: 2;
       }
-      .badges { margin-top: 24px; }
-      /* Deux colonnes : quatre lignes empilées mangeraient la hauteur qui
-         revient au boîtier, qui est le sujet de la planche. */
-      .lignes {
-        margin-top: 26px; display: grid; grid-template-columns: 1fr 1fr;
-        gap: 10px 40px;
+      .badges { margin-top: 28px; }
+      /* Une seule ligne, empilée. Les deux colonnes du premier jet tenaient
+         parce que le texte était trop petit pour être lu ; à taille lisible
+         elles se chevauchent, et la quatrième information ne se lisait de
+         toute façon pas dans un fil. */
+      /* Coupée à une ligne, et c'est un garde-fou et non un choix de mise en
+         page : le visuel a une hauteur fixe, donc un texte plus haut que prévu
+         ne le comprime pas, il pousse le rail hors de la planche. Un défaut qui
+         ne lève rien et ne se voit qu'à l'image. */
+      .lignes { margin-top: 26px; }
+      .lignes .meta {
+        display: -webkit-box; -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1; overflow: hidden;
       }
     </style>
     <div class="pile">
@@ -353,7 +388,7 @@ export function planchEdition({
 /* ------------------------------------------------------------------- grille */
 
 /**
- * Douze vignettes numérotées, pour les collections à numéro.
+ * Neuf vignettes numérotées, pour les collections à numéro.
  *
  * Make My Day! numérote de 1 à 98 et c'est le seul cas du catalogue où le rang
  * est publié par la source (§3). La case à cocher est le sens de la planche :
@@ -373,9 +408,9 @@ export function grille({ index, total, accent, titre, sous, cases }) {
 
   const contenu = `
     <style>
-      .entete-grille { padding: 28px 0 30px; }
-      .entete-grille h2 { font-size: 44px; }
-      .entete-grille .sous { font-size: 22px; color: ${DISCRET}; margin-top: 10px; }
+      .entete-grille { padding: 26px 0 30px; }
+      .entete-grille h2 { font-size: 56px; }
+      .entete-grille .sous { font-size: 32px; color: ${DISCRET}; margin-top: 10px; }
 
       /* Les rangées valent 1fr et la vignette se dimensionne sur la hauteur
          reçue, sa largeur suivant le rapport. C'est la règle de la visionneuse
@@ -384,11 +419,17 @@ export function grille({ index, total, accent, titre, sous, cases }) {
          filet, et overflow hidden la coupait sans rien signaler. */
       .cases {
         flex: 1; min-height: 0; display: grid;
-        grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr);
-        gap: 24px 20px; padding-bottom: 12px;
+        /* Neuf par planche et non douze. À quatre colonnes le nom d'un film
+           tombait à 16 px, soit 5,5 px dans un fil : la grille était une
+           planche-contact illisible. Plus de planches, chacune lisible. */
+        grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+        gap: 26px 28px; padding-bottom: 12px;
       }
       .case { display: flex; flex-direction: column; min-height: 0; }
-      .cadre-v { flex: 1; min-height: 0; display: flex; justify-content: center; }
+      /* Vignette calée à gauche et non centrée : le nom en dessous l'est, et
+         deux alignements différents dans la même case se lisent comme un
+         décalage. */
+      .cadre-v { flex: 1; min-height: 0; display: flex; justify-content: flex-start; }
       .vignette {
         position: relative; height: 100%; aspect-ratio: 2/3; border-radius: 5px;
         background-size: cover; background-position: center;
@@ -396,12 +437,12 @@ export function grille({ index, total, accent, titre, sous, cases }) {
       }
       .vignette.vide { border: 1px dashed ${BORDURE}; box-shadow: none; }
       .rang {
-        position: absolute; top: -11px; left: -11px; min-width: 38px; height: 38px;
-        border-radius: 999px; color: #101720; font-weight: 800; font-size: 19px;
-        display: flex; align-items: center; justify-content: center; padding: 0 9px;
+        position: absolute; top: -14px; left: -14px; min-width: 54px; height: 54px;
+        border-radius: 999px; color: #101720; font-weight: 800; font-size: 28px;
+        display: flex; align-items: center; justify-content: center; padding: 0 12px;
         font-variant-numeric: tabular-nums;
       }
-      .nom { height: 40px; margin-top: 10px; font-size: 16px; line-height: 1.26;
+      .nom { height: 62px; margin-top: 14px; font-size: 27px; line-height: 1.22;
              color: ${DISCRET}; -webkit-line-clamp: 2; }
     </style>
     <div class="entete-grille">
@@ -432,18 +473,18 @@ export function fin({ index, total, accent, titre, sous, chemin = "" }) {
              align-items: center; text-align: center; padding-bottom: 40px; }
       .fin .marque svg { height: 108px; width: auto; display: block; margin: 0 auto; }
       .fin h1 { font-size: 62px; margin-top: 46px; max-width: 840px; }
-      .fin .sous { font-size: 27px; color: ${DISCRET}; margin-top: 26px; line-height: 1.46;
-                   max-width: 720px; }
+      .fin .sous { font-size: 34px; color: ${DISCRET}; margin-top: 26px; line-height: 1.42;
+                   max-width: 780px; }
       .adresse {
         margin-top: 52px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800;
         font-size: 44px; letter-spacing: -0.03em;
         background: linear-gradient(90deg, ${COULEURS[0]}, ${COULEURS[1]}, ${COULEURS[2]});
         -webkit-background-clip: text; background-clip: text; color: transparent;
       }
-      .chemin { font-size: 26px; color: ${DISCRET}; margin-top: 10px; }
+      .chemin { font-size: 32px; color: ${DISCRET}; margin-top: 12px; }
       .signalement {
-        margin-top: 46px; font-size: 22px; color: ${DISCRET}; line-height: 1.5;
-        border-top: 1px solid ${BORDURE}; padding-top: 26px; max-width: 640px;
+        margin-top: 46px; font-size: 30px; color: ${DISCRET}; line-height: 1.45;
+        border-top: 1px solid ${BORDURE}; padding-top: 28px; max-width: 720px;
       }
       .signalement b { color: ${TEXTE}; font-weight: 600; }
     </style>
