@@ -2562,6 +2562,30 @@ trouver `validFrom` sur la même page. Fenêtre de propagation, 3 requêtes sur 
 servaient encore l'ancienne version, puis 5, puis 6 sur 6. **Échantillonner
 plusieurs fois avant de conclure qu'un déploiement est incomplet.**
 
+**La validation n'a été lancée que sur les deux champs écrits**, le 4 août
+2026, et l'état du rapport le montre :
+
+    hasMerchantReturnPolicy   Non commencé
+    shippingDetails           Non commencé
+    validFrom                 Commencé
+    description               Commencé
+
+**Ne pas lancer la validation sur les quatre refusés**, et c'est le geste
+contre-intuitif de cet écran : le bouton est là, il se clique, et Google
+recrawlerait pour constater que le champ manque toujours. Le rapport garderait
+alors un « validation échouée » permanent sur une décision assumée, c'est-à-dire
+du bruit qui masquerait un jour une vraie régression. Un problème qu'on ne
+corrige pas se laisse en « non commencé ».
+
+Le rapport « Extraits de produits » n'a donc rien reçu du tout, ses deux
+problèmes étant `review` et `aggregateRating`.
+
+Ce qui suit est automatique : Google recrawle les pages concernées, deux par
+problème, et le rapport passe en « Réussite » de lui-même en quelques jours. Le
+« Dernière mise à jour » affiché reste antérieur au correctif, l'instantané
+étant quotidien ; la validation force le recrawl et ne s'y fie pas. Un échec
+signalerait une page servie pendant la fenêtre de propagation, et se relance.
+
 Bonus non anticipé : les **fiches de marchand** valident aussi, ce qui est un
 second type de résultat enrichi obtenu sans rien écrire de plus.
 
