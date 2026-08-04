@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { AttenteRecherche, FiletChargement } from "./AttenteRecherche";
+import { AttenteRecherche } from "./AttenteRecherche";
 import { lienFilm } from "../lib/liens";
 import type { Film } from "../lib/reelio-db";
 import type { Recherche } from "../lib/recherche-films";
@@ -35,12 +35,15 @@ export function GrilleFilms({
       )}
 
       {/*
-        La même attente que le panneau d'aperçu, portée par la page : les
-        tranches du mot-symbole quand rien n'est encore affiché, le filet quand
-        une grille est là et qu'on affine. Un rouet générique aurait pu venir de
-        n'importe quel site ; ces deux-là disent la marque, et le second règle
-        surtout un vrai défaut, affiner ne montrait rien du tout, la grille
-        précédente restant à l'écran comme si elle était à jour.
+        Une seule marque d'attente, les tranches du mot-symbole, comme dans le
+        panneau d'aperçu. Un filet de 2 px en tête de grille a été essayé puis
+        retiré : sur toute la largeur d'une page, il se lit comme un séparateur
+        et non comme une attente.
+
+        Quand une grille est déjà là, les tranches paraissent **au-dessus**
+        d'elle et la grille reste : la faire disparaître à chaque frappe la
+        ferait clignoter. Sans rien, à l'inverse, affiner ne montrerait aucun
+        signe que le site cherche.
       */}
       {chargement && films.length === 0 ? (
         <AttenteRecherche />
@@ -49,14 +52,14 @@ export function GrilleFilms({
           Aucun film trouvé.
         </p>
       ) : (
-        <div className="relative mt-5">
-          {chargement && <FiletChargement />}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-6 pt-[2px] sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <>
+          {chargement && <AttenteRecherche />}
+          <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             {films.map((film) => (
               <CarteFilm key={film.id} film={film} />
             ))}
           </div>
-        </div>
+        </>
       )}
     </>
   );
