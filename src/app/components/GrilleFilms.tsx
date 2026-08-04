@@ -1,6 +1,6 @@
 import { Link } from "react-router";
-import { Loader2 } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { AttenteRecherche, FiletChargement } from "./AttenteRecherche";
 import { lienFilm } from "../lib/liens";
 import type { Film } from "../lib/reelio-db";
 import type { Recherche } from "../lib/recherche-films";
@@ -34,20 +34,28 @@ export function GrilleFilms({
         </p>
       )}
 
-      {chargement ? (
-        <div className="mt-5 flex items-center gap-2" style={{ color: "var(--reel-muted)" }}>
-          <Loader2 size={18} className="animate-spin" />
-          <span style={{ fontSize: "15px" }}>Chargement…</span>
-        </div>
+      {/*
+        La même attente que le panneau d'aperçu, portée par la page : les
+        tranches du mot-symbole quand rien n'est encore affiché, le filet quand
+        une grille est là et qu'on affine. Un rouet générique aurait pu venir de
+        n'importe quel site ; ces deux-là disent la marque, et le second règle
+        surtout un vrai défaut, affiner ne montrait rien du tout, la grille
+        précédente restant à l'écran comme si elle était à jour.
+      */}
+      {chargement && films.length === 0 ? (
+        <AttenteRecherche />
       ) : films.length === 0 ? (
         <p className="mt-5" style={{ fontSize: "15px", color: "var(--reel-muted)" }}>
           Aucun film trouvé.
         </p>
       ) : (
-        <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          {films.map((film) => (
-            <CarteFilm key={film.id} film={film} />
-          ))}
+        <div className="relative mt-5">
+          {chargement && <FiletChargement />}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-6 pt-[2px] sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {films.map((film) => (
+              <CarteFilm key={film.id} film={film} />
+            ))}
+          </div>
         </div>
       )}
     </>
