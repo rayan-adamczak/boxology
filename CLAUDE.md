@@ -697,6 +697,24 @@ que le navigateur n'exécute pas. Éprouvé sous `wrangler pages dev dist`, seul
 façon de servir `_headers` et `functions/` ensemble : fiche film, accueil et
 `/about` rendus sans une violation en console, morceau `lazy()` chargé en 200.
 
+**`img-src` en porte quatre depuis le 4 août 2026**, et la directive est un
+**instantané** : chaque source qui apporte ses propres visuels ajoute un hôte,
+et l'oubli ne casse rien de bruyant. `cdn.shopify.com` est entré le 3 août,
+provisoire le temps de miroiter les visuels Metaluna ; `media.e.leclerc` le 4,
+et celui-là est définitif, le §5 posant qu'E.Leclerc est la seule source dont
+les visuels sont **licenciés pour l'usage affilié**.
+
+**La signature d'un blocage CSP est à connaître, elle ne ressemble à rien
+d'autre** : les 2 312 éditions Leclerc rendaient un cadre gris alors que la
+colonne était remplie et que le fichier répondait.
+
+    transferSize 0, status 0     -> CSP, la requête ne part pas
+    transferSize 0, status 404   -> le fichier n'existe pas
+    aucune requête du tout       -> `image_url` vide en base
+
+Zéro octet **et** zéro statut, c'est la CSP. La console, elle, ne dit rien
+d'exploitable.
+
 **HSTS activé le 2 août 2026**, et **« Toujours utiliser HTTPS » avec lui**.
 Les deux se règlent dans Cloudflare, SSL/TLS puis Certificats de périphérie, et
 non dans `_headers` : le tableau de bord est la seule source de ces deux-là.
@@ -1804,6 +1822,29 @@ interroge code-barres par code-barres et « n'élargit rien », ce qui le rendai
 inutile. Il donne précisément ce que Leclerc tait, format, zone et date
 française. Leclerc élargit, dvdfr qualifie. À mesurer avant de s'y engager : le
 débit réel sur 6 393 codes, le §5 gardant la trace d'un quota à 200 par semaine.
+
+**Les 6 393 sont soldés, il n'en reste rien à tirer.** Le compte final, mesuré
+et non estimé, ferme la question pour de bon :
+
+    2 823  qualifiés Blu-ray, 4K, 3D  -> importés
+    3 488  DVD                        -> hors périmètre (§1)
+       82  inconnus chez dvdfr        -> sans recours
+
+**Les visuels sont en lien direct, et ils sont demandés à la bonne taille.**
+Le flux écrit ses `image_url` avec les paramètres du CDN dedans, en pleine
+taille : **928 336 octets** pour une vignette rendue dans un cadre de 56 × 84,
+soit neuf mégaoctets sur une fiche à dix éditions Leclerc. `lib/visuels.ts`
+réécrit `w` et `h` au rendu, 200 pour la liste d'éditions, 400 pour la carte du
+rail, le double du rendu pour tenir en densité double.
+
+    w=1000   928 336 octets
+    w=200     44 960 octets
+
+**Rien n'est touché en base** : la colonne garde l'URL pleine taille, qui reste
+la bonne pour la visionneuse. C'est l'affichage qui demande ce dont il a besoin,
+même principe que `pleineResolution` pour TMDB, dans l'autre sens. `func=fit`
+est conservé, c'est lui qui garde le rapport au lieu de rogner. Les autres hôtes
+passent sans être touchés, leur grammaire n'étant pas celle-ci.
 
 ### thejokers-shop.com, 29 éditions, 4 août 2026
 
@@ -4796,6 +4837,24 @@ celui-ci.
 Documentés parce qu'ils se reproduiront.
 
 ### Parsing
+- **Un cache indexé sur la réponse ne dit pas ce qui a été demandé.**
+  `dvdfr/dvdfr.jsonl` porte `ean` quand la fiche existe et **seulement**
+  `ean_demande` quand elle n'existe pas, avec `inconnu: true`. Compter les codes
+  déjà traités sur la clé `ean` fait donc passer les inconnus pour jamais
+  interrogés : j'ai annoncé « 82 EAN à crawler » avant que le crawler réponde
+  `82 EAN, 11879 déjà faits, 0 à lire`. Le travail était fait, dvdfr ne connaît
+  simplement pas ces codes. **Compter sur la clé de la demande, pas sur celle du
+  résultat.**
+- **dvdfr intervertit titre et réalisateur sur les captations de concert.**
+  Relevé sur trois fiches sur trois d'un échantillon :
+
+      "titre": "Johnny Hallyday", "realisateur": "Allume le feu"
+
+  Le titre est *Allume le feu*. Sans garde-fou, un rattachement TMDB part
+  chercher un film nommé « Johnny Hallyday », c'est-à-dire le motif constant du
+  §9, le nom propre qui tombe sur un documentaire. Ces fiches sont des DVD,
+  donc écartées par le filtre de support avant d'atteindre TMDB, mais le jour
+  où une captation sortira en Blu-ray, la protection tombera d'elle-même.
 - **Les titres blu-ray.com** suivent `Titre 4K Blu-ray (X) (France)` où `X`
   est **soit** le titre français, **soit** un qualificatif d'édition. Trancher
   sur un vocabulaire (steelbook, collector, digipack…), sinon on obtient
