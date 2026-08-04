@@ -373,6 +373,37 @@ function compacter<T extends Record<string, unknown>>(objet: T): T {
  * Une édition peut porter plusieurs offres le jour où un deuxième programme est
  * accepté : `offers` prend alors le tableau, ce que schema.org accepte.
  */
+/**
+ * Description d'une édition, pour le nœud `Product`.
+ *
+ * Réclamée par la Search Console le 4 août 2026, avec `validFrom`,
+ * `hasMerchantReturnPolicy` et `shippingDetails`. Les deux premières se
+ * remplissent honnêtement, les deux autres non : elles décrivent les conditions
+ * de retour et de livraison **du marchand**, que le site n'a nulle part, ni
+ * dans le flux Awin ni ailleurs. Les déclarer ferait annoncer au nom
+ * d'E.Leclerc des conditions qu'on ignore, sur un balisage que Google prend au
+ * mot pour écrire « retours gratuits » dans ses résultats. Le §10 rappelle que
+ * le site n'est ni marchand ni intermédiaire de vente, et c'est la même règle
+ * que pour `review` et `aggregateRating` : un balisage qui ne peut pas être
+ * honnête reste absent.
+ *
+ * Ce qu'on écrit ici ne dit donc que ce qu'on sait du **disque** : son format,
+ * qui l'édite, l'œuvre qu'il porte, son code-barres. Même vocabulaire que la
+ * ligne d'édition du corps injecté, pour que les deux ne dérivent pas.
+ */
+function descriptionEdition(film: FilmSeo, ed: EditionSeo): string | null {
+  const annee = film.annee ? ` (${film.annee})` : "";
+  const morceaux = [
+    ed.formats_extraits?.length ? ed.formats_extraits.join(", ") : null,
+    `édition de « ${film.titre}${annee} »`,
+    ed.editeur ? `éditeur ${ed.editeur}` : null,
+    ed.ean ? `code-barres ${ed.ean}` : null,
+  ].filter(Boolean);
+  /* Le format seul et le titre ne font pas une description : sans au moins une
+     précision de plus, on n'écrit rien plutôt qu'une paraphrase du `name`. */
+  return morceaux.length >= 3 ? `${morceaux.join(" — ")}.` : null;
+}
+
 function produits(film: FilmSeo, canonical: string): Record<string, unknown>[] {
   const noeuds: Record<string, unknown>[] = [];
 
@@ -387,7 +418,8 @@ function produits(film: FilmSeo, canonical: string): Record<string, unknown>[] {
         /* Le relevé plus un jour : la passe tourne quotidiennement, annoncer
            plus long serait une promesse qu'on ne tient pas. `Date` accepte
            l'horodatage ISO de PostgREST, et `toISOString` le ramène en UTC. */
-        const valide = new Date(new Date(o.releve_le).getTime() + 86_400_000);
+        const releve = new Date(o.releve_le);
+        const valide = new Date(releve.getTime() + 86_400_000);
         return compacter({
           "@type": "Offer",
           price: prix.toFixed(2),
@@ -395,6 +427,10 @@ function produits(film: FilmSeo, canonical: string): Record<string, unknown>[] {
           availability: o.disponible
             ? "https://schema.org/InStock"
             : "https://schema.org/OutOfStock",
+          /* Le prix vaut du relevé au lendemain. `validFrom` est la date du
+             relevé elle-même : la borne haute était déjà écrite, il manquait
+             la borne basse, et les deux sortent de la même colonne. */
+          validFrom: Number.isNaN(releve.getTime()) ? null : releve.toISOString().slice(0, 10),
           priceValidUntil: Number.isNaN(valide.getTime())
             ? null
             : valide.toISOString().slice(0, 10),
@@ -416,6 +452,7 @@ function produits(film: FilmSeo, canonical: string): Record<string, unknown>[] {
         "@type": ["Product", "CreativeWork"],
         "@id": `${canonical}#edition-${ed.id}`,
         name: ed.titre || `${film.titre} — édition`,
+        description: descriptionEdition(film, ed),
         gtin13: ed.ean,
         image: ed.image_url,
         brand: ed.editeur ? { "@type": "Brand", name: ed.editeur } : null,
