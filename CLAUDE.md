@@ -987,7 +987,7 @@ films**, tous isolables séparément :
 | reprise Zavvi à quatre mesures | 460 | 460 | `zavvi_reprise` |
 | Diaphana, première WooCommerce | 92 | 92 | `diaphana` |
 
-    23 803 éditions | 8 013 EAN (33,7 %) | 92,0 % rattachées
+    23 803 éditions | 8 063 EAN (33,9 %) | 92,0 % rattachées
     12 129 films | 24 940 liens | sitemap 13 420 URL avant Diaphana
 
 **La couverture EAN monte puis redescend dans la même journée, et les deux
@@ -2055,6 +2055,51 @@ plus strict sur quelques cas que la règle écrite dans la sonde. Retenir le sen
 de l'écart : une sonde qui majore de quatre points vaut mieux que l'inverse,
 mais elle majore.
 
+### rimini-editions.fr et spectrumfilms.fr : enrichissement, pas import
+
+**Deux boutiques PrestaShop qui n'élargissent rien et servent quand même.**
+Mesuré le 4 août 2026 avant d'écrire une ligne de chaîne :
+
+    Rimini Editions    288 éditions au catalogue    59 en boutique
+    Spectrum Films     130 éditions au catalogue   104 en boutique
+
+Elles sont **plus petites que ce qu'on a déjà d'elles**. La règle du §8, « un
+éditeur porte un fonds, un revendeur porte un stock », ne vaut donc pas
+partout : Metaluna agrège plus que ce qu'un éditeur garde en vente. **La
+vérification à faire avant d'ajouter une source tient en une requête, comparer
+la taille de la boutique à ce que la base porte déjà pour cet éditeur.**
+
+**Ce qu'elles apportent est le code-barres que Metaluna tait.** 317 de leurs
+éditions viennent de `metalunastore.fr`, dont le `sku` vaut `FILM` partout,
+donc sans EAN. Leurs boutiques le publient, dans le `gtin13` du JSON-LD et
+jusque dans l'URL produit, `143-dernier-ete-a-tanger-dvd-3760233157946.html`.
+
+**Résultat : 50 éditions enrichies**, 18 Rimini et 32 Spectrum, aucune créée.
+Puis les 50 codes passés chez dvdfr, ce qui remplit quatre colonnes que
+Metaluna ne publie sur aucune de ses 6 830 fiches :
+
+                    avant   après
+    zone            32/50   50/50
+    distributeur     0/50   50/50
+    disques          0/50   50/50
+    ratio            0/50   39/50
+
+La chaîne complète se lit donc : boutique PrestaShop, code-barres, dvdfr,
+fiche technique. C'est le premier cas du dépôt où une source ne sert qu'à
+**relier** deux autres.
+
+**Piège de mesure à ne pas refaire.** Comparer ces 162 codes aux
+`editions.ean` rend « 141 inconnus », ce qui se lit comme un taux de nouveauté
+record. C'est un artefact : les éditions visées ont justement `ean = NULL`,
+donc elles ne peuvent matcher aucun code. J'ai failli le rapporter comme une
+trouvaille.
+
+**Ce qui reste dehors, et pourquoi ça ne s'assouplit pas.** 67 des 104 produits
+Spectrum ne trouvent aucun titre concordant : ils titrent en version
+originale, `Viva Erotica`, `Buddha Mountain`, là où Metaluna titre parfois en
+français. Il faudrait un rapprochement par titre traduit, pas un assouplissement
+de plus.
+
 ### solaris-distribution.com : mesuré le 4 août 2026, et écarté
 
 Même plateforme, même `robots.txt` ouvert, chaîne déjà écrite : il ne restait
@@ -2861,11 +2906,49 @@ requête. C'est la méthode n° 2 du §9, conserver de quoi rejouer un parseur, 
 elle a servi le jour même de son écriture : le `4K` de restauration avait
 faussé les 213 fiches Coin de Mire au premier passage.
 
-**Deux plateformes depuis Diaphana**, déclarées dans la table, et l'écart tient
-en une requête :
+**Trois plateformes, déclarées dans la table**, et l'écart tient à la voie
+d'énumération :
 
     shopify       sitemap -> 1 requête par fiche      213 requêtes
     woocommerce   Store API -> tout le catalogue        3 requêtes
+    prestashop    catégories paginées, aucun sitemap
+
+**PrestaShop n'expose rien.** Ni `/sitemap.xml`, ni `1_fr_0_sitemap.xml`, ni
+`/plan-du-site` : tous rendent 404 avec une page d'erreur de 40 à 46 Ko, taille
+qui ferait croire à une réponse si on ne lisait pas le statut. L'énumération
+passe donc par les catégories, `?page=N` n'étant pas dans leur `Disallow`
+contrairement à `?order=`, `?tag=`, `?search_query=` et `?n=`.
+
+**On s'arrête quand une page n'apporte rien de neuf**, jamais quand elle est
+vide : PrestaShop sert la dernière page en boucle au-delà du dernier numéro,
+donc une condition sur le vide ne s'arrêterait pas.
+
+### Enrichissement par code-barres (`boutiques/enrichir_ean.py`, 2026-08-04)
+
+    python3 enrichir_ean.py rimini            # simulation
+    python3 enrichir_ean.py rimini --apply
+
+**Première chaîne du dépôt qui ne crée aucune édition.** Elle remplit
+`editions.ean` sur des lignes déjà là, celles que Metaluna a fait entrer sans
+code-barres. Détail de la mesure et du rendement au §5.
+
+Rapprochement sur le **titre replié restreint au même éditeur**, méthode
+d'`ecrire_zavvi.py`, `titre_comparable` étant importé et non recopié. Second
+critère, le **format**, sinon un Blu-ray recevrait l'EAN du DVD.
+
+**Quand la boutique n'annonce aucun format, on retombe sur le titre seul, à une
+seule candidate près.** Le garde-fou est déplacé, pas retiré : deux candidates
+partent en relecture. C'est moins strict que « deux mesures concordantes », et
+c'est assumé, parce que le gain est net, 15 rapprochements sur 59 devenant 27
+chez Rimini et 4 sur 104 devenant 32 chez Spectrum. Un désaccord franc reste
+refusé : une boutique qui **dit** `DVD` face à un `Blu-ray` en base n'est pas
+une absence.
+
+**Deux garde-fous repris d'ailleurs.** *Enrichir, jamais corriger*, comme
+`ecrire_dvdfr.py` : une édition qui porte déjà un EAN n'est pas touchée. Et
+refus d'un code déjà porté par une autre ligne, **9 collisions évitées chez
+Rimini dès le premier passage**, le plus souvent la même sortie importée par
+Leclerc. Un EAN faux est pire qu'un lien faux, il sert de clé ensuite.
 
 **Ce qu'on crawle chez un WooCommerce, ce sont les pages `/film/`**, pas les
 produits : la boutique a déjà tout donné du disque, ce qui manque est le
@@ -5785,8 +5868,37 @@ Documentés parce qu'ils se reproduiront.
   coffret de deux films passait pour complet à trois. Quatre coffrets étaient
   dans ce cas. C'est le plafond du §9 poussé jusqu'au bout, un disque ne peut pas
   porter une œuvre qui n'est pas sortie.
+- **PrestaShop 1.6 balise en microdonnées, pas en JSON-LD.** Le titre est dans
+  `<h1 class="page-heading" itemprop="name">`, et un parseur qui ne cherche que
+  le nœud `Product` rend **104 titres vides sur 104** — sans erreur, avec un
+  `ok 104 | erreurs 0` en fin de journal. Le §9 dit qu'un scan cassé se lit
+  comme un scan négatif ; ici il se lisait comme un scan **réussi**.
+
+  Le symptôme à connaître est le même que pour dvdpascher et son `s DVD` :
+  **une valeur constante sur tout un lot signale qu'on lit le gabarit et non la
+  donnée.** Ici la constante était la chaîne vide, ce qui la rend plus discrète
+  qu'une valeur fausse.
+- **Une comparaison de format doit chercher dans la valeur, pas l'égaler.**
+  Metaluna écrit `Combo Blu-ray + DVD` d'une pièce, un crawl de boutique rend
+  `["Blu-ray", "DVD", "Combo"]` : l'égalité stricte rendait `None` sur toutes
+  les lignes Metaluna, donc aucune clé ne concordait, et le rapprochement
+  tombait de 34 possibles à 15. Chercher `Blu-ray 4K` **avant** `Blu-ray`,
+  sinon un 4K se lit comme un Blu-ray simple.
+- **Les identifiants de catégorie ne sont pas contigus.** Rimini va de 11 à 23
+  mais **21 n'existe pas**, et un 404 traité comme une panne tuait
+  l'énumération aux trois quarts, en perdant tout puisque l'écriture n'a lieu
+  qu'à la fin. Un trou dans une numérotation n'est pas une panne.
 
 ### Infrastructure
+- **Une boucle d'attente sur `pgrep -f <motif>` se reconnaît elle-même.** Un
+  `until ! pgrep -f crawl_dvdfr; do sleep 20; done` contient la chaîne
+  `crawl_dvdfr` dans sa propre ligne de commande : `pgrep` la trouve, la
+  condition ne devient jamais vraie, et la surveillance attend indéfiniment un
+  processus **qui est elle-même**. Deux surveillants perdus ainsi le 4 août
+  2026, alors que le crawl était fini depuis un moment.
+
+  Surveiller un **marqueur du journal** ou un compte de lignes en sortie, pas
+  un nom de processus qui figure dans la commande de surveillance.
 - **dvdfr refuse aussi l'IP des runners, et la mesure est sans appel.** Le run
   du 2 août 2026 a demandé 2 720 fiches depuis un runner : `trouvés 0 |
   inconnus 0 | erreurs 2720`, une `HTTPError` sur chacune dès la première.
