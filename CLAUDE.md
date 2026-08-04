@@ -3624,8 +3624,37 @@ Deux défauts corrigés au passage, tous deux invisibles au diff :
   navigation. `src/app/lib/ancre.ts` réessaie en `requestAnimationFrame` jusqu'à
   une seconde. `BienvenuePage` porte encore sa propre copie, à y remonter.
 
-Restent `/legal` et `/privacy`, qui servent 48 octets. Elles n'ont pas vocation
-à être trouvées par une recherche, donc ce n'est pas prioritaire.
+#### Toutes les pages fixes sont servies en texte depuis le 1er août 2026
+
+Le middleware ne traitait que les fiches et les regroupements. Partout ailleurs
+un client sans JavaScript recevait `<div id="root"></div>` et rien d'autre :
+**0 signe** dans le corps de `/`, `/welcome`, `/legal` et `/privacy`, contre
+1 916 sur une fiche film, et le titre générique du catalogue à la place du leur.
+Une mention légale partagée en lien s'annonçait « le catalogue des éditions
+Blu-ray et 4K françaises ».
+
+| | corps servi | ce qu'il porte |
+|---|---|---|
+| `/` | 1 248 | les 24 films les plus consultés, en liens, et les trois sommaires |
+| `/about` | 7 735 | les questions, depuis `lib/faq.ts` |
+| `/welcome` | 1 368 | les six étapes, ancres comprises |
+| `/legal` | 988 | sommaire des sections |
+| `/privacy` | 847 | sommaire des sections |
+
+**L'accueil est le seul à interroger la base**, pour ses films et son effectif :
+c'est aussi ce qui manquait au crawl, il n'existait aucun chemin de la racine
+vers une fiche sans exécuter le JavaScript. Les autres n'ont aucune requête, ce
+qu'elles disent ne dépendant pas de la base, et une page d'entrée qui tombe au
+premier hoquet de Supabase serait un mauvais échange.
+
+**Le corps de `/legal` et `/privacy` est un sommaire, jamais le texte complet.**
+Le texte juridique vit en JSX dans les composants ; le recopier dans le
+middleware ferait deux versions qui dérivent en silence, exactement le piège
+déjà consigné pour la fiche film. Un sommaire suffit à un aperçu de lien et à un
+moteur, et n'a pas à remplacer ce que le visiteur lira.
+
+`/profile` et `/account` restent à 0 signe, et c'est voulu : pages personnelles
+en `noindex`.
 
 #### Le panneau d'aperçu ne peut pas éprouver ce qui dépend du défilement
 
