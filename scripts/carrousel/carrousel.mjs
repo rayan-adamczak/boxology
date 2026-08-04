@@ -28,7 +28,9 @@
  */
 
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, statSync } from "node:fs";
+import {
+  existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync,
+} from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -201,6 +203,16 @@ if (planches.length > PLAFOND) {
 
 const dossier = resolve(RACINE, options.sortie ?? join("carrousels", nom));
 mkdirSync(dossier, { recursive: true });
+
+/* Les planches d'une passe précédente sont retirées, et pas seulement écrasées.
+ * Une passe plus courte que la précédente laisserait derrière elle les numéros
+ * de queue, qui se posteraient avec les autres : sur un carrousel dont le
+ * dossier fait foi, une planche périmée ne se distingue en rien d'une planche
+ * neuve. Défaut rencontré le 4 août 2026, quatre planches d'un rendu antérieur
+ * survivant à un rendu de six. */
+const restes = readdirSync(dossier).filter((f) => /^\d+\.(png|html)$/.test(f));
+for (const f of restes) rmSync(join(dossier, f));
+if (restes.length) console.log(`${restes.length} planche(s) d'une passe précédente retirée(s)`);
 
 const chrome = trouverChrome();
 const profil = mkdtempSync(join(tmpdir(), "jaquette-carrousel-"));

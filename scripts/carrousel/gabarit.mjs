@@ -242,6 +242,12 @@ export function couverture({ index, total, accent, surtitre, titre, sous, mosaiq
       .voile {
         position: absolute; inset: 0; z-index: 1;
         background:
+          /* Bandeau de tête : le mot-symbole et le compteur tombent sur la
+             mosaïque, et une jaquette claire les efface. Un voile court en
+             haut plutôt qu'un fond plein derrière le bandeau, qui se lirait
+             comme une barre d'application. */
+          linear-gradient(180deg, rgba(16,23,32,.88) 0%,
+                                  rgba(16,23,32,.55) 9%, rgba(16,23,32,0) 17%),
           linear-gradient(180deg,
             rgba(16,23,32,.34) 0%, rgba(16,23,32,.58) 30%,
             rgba(16,23,32,.92) 54%, ${FOND} 68%),
