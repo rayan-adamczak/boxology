@@ -180,23 +180,17 @@ export function BrowsePage() {
 
           <div className="mt-9 w-full max-w-[680px]">
             {/*
-              L'aperçu réutilise les résultats de la page, il n'en demande pas
-              d'autres. Tronqué à huit : la grille au-dessous porte déjà les
-              cinquante, le panneau sert à atteindre un titre sans faire défiler.
+              **Pas de panneau d'aperçu ici**, même raison que sur /catalogue :
+              la grille est juste en dessous et se rafraîchit à la frappe, tout
+              le reste de la page s'effaçant dès qu'on tape. Un panneau y
+              montrerait les huit premières lignes de ce que la page affiche
+              déjà, en les recouvrant.
 
-              Entrée et « voir tous les résultats » emmènent vers /catalogue,
-              qui a les filtres, plutôt que de laisser sur une page d'accueil
-              dont la grille n'est qu'un aperçu du catalogue.
+              Entrée emmène vers /catalogue, qui porte les filtres.
             */}
             <ChampRecherche
               valeur={recherche.query}
               onChange={recherche.setQuery}
-              apercu={{
-                films: recherche.films.slice(0, 8),
-                suggestions: recherche.suggestions,
-                chargement: recherche.chargement,
-                approchante: recherche.approchante,
-              }}
               onValider={(v) =>
                 navigate(v.trim() ? `/catalogue?q=${encodeURIComponent(v.trim())}` : "/catalogue")
               }
