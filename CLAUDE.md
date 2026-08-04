@@ -2516,6 +2516,52 @@ facultatifs**, et ce sont précisément les deux qu'on refuse : on n'a pas d'avi
 et la note TMDB porte sur l'œuvre, l'accrocher à un disque serait faux. Ne pas
 « corriger » ces avertissements, les combler serait mentir.
 
+#### Les six champs réclamés par la Search Console, le 4 août 2026
+
+Deux courriels, six champs facultatifs manquants, **aucun critique** : les
+résultats enrichis s'affichent toujours. Le partage suit la règle du nœud
+`Product`, un balisage qui ne peut pas être exact reste absent.
+
+| champ | |
+|---|---|
+| `description` | **écrit** |
+| `validFrom` (dans `offers`) | **écrit** |
+| `hasMerchantReturnPolicy` (dans `offers`) | refusé |
+| `shippingDetails` (dans `offers`) | refusé |
+| `review` | refusé |
+| `aggregateRating` | refusé |
+
+`description` ne dit que ce qu'on sait du **disque**, son format, l'œuvre qu'il
+porte, qui l'édite, son code-barres, et reprend le vocabulaire de la ligne
+d'édition du corps injecté pour que les deux ne dérivent pas. Rien n'est écrit
+en dessous de trois précisions : le format et le titre seuls paraphraseraient le
+`name` au lieu de le compléter.
+
+    Blu-ray 4K, Steelbook — édition de « 10 Cloverfield Lane (2016) »
+      — éditeur Paramount Pictures — code-barres 37014320688
+
+`validFrom` est la date du relevé. La borne haute était déjà là, il ne manquait
+que la basse, et les deux sortent de `offres.releve_le`.
+
+**`hasMerchantReturnPolicy` et `shippingDetails` décrivent le marchand, pas
+nous.** Le site n'a ces conditions nulle part, ni dans le flux Awin ni ailleurs.
+Les déclarer ferait annoncer au nom d'E.Leclerc des conditions qu'on ignore, sur
+un balisage que Google prend au mot pour écrire « retours gratuits » dans ses
+résultats, alors que le §10 pose que le site n'est ni marchand ni intermédiaire
+de vente. **Ces quatre-là resteront donc listés en « non critiques », et c'est
+l'état voulu** : mieux vaut un balisage exact et incomplet qu'un balisage complet
+et faux. Ne pas rouvrir sans que la donnée existe vraiment.
+
+Google prévient que certains facultatifs passeront critiques un jour. Si
+`shippingDetails` en fait partie, la réponse ne sera pas de l'inventer mais de
+retirer le nœud, comme le 31 juillet.
+
+Piège de vérification rencontré au déploiement, et c'est celui du §7 : la
+première mesure rendait `description` absente alors qu'un `grep` venait de
+trouver `validFrom` sur la même page. Fenêtre de propagation, 3 requêtes sur 6
+servaient encore l'ancienne version, puis 5, puis 6 sur 6. **Échantillonner
+plusieurs fois avant de conclure qu'un déploiement est incomplet.**
+
 Bonus non anticipé : les **fiches de marchand** valident aussi, ce qui est un
 second type de résultat enrichi obtenu sans rien écrire de plus.
 
