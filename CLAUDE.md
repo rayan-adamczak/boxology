@@ -1765,7 +1765,7 @@ débit réel sur 6 393 codes, le §5 gardant la trace d'un quota à 200 par sema
 
 ## 6. Scripts (`~/jaquette-scraping/`)
 
-### Ils tournent sur GitHub Actions depuis le 2 août 2026
+### Ils ont tourné sur GitHub Actions du 2 au 4 août 2026
 
 Les scripts vivent dans **`github.com/rayan-adamczak/jaquette-scraping`,
 dépôt privé**, et c'est cette privauté qui lève l'objection du §6 d'origine :
@@ -1777,18 +1777,44 @@ la CI sans arrêter les passes locales.
 Sept secrets : `SUPABASE_SERVICE_ROLE_KEY`, `TMDB_READ_TOKEN`, les quatre
 `R2_*`, et `CF_DEPLOY_HOOK`.
 
+**Les sept planifications sont coupées depuis le 4 août 2026**, les 2 000
+minutes de runner du mois étant consommées. Les blocs `schedule:` sont
+commentés dans les fichiers, avec le motif et la marche à suivre pour
+rétablir ; `workflow_dispatch` reste ouvert partout.
+
+**Sur un dépôt privé à quota épuisé, Actions ne lance plus les jobs du tout.**
+Une passe planifiée ne tombe pas en erreur, **elle n'existe pas** : c'est
+exactement la panne muette que le §9 documente deux fois, et c'est ce qui
+serait arrivé sans un mot si les crons étaient restés. Couper explicitement
+vaut mieux que subir un silence.
+
 | workflow | quand | ce qu'il fait |
 |---|---|---|
-| `maj-popularite.yml` | lundi 8 h UTC | rafraîchit `films.popularite` |
-| `maj-shopify.yml` | mardi 8 h UTC | **65** collections Metaluna + Le Chat qui fume |
-| `maj-zavvi.yml` | mercredi 6 h UTC | énumérer, crawler, résoudre, miroiter, écrire |
-| `maj-bluray.yml` | jeudi 7 h UTC | **import seul**, la collecte est locale |
-| `maj-ec.yml` | vendredi 7 h UTC | énumérer le delta, trier, résoudre, écrire |
+| `maj-popularite.yml` | ~~lundi 8 h~~ à la main | rafraîchit `films.popularite` |
+| `maj-shopify.yml` | ~~mardi 8 h~~ à la main | **65** collections Metaluna + Le Chat qui fume |
+| `maj-zavvi.yml` | ~~mercredi 6 h~~ à la main | énumérer, crawler, résoudre, miroiter, écrire |
+| `maj-bluray.yml` | ~~jeudi 7 h~~ à la main | **import seul**, la collecte est locale |
+| `maj-ec.yml` | ~~vendredi 7 h~~ à la main | énumérer le delta, trier, résoudre, écrire |
+| `maj-awin.yml` | ~~5 h~~ à la main | prix marchands, flux Leclerc |
+| `signalements.yml` | ~~9 h~~ à la main | ouvre une issue si des signalements attendent |
 | `publier.yml` | appelé par les passes | hook Cloudflare, puis vérifie le sitemap servi |
 | `recapituler.yml` | appelé par les passes | ouvre une issue de récapitulatif |
-| `maj-ec.yml` | vendredi 7 h UTC | énumérer le delta, trier, résoudre, écrire |
 | `dvdfr.yml` | à la main | enrichit par code-barres, **n'élargit rien** |
-| `signalements.yml` | tous les jours 9 h UTC | ouvre une issue si des signalements attendent |
+
+`publier.yml` et `recapituler.yml` ne coûtent plus rien d'eux-mêmes : ils sont
+en `workflow_call`, donc ils ne partent que si une passe les appelle.
+
+**Attention, `workflow_dispatch` consomme le même forfait.** Tant que le
+compteur n'est pas remis à zéro, un lancement manuel ne partira pas davantage
+qu'un cron. Les passes tournent donc **en local**, comme le faisaient déjà les
+deux collectes que l'IP des runners fait refuser.
+
+**Ce qu'il faudra trancher à la remise à zéro**, visible sur
+`github.com/settings/billing` : lesquelles remettre sur cron, et non toutes.
+La seule journée du 2 août 2026 a consommé **1 253 minutes**, Zavvi et son
+crawl de 12 665 fiches en tête. `run_crawl` et `run_resolutions` existent
+précisément pour reprendre les artefacts d'un run antérieur au lieu d'en
+refaire un, et c'est le premier levier à employer.
 
 **`signalements.yml` est la seule passe dont l'issue reste ouverte.** Celle de
 `recapituler.yml` est une trace et se referme aussitôt ; celle-ci est une
