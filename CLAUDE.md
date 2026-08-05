@@ -132,8 +132,10 @@ l'ancienne supprimée du tableau de bord.
 le 3 août 2026 par le second audit. Il porte aussi les quatre `R2_*` depuis, et
 la clé `service_role` porte `rolbypassrls`, c'est-à-dire qu'elle traverse
 d'un coup toutes les barrières décrites au §3. Le contraste était net sur la
-même machine, `~/.config/gh/hosts.yml` et `~/.wrangler/config/default.toml`
-étaient en `0600`.
+même machine, `~/.config/gh/hosts.yml` et le fichier de wrangler étaient en
+`0600`. **Ce dernier est en `~/Library/Preferences/.wrangler/config/default.toml`
+et non `~/.wrangler/`**, chemin relevé le 5 août 2026 en cherchant le jeton
+OAuth : `~/.wrangler/` n'existe pas sur la machine.
 
     chmod 600 ~/.config/boxology.env
 
@@ -152,11 +154,12 @@ faire dans l'autre sens coupe la connexion le temps de l'écart.
 
 ## 3. Modèle de données
 
-### `films`, 11 105 lignes (3 août 2026, dont 748 séries)
+### `films`, 12 129 lignes (5 août 2026)
 `id` (identity), `tmdb_id` (unique), `titre`, `titre_original`, `annee`,
 `duree`, `realisateur`, `scenariste`, `synopsis`, `note` (**/10**),
 `nb_votes`, `affiche_url`, `backdrop_url`, `imdb_id`, `tagline`,
-`genres` (text[]), `cast_principal` (jsonb), **`type`** (`film|serie|coffret`).
+`genres` (text[]), `cast_principal` (jsonb), **`type`** (`film|serie|coffret`),
+`mots_alternatifs` (générée, cf. plus bas).
 
 Deux lignes seulement n'ont pas de `tmdb_id`, elles échappent donc à toutes
 les passes d'enrichissement, qui énumèrent `tmdb_id=not.is.null`.
@@ -198,6 +201,23 @@ Alimentées par `enrichir_tmdb.py` et `champs_tmdb.py`.
 `cast_principal` porte désormais `{nom, role, photo}`, l'URL TMDB complète en
 `w185`, comme `affiche_url` stocke une URL en `w500`. La taille fait partie de
 l'URL chez TMDB ; la fixer à l'import évite que chaque page la recompose.
+
+**`mots_alternatifs` (text), ajoutée le 5 août 2026, et c'est la première
+colonne *générée* du schéma.** Elle vaut
+`public.mots_alternatifs(titres_alternatifs)`, soit les valeurs de ce jsonb
+repliées par `mots_recherche`, dédoublonnées, triées et jointes par une barre
+verticale, `|hausu|house|`. Migration
+`20260805_recherche_titres_alternatifs.sql`, index GIN trigrammes. Détail du
+séparateur et du classement au §7.
+
+**Générée et non calculée au vol** : déplier un jsonb et agréger pour 12 129
+lignes à chaque frappe interdirait tout index. 684 ko en base, et elle se
+recalcule seule à chaque écriture de `titres_alternatifs`, donc les passes
+d'enrichissement n'ont rien à en savoir. Même partage que `films.slug`, calculé
+en base pour que les scripts Python ignorent la règle.
+
+Contrepartie à connaître : `recherche_films` rend `setof films`, donc elle part
+dans chaque réponse de recherche, 58 octets en moyenne et 299 au pire.
 
 **`popularite` (real), ajoutée le 31 juillet 2026.** Le champ `popularity` de
 TMDB, recalculé chez eux tous les jours à partir des consultations, recherches
@@ -3615,9 +3635,11 @@ devant celui qui commence par lui.
 | 0 | titre entier |
 | 1 | début du titre |
 | 2 | titre original entier |
-| 3 | début d'un mot du titre |
-| 4-5 | n'importe où dans le titre, puis dans le titre original |
-| 6 | réalisateur seul |
+| 3 | **titre alternatif entier** (5 août 2026) |
+| 4 | début d'un mot du titre |
+| 5-6 | n'importe où dans le titre, puis dans le titre original |
+| 7 | **n'importe où dans un titre alternatif** (5 août 2026) |
+| 8 | réalisateur seul |
 
 **Le classement vit en base, il ne peut pas vivre côté client** : la limite
 s'applique **avant** le tri, donc reclasser 50 lignes tirées alphabétiquement
@@ -3638,6 +3660,66 @@ recherche exacte **et** son repli. « star » sort en 45 ms.
 **Le réalisateur est au dernier rang, jamais devant un titre.** « Kubrick »
 rend *Shining*, *2001*, *Eyes Wide Shut* ; un film qui porterait « kubrick »
 dans son titre passerait avant.
+
+#### Les titres étrangers, le 5 août 2026
+
+*House* de Nobuhiko Obayashi ne répondait pas à « Hausu », son titre
+d'exploitation hors du Japon, et *野のなななのか* du même auteur ne répondait à
+**rien** : `mots_recherche` replie un titre japonais sur la chaîne vide, donc
+aucune saisie ne pouvait le rendre. `titres_alternatifs` portait la réponse
+depuis l'import TMDB du 30 juillet, en six langues, sans que rien ne la lise.
+
+Migration `20260805_recherche_titres_alternatifs.sql`, mesurée avant d'écrire
+sur les 12 129 films :
+
+    10 848  portent au moins un titre alternatif exploitable
+     7 414  gagnent un titre qu'aucune colonne cherchee ne contient  (61 %)
+        56  n'avaient aucun titre latin, donc etaient introuvables
+
+Les 56 sont les mêmes que les 56 slugs vides du §7 : `titre` **et**
+`titre_original` en japonais, chinois, coréen ou hébreu.
+
+**Les alternatifs entrent sous les colonnes propres du film**, jamais à leur
+place, d'où les rangs 3 et 7 plutôt qu'un rang unique : « house » doit rendre
+le film dont c'est le titre avant celui dont ce n'est qu'une traduction.
+Vérifié, il le fait.
+
+**Le séparateur est une barre verticale, et il fait le travail du reste.**
+`mots_recherche` ne rend que `[a-z0-9 ]`, donc aucune saisie ne peut en
+contenir : une correspondance ne peut jamais enjamber deux titres, et
+`like '%|' || t || '|%'` teste l'égalité avec l'un d'eux. Le champ porte sa
+barre aux deux bouts pour que le premier et le dernier titre se testent comme
+les autres. Concaténer sur une espace aurait fait que « usu hou » trouve
+« hausu house ».
+
+`order by` et `distinct` dans l'agrégat ne sont pas décoratifs : sans l'ordre,
+`string_agg` ne rend pas deux fois la même chaîne pour les mêmes données, et la
+fonction n'aurait d'`immutable` que la déclaration, ce qu'une colonne générée ne
+pardonne pas.
+
+**Le repli approchant ne les prend pas, et c'est mesuré**, pas supposé :
+
+    hausou   Lion                   0,571   « der lange weg nach hause »
+             Les Filles de joie     0,571   « harlots haus der huren »
+             Le Sous-sol de la peur 0,571   « das haus der vergessenen »
+             House                  0,571   « hausu »
+
+Quatre films au score **exactement identique**, départagés par la popularité, et
+le bon arrive quatrième. Un champ qui porte jusqu'à six titres est six fois plus
+de mots courts à faire correspondre, et `word_similarity` retient la meilleure
+étendue de mots, donc l'égalité devient la règle. C'est mot pour mot ce que
+cette section reproche déjà au réalisateur dans le repli. **Une faute de frappe
+sur un titre étranger reste donc hors de portée**, manque assumé.
+
+**Coût : « star » passe de 50 à 74 ms.** Ce ne sont pas les deux `like` ajoutés,
+qui portent sur une colonne stockée : c'est que l'index rend 98 lignes de plus,
+et que chacune traverse un `case` qui rappelle `mots_recherche` six fois. Le
+`explain` confirme que `films_mots_alternatifs_trgm` entre bien dans le
+`BitmapOr`, la sélection seule tenant en 4,9 ms. Le levier, le jour où ça gêne,
+est ce calcul répété, pas une colonne cherchée en moins.
+
+Aucune régression, vérifié sur « star », « kubrick », « mission impossible »,
+« amelie », et sur le repli avec « Intrestellar » et « seigneur des aneaux ».
 
 #### Éditeurs, formats et genres : des raccourcis, pas des résultats
 
@@ -3734,6 +3816,42 @@ Sous `prefers-reduced-motion`, les deux restent à l'écran, colorés et
 immobiles : c'est leur présence qui dit qu'on cherche, pas leur mouvement.
 `role="status"` porte l'annonce, les barres sont `aria-hidden`, elles ne sont
 que décoratives.
+
+#### C'est le seul indicateur d'attente du site, depuis le 5 août 2026
+
+Les tranches n'étaient posées que sur la recherche. Le rouet `Loader2` de lucide
+subsistait à **sept endroits**, dont l'attente de fragment de page, la fiche
+film et la modale de personne, et trois « Chargement… » étaient servis **sans
+aucun indicateur**, `/account` et `/report` pendant la vérification de session.
+Un disque qui tourne aurait pu venir de n'importe quel site, ce que ces tranches
+s'emploient précisément à ne pas faire. Ne pas en réintroduire.
+
+**`AttentePleine` est la forme à employer dès que le contenu n'est pas encore
+là**, page, panneau ou modale : centrée, jamais dans le coin en haut à gauche.
+Posé là, l'indicateur se lit comme une ligne de plus dans une page vide ; au
+centre, il se lit comme la place que le contenu prendra. Mesuré en direct sur
+neuf états d'attente réels, écart au centre 0/0 partout :
+
+    /movies/…       bloc 1512x540   "60vh", l'ecran entier attend
+    /u/…            bloc  877x540
+    /formats/…      bloc  877x320   defaut
+    /account        bloc  760x320 puis 760x180
+    modale acteur   bloc      x200  la boite plafonne deja a 80vh
+
+**Une exception, et elle est voulue** : quand la grille est *déjà remplie* et
+qu'on affine, les tranches restent en haut à gauche. La grille reste affichée
+sous elles, donc un indicateur centré tomberait au milieu des jaquettes, et la
+faire disparaître à chaque frappe la ferait clignoter.
+
+**La largeur d'une tranche suit sa hauteur, au quart**, la proportion du
+mot-symbole, par `--reel-tranche-l`. À 4 px fixes, trois barres au centre d'un
+écran de 1 512 se lisaient comme une poussière et non comme le logo : c'est le
+rapport qui le fait reconnaître, pas la taille. Les 4 px restent le **défaut
+CSS**, donc le panneau de recherche et le champ d'identifiant ne bougent pas,
+mesurés 18 × 16 avant comme après ; le centre d'écran est à 36 × 32.
+
+Les tranches étant `aria-hidden`, chaque bloc porte un libellé masqué en
+`sr-only`, sans quoi son `role="status"` n'annoncerait rien du tout.
 
 Clavier : flèches pour parcourir, Entrée pour ouvrir la ligne choisie, Entrée
 sans sélection pour « voir tous les résultats », Échap pour fermer. La
@@ -4979,6 +5097,27 @@ L'année est en graisse **300** et séparée du titre par deux espaces insécabl
 mot. Plus l'écart de graisse est net, moins elle se lit comme un morceau du
 titre.
 
+**Un écart de boîtes n'est pas un écart d'encre**, corrigé le 5 août 2026. La
+note paraissait collée à la réalisation, alors que le gabarit était équilibré :
+la réalisation est en 15/22,5, donc elle porte 3,75 px de demi-interligne sous
+son texte, le synopsis 4,5 px au-dessus du sien, et la note, dont l'interligne
+vaut 18 pour une icône de 18, n'en porte aucun.
+
+    boites    6 px au-dessus, 16 en dessous
+    encre     9,75 au-dessus, 20,5 en dessous   <- ce que l'oeil voit
+
+11 px de marge à partir de `sm` remettent les deux à 20,75 contre 20,5. **Rien
+ne descend pour autant** : l'affiche est en `row-span-4` sur des rangées
+`auto auto auto 1fr`, donc la quatrième, vide, absorbe ; le héros fait 492 px
+avec comme sans.
+
+Sous `sm` la marge ne s'applique pas, et c'est délibéré : la grille se réordonne,
+la note y est suivie des **boutons**, à plus de deux cents pixels, donc il n'y a
+aucun déséquilibre à corriger et onze pixels se paieraient sur un écran de 375.
+
+La règle qui s'en dégage, et qui vaut pour tout empilement du site : **quand deux
+blocs voisins n'ont pas la même interligne, mesurer l'encre, pas les boîtes.**
+
 **Le synopsis est tronqué à quatre lignes, sur toutes les tailles**, avec « Voir
 plus » et « Voir moins ». La troncature a d'abord été réservée au mobile, au
 motif qu'un écran large avait la place. Il l'a, mais ce n'est pas la question :
@@ -5125,6 +5264,39 @@ fini par diverger : le bandeau montait à `lg:px-16` là où le contenu restait 
 `lg:px-10`, donc **le mot-symbole ne tombait pas sur la même verticale que le
 titre juste dessous**.
 
+#### La migration n'avait couvert que la moitié des pages, corrigé le 5 août 2026
+
+Sept pages posaient encore leur propre `mx-auto max-w-[…] px-6`, donc six
+largeurs de contenu, et un bord gauche qui ne tombait sous le mot-symbole **à
+aucune taille d'écran**. Mesuré à 1 512 px, où la gouttière vaut 877 et commence
+à 318 :
+
+| page | conteneur | bord gauche | écart |
+|---|---|---|---|
+| `/formats/blu-ray`, RegroupementPage | 1200 | 156 | **−162** |
+| `/about` | 1180 | 166 | −152 |
+| `/welcome` | 1100 | 206 | −112 |
+| `/formats`, `/publishers`, `/genres` | 900 | 306 | −12 |
+| `/legal`, `/privacy`, `/report`, `/account`, 404 | 760 | 376 | **+58** |
+
+**Le décalage existait aussi en mobile, et en sens inverse selon le palier** :
+ces pages portent `px-6` partout quand la gouttière met 20 px puis 32 à partir
+de `sm`. D'où +4 px à 375 et −8 px à 768, jamais zéro.
+
+Les pages éditoriales gardent une colonne de lecture de 760 px, mais **calée à
+gauche et non centrée** : centrée dans 877, elle réintroduirait 58 px du décalage
+qu'on venait de retirer.
+
+Mesuré après coup sur douze routes, à 375, 768 et 1 512 px : écart nul partout,
+aucun débordement horizontal.
+
+**`/welcome` reste dehors, et c'est un choix.** Ses six étapes sont réglées pour
+1 100 px, colonne de texte `lg:w-[400px] xl:w-[440px]` face à des cadres de 520 à
+660, plus un débord voulu de 80 px vers l'extérieur. Sur 877 il ne reste que
+461 px pour le cadre, donc tous les visuels seraient à rétrécir de 20 à 30 %,
+jaquettes comprises. C'est un redimensionnement de la page, pas un changement de
+conteneur, et le §8 dit que ces tailles ont été réglées à l'œil.
+
 ### `RailHorizontal`
 
 Partagé entre la distribution de la fiche film et les parutions de l'accueil.
@@ -5255,6 +5427,20 @@ d'images, passe sans être touchée.
 
 **Note à deux décimales** partout. TMDB rend `7.901` ; trois décimales suggèrent
 une précision que la note n'a pas.
+
+### Pied de page, la colonne « Réseaux » retirée le 5 août 2026
+
+Elle réclamait la largeur d'une colonne entière, au même titre que « Sections »
+ou « Parcourir », pour **un seul compte ouvert**. L'icône Instagram passe sous la
+description, dans la colonne d'identité, en pastille de 36 px bordée.
+
+**Bluesky et Letterboxd sont retirés, pas convertis.** C'étaient des `<li>` en
+texte nu, sans lien, parce que les comptes n'existent pas : le §8 les gardait en
+mentions plutôt qu'en liens morts, ce qui se lisait comme « bientôt ». Une icône
+ne sait pas dire ça, elle se lit comme un lien mort. Une ligne chacune à
+rajouter le jour où les comptes ouvrent, et le lien reste dans l'historique.
+
+`LienExterne` est parti avec elles, plus aucun appelant.
 
 ### Logo, posé le 2 août 2026, redessiné le 3
 
@@ -6295,8 +6481,46 @@ Documentés parce qu'ils se reproduiront.
 - **Un déploiement Cloudflare n'écrit rien dans GitHub.** Ni check, ni
   `deployments` : `gh api .../deployments` ne rend que les vieux `github-pages`
   de juillet. Pour savoir si un push est parti, comparer le hachage du bundle
-  servi ou compter les URL du sitemap, et lire le journal dans le tableau de
-  bord Pages, seule source de la cause d'un échec.
+  servi ou compter les URL du sitemap.
+
+  **Le tableau de bord n'est plus la seule source de la cause d'un échec**, et
+  c'est la correction du 5 août 2026 : `wrangler` donne le statut par commit, et
+  l'API rend le journal de build entier.
+
+      npx wrangler pages deployment list --project-name jaquette
+      GET /accounts/<acc>/pages/projects/jaquette/deployments/<id>/history/logs
+
+  Le jeton OAuth suffit pour les deux, et il est dans
+  `~/Library/Preferences/.wrangler/config/default.toml` et **non** dans
+  `~/.wrangler/`, contrairement à ce que dit le §8 : ce dernier chemin n'existe
+  pas sur la machine. C'est ainsi qu'on a su, le 5 août, que le build de
+  `1fd1c63` passait et que seul le sitemap tombait.
+
+  À savoir avant de chercher ailleurs : **un déploiement en échec n'est pas un
+  déploiement en retard**, et rien ne les distingue vu du site. Le site sert
+  simplement la version d'avant, indéfiniment.
+- **Une lecture de build qui rate ne doit pas coûter un déploiement.** Le build
+  de `1fd1c63` est tombé sur un seul `formats/Blu-ray : HTTP 500`, la première
+  des 210 lectures d'effectif de `generer-sitemap.mjs`. La même requête rendait
+  206 en 0,14 s quinze minutes plus tard, trois fois de suite sur trois formats :
+  un hoquet de PostgREST, et rien n'était cassé.
+
+  Les quatre lectures des deux scripts de build passent depuis par un `demander`
+  qui rejoue trois fois, une puis trois secondes. **Seuls les 5xx et les pannes
+  réseau se rejouent** : un 4xx dit qu'on demande mal, un filtre fautif ou une
+  colonne disparue, et il doit casser le build tout de suite, c'est le garde-fou
+  qui empêche de publier un sitemap tronqué (§7).
+- **Une sonde de déploiement se vérifie comme un scan.** Le même jour, un
+  `grep 'mt-\[11px\]'` sur le CSS servi a rendu zéro pendant douze minutes, ce
+  qui se lit exactement comme « pas encore déployé ». Le CSS écrit
+  `mt-\[11px\]` avec de **vraies** barres obliques inverses, échappement Tailwind
+  des crochets, donc le motif ne pouvait rien trouver. La sonde était morte, pas
+  le déploiement.
+
+  Le contrôle qui tranche est celui du §9 : passer le même motif sur le fichier
+  **construit en local**, où l'on sait que la règle existe. Zéro des deux côtés
+  accuse la sonde. Prendre un marqueur qui ne s'échappe pas, `margin-top:11px`
+  plutôt que le nom de la classe.
 - **Le hachage du bundle ne vaut comme repère que si le build local part de
   `HEAD`.** Mesuré le 3 août 2026 : un `npm run build` lancé dans un répertoire
   où une autre session laisse `TopBar.tsx` et `regroupements.ts` modifiés
