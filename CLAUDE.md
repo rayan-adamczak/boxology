@@ -14,7 +14,7 @@ pour le marché français. Anciennement *Boxology*, renommé en juillet 2026.
 | Dépôt | `github.com/rayan-adamczak/jaquette` (public) |
 | Éditeur | Rayan Adamczak, **entrepreneur individuel**, SIREN 852 258 680, SIRET 852 258 680 00028, RNE. Siège 32 D passage privé du Maupas, 58000 Nevers. Franchise en base, art. 293 B du CGI |
 | Contact | `contact@jaquette.app`, Cloudflare Email Routing, redirige vers rayan.adamczak@gmail.com. Réception seulement, pas d'envoi |
-| Compte Awin | `Jaquette.app` (3006883), **E.Leclerc accepté le 3 août 2026**, Fnac, Cultura et Zavvi en attente |
+| Compte Awin | `Jaquette.app` (3006883), **E.Leclerc accepté le 3 août 2026**. Fnac, Cultura et Zavvi en attente ; **Momox et Cdiscount demandés le 5 août**. L'espace publicitaire déclarait encore le prototype `boxology.figma.site` jusqu'au 5 août (§8) |
 
 **Le site est commercial depuis le 3 août 2026.** L'ambition du §1 d'origine est
 atteinte : le premier programme d'affiliation est accepté, 724 offres sont en
@@ -5391,7 +5391,8 @@ clic.
 ### Awin
 
 **E.Leclerc accepté le 3 août 2026**, premier programme validé. Fnac, Cultura et
-Zavvi restent en attente, **tous avec flux produits** (EAN, images, prix).
+Zavvi restent en attente, **tous avec flux produits** (EAN, images, prix), et
+**Momox et Cdiscount ont été demandés le 5 août 2026**, voir plus bas.
 
 Create-a-Feed s'est ouvert le jour de l'acceptation : il rendait « Feed not
 found » tant qu'aucun programme n'avait validé, et c'était bien la cause, pas un
@@ -5410,6 +5411,61 @@ défaut de configuration. Flux retenu, mesure et chaîne au §5 et §6.
 mesurées n'ont pas deux fois le même défaut, et Leclerc en apporte un inédit,
 l'EAN parfait sans le format. Ne pas supposer que le flux Fnac ressemblera à
 celui-ci.
+
+#### Le répertoire, mesuré le 5 août 2026, et deux candidatures de plus
+
+Export du répertoire filtré sur France et flux produit : **600 annonceurs**,
+dont 478 français. Deux seulement valaient une candidature, et elles sont
+parties le 5 août 2026.
+
+**Momox, la seule source de seconde main du répertoire.** « Spécialiste en
+achat/vente de livres, CD, DVD et jeux vidéo », et c'est le point : le §8 pose
+que la valeur de collection, deuxième fonction la plus demandée, est impossible
+sans un marchand d'occasion, et qu'aucune de nos huit sources ne l'est. Ses
+conditions sont aussi les meilleures du lot, 5 à 15 % de commission, 94,6 % de
+validation, cookie de 60 jours, statut de paiement vert.
+
+**Cdiscount, pour le creux 2000-2014.** 3 à 8 %, 93,7 % de validation, et
+surtout `productReporting: yes`, que seuls trois programmes portent avec Fnac
+et Zavvi. Place de marché, donc du fonds épuisé en boutique.
+
+**Ce qui n'est pas sur Awin, et qu'il faut cesser d'y chercher** : Carrefour,
+Auchan, Amazon, Gibert, Easy Cash, Recyclivre, Micromania, HMV. Pour eux il
+faudrait Effiliation, Kwanko, TradeDoubler ou leur programme propre.
+
+**`productReporting: yes` ne dit pas que le flux porte le format.** Leclerc a
+l'EAN à 100 % et le support sur 7,2 % des lignes, ce qui a coûté 6 393
+interrogations dvdfr. La mesure se fait dans Create-a-Feed, après acceptation.
+
+#### L'espace publicitaire déclarait encore le prototype Figma
+
+**Le renommage de juillet 2026 avait laissé un objet derrière lui.** Le compte
+s'appelle bien `Jaquette.app`, mais l'**espace publicitaire**, qui est ce que
+l'annonceur consulte pour juger une candidature, pointait toujours sur
+`https://boxology.figma.site/` — et ce prototype répond encore 200.
+
+Fnac, Cultura et Zavvi ont donc examiné la candidature du 3 août **sur une
+maquette Figma Make**, pas sur le site. Corrigé le 5 août, `Compte → Espaces
+publicitaires`.
+
+**C'est un réglage de tableau de bord, sans trace dans le dépôt**, comme HSTS
+et la fermeture de l'inscription par courriel (§2 et §8) : d'où cette note.
+
+**Awin demande alors de prouver la propriété du domaine**, et le §9 s'applique
+mot pour mot. Deux méthodes proposées, fichier à la racine ou balise meta, et
+la première **ne suffit pas ici** : Cloudflare Pages retire l'extension `.html`
+et répond 308 vers la forme sans extension, alors qu'Awin interroge l'URL avec.
+
+    /9a…c2.html   308  ->  /9a…c2
+    /9a…c2        200      33 octets, le jeton
+
+Les deux sont donc posées, `public/9a3309900ec9987a63d8812301e689c2.html` et
+une balise dans `index.html`. Le jeton n'est pas un secret, au même titre que
+l'enregistrement TXT de la Search Console.
+
+**Et la réécriture SPA rend le contrôle par code HTTP inutile** : `_redirects`
+fait répondre 200 à n'importe quel chemin en servant `index.html`, donc Awin
+aurait « validé » sans fichier. Lire le corps, 33 octets contre 6 586.
 
 ---
 
