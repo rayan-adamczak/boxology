@@ -16,7 +16,8 @@
  */
 
 import {
-  lire, compter, visuel, zonesDe, dateFr, titreEdition, estFormatSeul, filmDe,
+  lire, compter, visuel, zonesDe, dateFr, jourFr, moisFr, finDeMois,
+  titreEdition, estFormatSeul, filmDe,
 } from "./donnees.mjs";
 
 const COLONNES = [
@@ -225,30 +226,28 @@ async function comparatif(argument, { max = 8 } = {}) {
  * comme paru un disque qui ne l'est pas serait le même défaut qu'un prix
  * périmé.
  */
-async function sorties(argument, { max = 6, jours = 30 } = {}) {
-  const debut = argument || ilYA(jours);
-  const fin_ = aujourdhui();
-
+/**
+ * Les parutions d'une fenêtre, triées et dédoublonnées. Partagée par les deux
+ * formats calendaires, `sorties` qui regarde en arrière et `aparaitre` qui
+ * regarde devant : la sélection est la même, seuls les mots changent.
+ *
+ * **C'est le classement qui décide, pas la date.** Trier par `date_parution`
+ * seule rendait les six plus récentes, c'est-à-dire six lignes tirées au hasard
+ * dans la fenêtre. Un rendez-vous doit ouvrir sur ce que les gens attendent, et
+ * `films.popularite` est exactement cette mesure : recalculée tous les jours
+ * chez TMDB à partir des consultations récentes (§3).
+ *
+ * **Une édition par film.** Un titre sorti le même jour en Blu-ray et en 4K
+ * prendrait deux places pour une seule nouvelle.
+ */
+async function parutions(quoi, debut, fin, max) {
   const brutes = await lire(
-    `editions?select=${AVEC_FILM}&date_parution=gte.${debut}&date_parution=lte.${fin_}` +
-    `&image_url=not.is.null&order=date_parution.desc,id.desc&limit=400`);
+    `editions?select=${AVEC_FILM}&date_parution=gte.${debut}&date_parution=lte.${fin}` +
+    `&image_url=not.is.null&order=date_parution.asc,id.asc&limit=600`);
   if (!brutes.length) {
-    throw new Error(`sorties : aucune parution datée entre ${debut} et ${fin_}`);
+    throw new Error(`${quoi} : aucune parution datée entre ${debut} et ${fin}`);
   }
 
-  /**
-   * Six sur deux cents : c'est le **classement** qui décide, pas la date.
-   *
-   * Trier par `date_parution` seule rendait les six plus récentes, c'est-à-dire
-   * six lignes tirées au hasard dans la semaine. Un rendez-vous hebdomadaire
-   * doit ouvrir sur ce que les gens attendent, et `films.popularite` est
-   * exactement cette mesure : elle est recalculée tous les jours chez TMDB à
-   * partir des consultations récentes (§3).
-   *
-   * Une édition par film, aussi. Un titre sorti le même jour en Blu-ray et en
-   * 4K prendrait deux des six places pour un seul film, et le carrousel dirait
-   * deux fois la même nouvelle.
-   */
   const idsFilms = [...new Set(brutes.map((e) => filmDe(e)?.id).filter(Boolean))];
   const popularites = new Map();
   for (let i = 0; i < idsFilms.length; i += 200) {
@@ -257,11 +256,11 @@ async function sorties(argument, { max = 6, jours = 30 } = {}) {
     for (const f of lot) popularites.set(f.id, f.popularite ?? 0);
   }
 
-  brutes.sort((a, b) =>
+  const classees = [...brutes].sort((a, b) =>
     (popularites.get(filmDe(b)?.id) ?? -1) - (popularites.get(filmDe(a)?.id) ?? -1));
 
   const vus = new Set();
-  const candidats = brutes.filter((e) => {
+  const candidats = classees.filter((e) => {
     const id = filmDe(e)?.id ?? `sans-film-${e.id}`;
     if (vus.has(id)) return false;
     vus.add(id);
@@ -269,7 +268,14 @@ async function sorties(argument, { max = 6, jours = 30 } = {}) {
   });
 
   const editions = (await avecVisuels(candidats.slice(0, max * 3))).slice(0, max);
-  if (!editions.length) throw new Error("sorties : aucun visuel net sur la période");
+  if (!editions.length) throw new Error(`${quoi} : aucun visuel net sur la période`);
+  return { brutes, editions };
+}
+
+async function sorties(argument, { max = 6, jours = 30 } = {}) {
+  const debut = argument || ilYA(jours);
+  const fin_ = aujourdhui();
+  const { brutes, editions } = await parutions("sorties", debut, fin_, max);
 
   /* Le libellé suit la fenêtre réelle et non le mot employé à l'appel : une
      passe lancée avec une date de début quelconque ne doit pas annoncer une
@@ -318,6 +324,76 @@ async function sorties(argument, { max = 6, jours = 30 } = {}) {
     `${mentionEditeurs(editions)}\n\n${MOTS_CLES}`;
 
   return { nom: `sorties-${periode}-${fin_}`, planches, legende };
+}
+
+/* ================================================================ aparaitre */
+
+/**
+ * Les parutions **à venir**, post d'annonce.
+ *
+ * `sorties` borne à aujourd'hui parce qu'annoncer comme paru un disque qui ne
+ * l'est pas serait le défaut du prix périmé. Ici c'est l'inverse qui est vrai :
+ * un post d'annonce parle du futur, et c'est la **date qui est la nouvelle**.
+ * Elle passe donc en surtitre, en couleur et en capitales, là où `sorties` la
+ * range en pied de planche à côté de l'éditeur.
+ *
+ * Par défaut, d'aujourd'hui à la fin du mois courant. Une date de début donnée
+ * en argument décale la fenêtre sans changer la borne haute : c'est le cas
+ * « annonce le 5 pour le reste du mois ».
+ */
+async function aparaitre(argument, { max = 8, jusqu = null } = {}) {
+  const debut = argument || aujourdhui();
+  const fin_ = jusqu || finDeMois(debut);
+  if (fin_ < debut) throw new Error(`aparaitre : ${fin_} est avant ${debut}`);
+
+  const { brutes, editions } = await parutions("aparaitre", debut, fin_, max);
+
+  /* Le mois n'est nommé que si la fenêtre tient dedans. Une fenêtre à cheval
+     dirait « Sorties d'août » en montrant des disques de septembre. */
+  const memeMois = debut.slice(0, 7) === fin_.slice(0, 7);
+  const titre = memeMois ? `Sorties d'${moisFr(debut)}` : "À paraître";
+  const complet = memeMois && debut.endsWith("-01");
+
+  const planches = [
+    {
+      type: "couverture",
+      surtitre: complet
+        ? `Tout le mois d'${moisFr(debut)}`
+        : `Du ${jourFr(debut)} au ${jourFr(fin_)}`,
+      titre,
+      sous: `${brutes.length} disques annoncés.`,
+      mosaique: editions.map((e) => e.visuel),
+    },
+    ...editions.map((e) => {
+      const film = filmDe(e);
+      return {
+        type: "edition",
+        /* La date en surtitre, et l'éditeur seul en pied : sur une annonce,
+           c'est le quand qu'on retient, pas qui presse le disque. */
+        surtitre: `Le ${jourFr(e.date_parution)}`,
+        titre: film?.titre ?? titreEdition(e),
+        annee: film?.annee,
+        edition: film ? nomEdition(e, film.titre) : null,
+        badges: badgesDe(e),
+        lignes: e.editeur ? [`<b>${e.editeur}</b>`] : [],
+        visuel: e.visuel,
+      };
+    }),
+    {
+      type: "fin",
+      titre: memeMois ? `Toutes les sorties d'${moisFr(debut)}` : "Toutes les sorties à venir",
+      chemin: "/catalogue",
+    },
+  ];
+
+  const legende =
+    `${titre} : ${brutes.length} disques annoncés ` +
+    `du ${dateFr(debut)} au ${dateFr(fin_)}.\n\n` +
+    `En voici ${editions.length}. Laquelle tu attends ? Dis-le en commentaire.\n\n` +
+    `Dates de parution françaises, fiches complètes : lien en bio.` +
+    `${mentionEditeurs(editions)}\n\n${MOTS_CLES}`;
+
+  return { nom: `aparaitre-${debut}`, planches, legende };
 }
 
 /* ================================================================ collection */
@@ -543,6 +619,11 @@ export const FORMATS = {
     construire: sorties,
     usage: "sorties [AAAA-MM-JJ de début]",
     quoi: "Les parutions datées des trente derniers jours.",
+  },
+  aparaitre: {
+    construire: aparaitre,
+    usage: "aparaitre [AAAA-MM-JJ de début]",
+    quoi: "Les parutions à venir, d'une date à la fin du mois. Post d'annonce.",
   },
   collection: {
     construire: collection,

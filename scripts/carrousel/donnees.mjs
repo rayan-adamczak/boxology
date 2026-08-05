@@ -254,6 +254,29 @@ export function dateFr(iso) {
   return `${j} ${MOIS[m - 1]} ${a}`;
 }
 
+/** `2026-08-04` en « 4 août », sans le millésime. */
+export function jourFr(iso) {
+  if (!iso) return null;
+  const [, m, j] = iso.split("-").map(Number);
+  return m && j ? `${j} ${MOIS[m - 1]}` : null;
+}
+
+/** Le nom du mois d'une date ISO, `août`. */
+export function moisFr(iso) {
+  const m = Number((iso ?? "").split("-")[1]);
+  return MOIS[m - 1] ?? null;
+}
+
+/** Le dernier jour du mois d'une date ISO, en ISO. Table explicite plutôt que
+ *  `new Date(a, m, 0)`, pour la même raison que ci-dessus, et parce que le
+ *  piège de locale du §6 vaut aussi pour les mois. */
+export function finDeMois(iso) {
+  const [a, m] = iso.split("-").map(Number);
+  const bissextile = (a % 4 === 0 && a % 100 !== 0) || a % 400 === 0;
+  const jours = [31, bissextile ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return `${a}-${String(m).padStart(2, "0")}-${jours[m - 1]}`;
+}
+
 /**
  * Titre lisible d'une édition.
  *
