@@ -861,10 +861,28 @@ export function FilmDetailPage() {
               )}
             </p>
 
+            {/*
+              La note s'aère au-dessus, et seulement à partir de `sm`.
 
+              Les deux écarts qui l'encadrent ne se comparent pas en boîtes : la
+              réalisation est en 15/22,5, donc elle porte 3,75 px de demi-interligne
+              sous son texte, et le synopsis 4,5 px au-dessus du sien. La note, elle,
+              a une interligne de 18 pour une icône de 18, donc rien. Mesuré à
+              1 512 px, l'encre disait 9,75 px au-dessus contre 20,5 en dessous : le
+              gabarit paraissait équilibré, l'œil voyait la note collée à la
+              réalisation.
 
+              11 px de marge remettent les deux à 20,75 contre 20,5, soit un quart
+              de pixel d'écart. Et rien ne descend : l'affiche est en `row-span-4`
+              sur des rangées `auto auto auto 1fr`, donc la quatrième, vide, absorbe
+              les onze pixels. Mesuré, le héros fait 492 px avec comme sans.
+
+              Sous `sm`, la grille se réordonne et la note est suivie des boutons,
+              à plus de cent pixels : il n'y a aucun déséquilibre à corriger, et
+              onze pixels de plus se paieraient sur un écran de 375.
+            */}
             {film.note != null && film.note !== "" && (
-              <div className="flex items-center gap-[6px]">
+              <div className="flex items-center gap-[6px] sm:mt-[11px]">
                 <Star size={18} color="#d9a441" fill="#d9a441" />
                 {/* TMDB rend 7.901 : trois décimales suggèrent une précision
                     que la note n'a pas. Deux suffisent. */}
