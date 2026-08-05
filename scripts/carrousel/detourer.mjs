@@ -230,6 +230,103 @@ function clair(px, p) {
   return bas >= GRIS && Math.max(r, v, b) - bas <= NEUTRE;
 }
 
+/**
+ * Un pixel appartient **certainement** au sujet : franchement sombre, ou
+ * franchement coloré. C'est volontairement restrictif, ces points servent
+ * d'ancres et une seule ancre fausse déforme l'enveloppe.
+ */
+const SUJET_SOMBRE = 190;
+const SUJET_SATURE = 45;
+
+function masqueSujet({ large, haut, px }) {
+  const brut = new Uint8Array(large * haut);
+  for (let i = 0; i < brut.length; i++) {
+    const p = i * 4;
+    const r = px[p], v = px[p + 1], b = px[p + 2];
+    const bas = Math.min(r, v, b);
+    if (bas < SUJET_SOMBRE || Math.max(r, v, b) - bas > SUJET_SATURE) brut[i] = 1;
+  }
+
+  /* Érosion d'un pixel : le bruit de compression sème des points isolés dans le
+     cyclo, près de l'arête du boîtier, et un seul point aberrant tire
+     l'enveloppe convexe jusqu'au bord de la photo. Un point qui n'a pas ses
+     huit voisins avec lui n'est pas une ancre. */
+  const sujet = new Uint8Array(brut.length);
+  for (let y = 1; y < haut - 1; y++) {
+    for (let x = 1; x < large - 1; x++) {
+      const i = y * large + x;
+      if (!brut[i]) continue;
+      if (brut[i - 1] && brut[i + 1] && brut[i - large] && brut[i + large] &&
+          brut[i - large - 1] && brut[i - large + 1] &&
+          brut[i + large - 1] && brut[i + large + 1]) sujet[i] = 1;
+    }
+  }
+  return sujet;
+}
+
+/**
+ * Enveloppe convexe des ancres, rendue sous forme d'un intervalle de colonnes
+ * par ligne. C'est la **forme du boîtier**, et elle règle le cas que la couleur
+ * seule ne sait pas trancher.
+ *
+ * Une jaquette claire, `Les Spécialistes` et sa plage en plein soleil, touche
+ * le cyclo sans arête distinguable : le remplissage y entre et ronge la
+ * couverture, et le seul recours jusqu'ici était de refuser la photo. Or un
+ * boîtier photographié de trois quarts est un **volume convexe**, et ses
+ * parties sombres ou colorées, la tranche, le titre, les visages, suffisent à
+ * en dessiner le contour. Le blanc qui tombe à l'intérieur de ce contour
+ * appartient à la couverture, celui qui tombe dehors est du fond.
+ *
+ * L'intervalle par ligne suffit parce qu'un convexe coupe une horizontale en un
+ * segment, jamais deux.
+ */
+function enveloppe({ large, haut }, sujet) {
+  const points = [];
+  for (let y = 0; y < haut; y++) {
+    let g = -1, d = -1;
+    for (let x = 0; x < large; x++) if (sujet[y * large + x]) { if (g < 0) g = x; d = x; }
+    if (g >= 0) { points.push([g, y]); points.push([d, y]); }
+  }
+  if (points.length < 6) return null;
+
+  points.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const croix = (o, a, b) =>
+    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const chaine = (liste) => {
+    const pile = [];
+    for (const p of liste) {
+      while (pile.length >= 2 && croix(pile[pile.length - 2], pile[pile.length - 1], p) <= 0) {
+        pile.pop();
+      }
+      pile.push(p);
+    }
+    pile.pop();
+    return pile;
+  };
+  const casque = [...chaine(points), ...chaine([...points].reverse())];
+  if (casque.length < 3) return null;
+
+  const gauche = new Int32Array(haut).fill(large);
+  const droite = new Int32Array(haut).fill(-1);
+  for (let k = 0; k < casque.length; k++) {
+    const [x1, y1] = casque[k];
+    const [x2, y2] = casque[(k + 1) % casque.length];
+    const pas = y2 === y1 ? 0 : (x2 - x1) / (y2 - y1);
+    const yA = Math.min(y1, y2), yB = Math.max(y1, y2);
+    for (let y = yA; y <= yB; y++) {
+      const x = Math.round(y1 === y2 ? x1 : x1 + (y - y1) * pas);
+      if (x < gauche[y]) gauche[y] = x;
+      if (x > droite[y]) droite[y] = x;
+    }
+    // Les sommets eux-mêmes, pour les arêtes horizontales.
+    for (const [x, y] of [[x1, y1], [x2, y2]]) {
+      if (x < gauche[y]) gauche[y] = x;
+      if (x > droite[y]) droite[y] = x;
+    }
+  }
+  return { gauche, droite };
+}
+
 /** Nombre de coins posés sur du fond clair, sur quatre. */
 function coinsClairs({ large, haut, px }) {
   const c = Math.min(COIN, large >> 2, haut >> 2);
@@ -357,8 +454,42 @@ export function detourer(image) {
   const file = new Int32Array(n);
   let tete = 0, queue = 0;
 
+  /* **Rien ne s'enlève à l'intérieur de l'enveloppe.** La règle a d'abord été
+     « seul le blanc pur y part », pour pouvoir vider aussi l'interstice entre
+     deux boîtiers ; elle laissait passer les aplats blancs d'une illustration,
+     qui sont purs eux aussi. Entre garder du blanc dans un interstice et ronger
+     une couverture, le choix n'est pas symétrique. */
+  const sujetMasque = masqueSujet(image);
+  const forme = enveloppe(image, sujetMasque);
+  if (process.env.CARROUSEL_FORME) {
+    if (!forme) console.log("    forme : aucune enveloppe");
+    else {
+      let aire = 0, ancres = 0, lignes = 0;
+      for (let y = 0; y < haut; y++) {
+        if (forme.droite[y] < forme.gauche[y]) continue;
+        lignes++;
+        aire += forme.droite[y] - forme.gauche[y] + 1;
+        for (let x = forme.gauche[y]; x <= forme.droite[y]; x++) {
+          if (sujetMasque[y * large + x]) ancres++;
+        }
+      }
+      console.log(
+        `    forme : ${lignes}/${haut} lignes, ` +
+        `ancres à ${((ancres / aire) * 100).toFixed(0)} % de l'enveloppe`);
+    }
+  }
+
+  /* Pixels que la forme seule a retenus. Ils sont exclus de la mesure de
+     frontière : leur clarté n'est pas l'aveu d'une limite ambiguë, c'est la
+     preuve que le contour a fait son travail. */
+  const stopForme = new Uint8Array(n);
+
   const pousser = (i) => {
-    if (dehors[i] || !clair(px, i * 4)) return;
+    if (dehors[i]) return;
+    const p = i * 4;
+    if (!clair(px, p)) return;
+    const x = i % large, y = (i / large) | 0;
+    if (dansForme(x, y)) { stopForme[i] = 1; return; }
     dehors[i] = 1;
     file[queue++] = i;
   };
@@ -453,6 +584,7 @@ export function detourer(image) {
       const i = y * large + x;
       if (dehors[i]) continue;
       if (!dehors[i - 1] && !dehors[i + 1] && !dehors[i - large] && !dehors[i + large]) continue;
+      if (stopForme[i]) continue;
       const p = i * 4;
       const bas = Math.min(px[p], px[p + 1], px[p + 2]);
       sommeFrontiere += bas;
@@ -462,10 +594,20 @@ export function detourer(image) {
   }
   const frontiere = nFrontiere ? sommeFrontiere / nFrontiere : 0;
   const partBlanche = nFrontiere ? blanchesFrontiere / nFrontiere : 0;
-  if (frontiere > FRONTIERE_CLAIRE) {
+
+  /* Le contrôle de frontière claire ne vaut que **faute d'enveloppe**. C'était
+     un substitut : ne sachant pas où finissait le boîtier, on lisait dans une
+     frontière claire l'aveu d'une limite ambiguë. Quand la forme est connue, le
+     remplissage ne peut plus mordre par construction, et la même frontière
+     claire ne dit plus qu'une chose, que la jaquette est claire. Le garder
+     refusait `Les Spécialistes` alors que rien n'avait été rongé. */
+  if (forme === null && frontiere > FRONTIERE_CLAIRE) {
     return { refus: `frontière claire (${frontiere.toFixed(0)}), la limite du boîtier est ambiguë` };
   }
-  if (partBlanche > PART_FRONTIERE_BLANCHE) {
+  /* Même raison : avec une enveloppe, une frontière blanche est du fond resté
+     volontairement à l'intérieur du contour, pas une bavure. Le reflet, lui, a
+     son propre contrôle, `axeDuReflet`. */
+  if (forme === null && partBlanche > PART_FRONTIERE_BLANCHE) {
     return {
       refus: `${(partBlanche * 100).toFixed(0)} % de frontière quasi blanche, ` +
         `reflet ou fond resté collé au sujet`,
