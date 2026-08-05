@@ -26,6 +26,28 @@ function LienInterne({ to, children }: { to: string; children: ReactNode }) {
 }
 
 /**
+ * Lien sortant du pied de page.
+ *
+ * `rel="noreferrer noopener"` comme les trois autres `target="_blank"` du site :
+ * sans lui, la page ouverte peut manipuler celle qui l'a ouverte par
+ * `window.opener`, et l'en-tête `Referer` part avec l'URL complète.
+ */
+function LienExterne({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <li>
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer noopener"
+        style={{ color: "var(--reel-muted)" }}
+      >
+        {children}
+      </a>
+    </li>
+  );
+}
+
+/**
  * Pied de page.
  *
  * L'attribution TMDB est exigée par leur licence : elle doit rester visible
@@ -80,12 +102,13 @@ export function Footer() {
             <LienInterne to="/report">Signaler une édition</LienInterne>
           </Colonne>
 
-          {/* Aucun compte de réseau social ouvert pour l'instant : de simples
-              mentions, pas des liens morts. À remplacer par des <a> le jour où
-              ils existent. Rien à voir avec les comptes utilisateurs, qui eux
-              existent depuis juillet 2026. */}
+          {/* Instagram est ouvert depuis le 1er août 2026, les deux autres non :
+              ils restent de simples mentions plutôt que des liens morts. À
+              remplacer par des `LienExterne` le jour où les comptes existent.
+              Rien à voir avec les comptes utilisateurs, qui eux existent depuis
+              juillet 2026. */}
           <Colonne titre="Réseaux">
-            <li>Instagram</li>
+            <LienExterne href="https://www.instagram.com/jaquette.app/">Instagram</LienExterne>
             <li>Bluesky</li>
             <li>Letterboxd</li>
           </Colonne>
