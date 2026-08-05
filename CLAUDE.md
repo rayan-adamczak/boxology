@@ -3881,14 +3881,30 @@ racine a servi à trouver les familles, pas à décider : il fusionnait
 `TF1 Vidéo` et `TF1 Studio`, deux entités distinctes du même groupe, sans que
 rien ne le signale.
 
-**Les éditions illustrées remontent en tête sur les pages de format**,
-`order=image_url.asc.nullslast`. Ce n'est pas de la coquetterie : les visuels
-sont chez editioncollector et les specs chez blu-ray.com sans recouvrement (§3),
-donc sans ce tri `/formats/steelbook` s'ouvrait sur soixante lignes de texte nu.
-Les pages d'éditeur étaient entièrement blu-ray.com, donc sans image, la
-vignette retombant sur l'affiche du film. **Ce n'est plus vrai depuis le
-1er août 2026** : `/publishers/le-chat-qui-fume` porte 188 éditions, toutes
-illustrées, et c'est la première page d'éditeur à montrer des boîtiers.
+**Les pages numérotées sont triées par `id` croissant, et rien d'autre**,
+depuis le 1er août 2026. Le tri d'origine remontait les éditions illustrées,
+`image_url.asc.nullslast`, parce que sans lui `/formats/steelbook` s'ouvrait sur
+soixante lignes de texte nu ; les genres, eux, sortaient par popularité TMDB.
+
+**Ces deux tris rendaient le contenu d'une page numérotée instable**, et ça s'est
+payé en référencement. Google servait `/formats/steelbook/21` à qui cherchait
+`5051889752028`, le code-barres du steelbook 4K d'*Eyes Wide Shut* : la page
+avait été explorée quand l'édition s'y trouvait, et l'édition était passée en
+**page 27** entre-temps, rang 1 590 sur 2 204, après 2 400 entrées en trois
+jours. La popularité, recalculée chaque semaine, décalait les genres de la même
+façon sans qu'aucun import n'ait lieu.
+
+`id` croissant est le seul ordre qui ne décale rien : les nouvelles lignes
+s'ajoutent à la fin, les pages déjà explorées gardent leur contenu. Le prix est
+assumé, les premières pages de format ne sont plus les mieux illustrées.
+
+**Les collections d'éditeur gardent leur numéro de tranche**, `numero_collection`
+puis date : c'est un rang imprimé sur le boîtier, il ne bouge pas, et ces listes
+tiennent presque toujours en une page.
+
+**`lib/listes.ts` et le middleware doivent trier exactement pareil.** Une même
+URL servie à la périphérie et rendue par l'application montrerait sinon deux
+contenus différents, ce qu'aucun contrôle ne signalerait.
 
 #### Pagination, en place le 31 juillet 2026
 
@@ -3947,6 +3963,30 @@ Le JSON-LD compte en absolu : sur la page 3 le premier élément est le 121ᵉ, 
 `src/app/lib/pagination.ts` porte le calcul des adresses et la fenêtre de
 numéros, **sans aucune dépendance**, pour que le middleware l'importe au lieu
 d'en recopier une version qui dériverait sans que ça se voie.
+
+#### `/ean/<code>`, le code-barres mène à la fiche, le 1er août 2026
+
+Treize chiffres tapés dans Google cherchent **un disque**, et la bonne réponse
+est la fiche du film qui le porte. Servie par le middleware, la route répond en
+**301** vers `/movies/<slug>/<id>`, ou un vrai 404 si aucune édition ne porte le
+code.
+
+    /ean/5051889752028  ->  /movies/eyes-wide-shut-1999/477
+    /ean/0000000000000  ->  404
+    /ean/abc            ->  404
+
+Elle ne s'indexe pas et n'a pas à l'être : elle redirige, donc c'est la fiche qui
+reçoit le classement. Le code est validé avant d'atteindre PostgREST, treize
+chiffres et rien d'autre, et un code inconnu rend un 404 franc plutôt qu'un
+détour par l'accueil, qui ferait un « soft 404 » de plus.
+
+Elle sert aussi de cible au **scan de code-barres** du §8 : une fois la caméra
+branchée, il n'y aura rien d'autre à construire côté adresse.
+
+Les requêtes qui l'ont motivée sont réelles, relevées en Search Console le
+1er août 2026 : `5051889753537` et `5051889752028`, trois et deux impressions.
+C'est peu, mais c'est exactement le créneau que ni TMDB ni SensCritique ne
+couvrent.
 
 Limite restante : le sitemap enferme les effectifs au moment du build, donc une
 page suivante peut disparaître entre deux déploiements et rendre 404 le temps
