@@ -80,6 +80,23 @@ export function echapper(s) {
  */
 const PLANCHER = 40;
 
+/**
+ * Intensité du halo teinté posé derrière le boîtier, réglable sans toucher au
+ * code : `CARROUSEL_HALO=0` l'éteint, `1` discret, `2` marqué. Les valeurs sont
+ * des canaux alpha en hexadécimal, accolés à la couleur d'accent.
+ *
+ * Le discret a été essayé d'abord et **ne se voit pas** sur une planche à fond
+ * sombre : `33` sur 255 disparaît dans le dégradé du halo de coin déjà présent.
+ * Le défaut par défaut est donc le marqué, seul niveau qui change quelque chose
+ * à l'image.
+ */
+const HALOS = [
+  { large: "0", coeur: "00", milieu: "00" },
+  { large: "88%", coeur: "33", milieu: "14" },
+  { large: "104%", coeur: "5c", milieu: "22" },
+];
+const HALO = HALOS[Number(process.env.CARROUSEL_HALO ?? 2)] ?? HALOS[2];
+
 const CSS = `
   @font-face {
     font-family: 'Bricolage Grotesque';
@@ -316,10 +333,26 @@ export function planchEdition({
     <style>
       .pile { flex: 1; display: flex; flex-direction: column; min-height: 0; }
       .zone-visuel {
+        position: relative;
         flex: 1; display: flex; align-items: center; justify-content: center;
         min-height: 0; padding: 26px 0 40px;
       }
+      /* Halo teinté de la couleur de la planche, derrière le boîtier.
+         Il remplace le panneau qu'on serait tenté de mettre là : un panneau
+         ramènerait le rectangle clair que le détourage vient d'enlever, et il
+         ne concernerait que les visuels détourés, donc une planche sur deux.
+         Le halo, lui, va aussi bien sous un packshot détouré que sous un
+         steelbook nativement sur fond noir, et il reprend le cyan, l'ambre ou
+         le rouge du filet, donc il appartient déjà à la planche. */
+      .zone-visuel::before {
+        content: ""; position: absolute; left: 50%; top: 46%;
+        transform: translate(-50%, -50%);
+        width: ${HALO.large}; aspect-ratio: 1.15;
+        background: radial-gradient(closest-side,
+          ${accent}${HALO.coeur} 0%, ${accent}${HALO.milieu} 46%, ${accent}00 74%);
+      }
       .zone-visuel .visuel {
+        position: relative;
         width: 100%; height: 100%; max-width: ${largeur}px;
       }
       .sans-visuel {
