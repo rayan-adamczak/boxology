@@ -1,11 +1,11 @@
 import { Suspense, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { Toaster } from "sonner";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { TopBar } from "./TopBar";
 import { BottomTabBar } from "./BottomTabBar";
 import { Footer } from "./Footer";
 import { EcranIdentifiant } from "./EcranIdentifiant";
+import { AttentePleine } from "./AttenteRecherche";
 import { useSession } from "../lib/auth";
 import { useProfil } from "../lib/profils";
 
@@ -14,9 +14,9 @@ type MobileTab = "home" | "collection" | "wishlist" | "profile";
 /** Attente pendant le téléchargement d'un fragment de page. */
 function AttentePage() {
   return (
-    <div className="flex items-center justify-center py-24">
-      <Loader2 size={22} className="animate-spin" color="var(--reel-muted)" />
-    </div>
+    /* 60vh et non 320 px : c'est l'écran entier qui attend le fragment, donc le
+       centre visé est celui de la fenêtre, pas d'un bloc arbitraire. */
+    <AttentePleine hauteur="60vh" />
   );
 }
 

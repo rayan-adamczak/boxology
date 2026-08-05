@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { X, Loader2 } from "lucide-react";
+import { X } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { AttentePleine } from "./AttenteRecherche";
 import { searchFilmsByPerson, type Film } from "../lib/reelio-db";
 import { lienFilm } from "../lib/liens";
 
@@ -72,10 +73,10 @@ export function PersonModal({ name, onClose }: PersonModalProps) {
         {/* Body */}
         <div className="overflow-y-auto p-6">
           {loading ? (
-            <div className="flex items-center gap-2" style={{ color: "var(--reel-muted)" }}>
-              <Loader2 size={18} className="animate-spin" />
-              <span style={{ fontSize: "14px" }}>Chargement…</span>
-            </div>
+            /* 200 px et non 320 : la modale plafonne à 80vh et son corps est
+               déjà court, une zone d'attente plus haute la ferait grandir puis
+               rétrécir à l'arrivée des films. */
+            <AttentePleine hauteur={200} />
           ) : error ? (
             <p style={{ fontSize: "14px", color: "#ff6b6b" }}>{error}</p>
           ) : films.length === 0 ? (

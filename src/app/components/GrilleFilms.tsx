@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { AttenteRecherche } from "./AttenteRecherche";
+import { AttenteRecherche, AttentePleine } from "./AttenteRecherche";
 import { lienFilm } from "../lib/liens";
 import type { Film } from "../lib/reelio-db";
 import type { Recherche } from "../lib/recherche-films";
@@ -46,7 +46,11 @@ export function GrilleFilms({
         signe que le site cherche.
       */}
       {chargement && films.length === 0 ? (
-        <AttenteRecherche />
+        /* Grille vide : l'attente occupe la place que prendra la grille, donc
+           centrée. Le cas « on affine » juste en dessous garde ses tranches en
+           haut à gauche, et c'est voulu : la grille reste affichée sous elles,
+           un indicateur centré tomberait au milieu des jaquettes. */
+        <AttentePleine />
       ) : films.length === 0 ? (
         <p className="mt-5" style={{ fontSize: "15px", color: "var(--reel-muted)" }}>
           Aucun film trouvé.

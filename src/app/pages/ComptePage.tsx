@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { PageStatique, Section, Encadre } from "../components/PageStatique";
+import { AttentePleine } from "../components/AttenteRecherche";
 import { connexionGoogle, deconnexion, nomAffiche, supprimerCompte, useSession } from "../lib/auth";
 import {
   IDENTIFIANT_MAX,
@@ -34,9 +35,7 @@ export function ComptePage() {
       noindex
     >
       {session === undefined && (
-        <Section titre="Chargement">
-          <p>Vérification de la session…</p>
-        </Section>
+        <AttentePleine libelle="Vérification de la session…" />
       )}
 
       {session === null && (
@@ -139,9 +138,7 @@ function ProfilPublicReglages() {
 
   if (etat.statut === "attente") {
     return (
-      <Section titre="Ma page publique">
-        <p>Chargement…</p>
-      </Section>
+      <AttentePleine hauteur={180} />
     );
   }
 

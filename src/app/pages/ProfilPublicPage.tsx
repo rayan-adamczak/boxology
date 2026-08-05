@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router";
-import { Flag, Loader2, Settings } from "lucide-react";
+import { Flag, Settings } from "lucide-react";
 import { Link } from "react-router";
 import { BoutonPartage, ONGLETS, VueProfil, grouper, type Entree } from "../components/VueProfil";
 import { ModaleSignalement } from "../components/ModaleSignalement";
+import { AttentePleine } from "../components/AttenteRecherche";
 import { IntrouvablePage } from "./IntrouvablePage";
 import { useSession } from "../lib/auth";
 import { idsParStatut } from "../lib/collections";
@@ -165,9 +166,7 @@ export function ProfilPublicPage() {
   if (etat.statut === "attente") {
     return (
       <div className="reel-gouttiere pt-[88px]">
-        <div className="flex justify-center py-20">
-          <Loader2 size={22} className="animate-spin" color="var(--reel-muted)" />
-        </div>
+        <AttentePleine hauteur="60vh" />
       </div>
     );
   }

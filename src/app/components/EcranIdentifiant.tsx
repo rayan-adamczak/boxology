@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/auth-js";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, X } from "lucide-react";
+import { TranchesChargement } from "./AttenteRecherche";
 import { nomAffiche } from "../lib/auth";
 import {
   IDENTIFIANT_MAX,
@@ -165,9 +166,9 @@ export function EcranIdentifiant({ session }: { session: Session }) {
                   color: "var(--reel-text)",
                 }}
               />
-              {verdict === "attente" && (
-                <Loader2 size={16} className="animate-spin" color="var(--reel-muted)" />
-              )}
+              {/* 16 px, la hauteur du ✓ et du ✕ qui prennent la même place selon
+                  le verdict : une autre hauteur ferait sauter la ligne. */}
+              {verdict === "attente" && <TranchesChargement />}
               {verdict === "libre" && <Check size={16} color="#4ade80" />}
               {(verdict === "pris" || verdict === "reserve") && <X size={16} color="#ef6b6b" />}
             </span>

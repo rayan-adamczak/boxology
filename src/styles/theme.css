@@ -360,18 +360,26 @@
   quand la première est déjà retombée, et l'ensemble se lit comme trois
   animations séparées plutôt qu'une seule.
 */
+/*
+  La largeur d'une tranche suit sa hauteur, elle n'est pas fixe : posées au
+  centre d'un écran vide, trois barres de 4 px se lisaient comme une poussière
+  plutôt que comme une attente. `--reel-tranche-l` vaut le quart de la hauteur,
+  la proportion du mot-symbole, et le composant la calcule ; les 4 px et 3 px
+  d'origine restent le défaut, donc les emplois en ligne ne bougent pas.
+*/
 .reel-tranches {
+  --reel-tranche-l: 4px;
   display: inline-flex;
   align-items: flex-end;
-  gap: 3px;
+  gap: calc(var(--reel-tranche-l) * 0.75);
   height: 16px;
 }
 
 .reel-tranches i {
   display: block;
-  width: 4px;
+  width: var(--reel-tranche-l);
   height: 100%;
-  border-radius: 1px;
+  border-radius: calc(var(--reel-tranche-l) / 4);
   transform-origin: bottom;
   animation: reel-tranches 900ms ease-in-out infinite;
 }

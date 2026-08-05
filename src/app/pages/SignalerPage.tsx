@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { PageStatique, Section, Encadre } from "../components/PageStatique";
+import { AttentePleine } from "../components/AttenteRecherche";
 import { connexionGoogle, useSession } from "../lib/auth";
 import {
   MESSAGE,
@@ -59,9 +60,7 @@ export function SignalerPage() {
       </Section>
 
       {session === undefined && (
-        <Section titre="Chargement">
-          <p>Vérification de la session…</p>
-        </Section>
+        <AttentePleine hauteur={180} libelle="Vérification de la session…" />
       )}
 
       {session === null && (

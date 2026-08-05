@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router";
-import { Loader2 } from "lucide-react";
+import { AttentePleine } from "../components/AttenteRecherche";
 import { connexionGoogle } from "../lib/auth";
 import { cheminProfil } from "../lib/identifiant";
 import { rafraichirProfil, useProfil } from "../lib/profils";
@@ -47,9 +47,7 @@ export function ProfilPage() {
 
   return (
     <Cadre>
-      <div className="flex justify-center py-20">
-        <Loader2 size={22} className="animate-spin" color="var(--reel-muted)" />
-      </div>
+      <AttentePleine hauteur="60vh" />
     </Cadre>
   );
 }

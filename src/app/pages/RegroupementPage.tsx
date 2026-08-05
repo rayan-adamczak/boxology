@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
-import { Loader2 } from "lucide-react";
+import { AttentePleine } from "../components/AttenteRecherche";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { splitList, type Film } from "../lib/reelio-db";
 import {
@@ -196,10 +196,7 @@ export function RegroupementPage({ axe }: { axe: NomAxe }) {
       )}
 
       {chargement ? (
-        <div className="mt-8 flex items-center gap-2" style={{ color: "var(--reel-muted)" }}>
-          <Loader2 size={18} className="animate-spin" />
-          <span style={{ fontSize: "14px" }}>Chargement…</span>
-        </div>
+        <AttentePleine />
       ) : erreur ? (
         <p className="mt-8" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
           {erreur}

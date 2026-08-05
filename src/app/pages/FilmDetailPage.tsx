@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router";
-import { ArrowLeft, Loader2, Star, Bookmark, Library, ChevronDown, Plus } from "lucide-react";
+import { ArrowLeft, Star, Bookmark, Library, ChevronDown, Plus } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { PersonModal } from "../components/PersonModal";
 import { UserAvatar } from "../components/UserAvatar";
 import { RailHorizontal } from "../components/RailHorizontal";
+import { AttentePleine } from "../components/AttenteRecherche";
 import { Lanterne, pleineResolution } from "../components/Lanterne";
 import { toast } from "sonner";
 import {
@@ -611,10 +612,7 @@ export function FilmDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-16 pt-[120px]" style={{ color: "var(--reel-muted)" }}>
-        <Loader2 size={18} className="animate-spin" />
-        <span style={{ fontSize: "14px" }}>Chargement…</span>
-      </div>
+      <AttentePleine hauteur="60vh" />
     );
   }
 
