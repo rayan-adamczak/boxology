@@ -91,9 +91,9 @@ const PLANCHER = 40;
  * à l'image.
  */
 const HALOS = [
-  { large: "0", coeur: "00", milieu: "00" },
-  { large: "88%", coeur: "33", milieu: "14" },
-  { large: "104%", coeur: "5c", milieu: "22" },
+  { large: "0", coeur: "00", milieu: "00", lueur: "00" },
+  { large: "104%", coeur: "5c", milieu: "22", lueur: "14" },
+  { large: "128%", coeur: "b3", milieu: "59", lueur: "2e" },
 ];
 const HALO = HALOS[Number(process.env.CARROUSEL_HALO ?? 2)] ?? HALOS[2];
 
@@ -345,11 +345,18 @@ export function planchEdition({
          steelbook nativement sur fond noir, et il reprend le cyan, l'ambre ou
          le rouge du filet, donc il appartient déjà à la planche. */
       .zone-visuel::before {
-        content: ""; position: absolute; left: 50%; top: 46%;
+        content: ""; position: absolute; left: 50%; top: 48%;
         transform: translate(-50%, -50%);
-        width: ${HALO.large}; aspect-ratio: 1.15;
-        background: radial-gradient(closest-side,
-          ${accent}${HALO.coeur} 0%, ${accent}${HALO.milieu} 46%, ${accent}00 74%);
+        width: ${HALO.large}; aspect-ratio: 1.05;
+        /* Deux couches : un cœur serré derrière le boîtier, qui donne la
+           couleur, et un lavis large qui la diffuse jusqu'au bord de la
+           planche. Une seule couche en closest-side s'éteignait en un tiers de
+           la hauteur et ne se voyait pas. */
+        background:
+          radial-gradient(closest-side,
+            ${accent}${HALO.coeur} 0%, ${accent}${HALO.milieu} 38%, ${accent}00 68%),
+          radial-gradient(farthest-side,
+            ${accent}${HALO.lueur} 0%, ${accent}00 82%);
       }
       .zone-visuel .visuel {
         position: relative;

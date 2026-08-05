@@ -388,29 +388,61 @@ export function detourer(image) {
   }
 
   const sortie = Buffer.from(px);
-  for (let i = 0; i < n; i++) if (dehors[i]) sortie[i * 4 + 3] = 0;
 
-  /* Lissage sur un pixel. Sans lui le bord du boîtier est en escalier sur les
-     diagonales, ce qui se voit d'autant plus que le fond de la planche est
-     sombre. */
-  const alphas = new Uint8Array(n);
-  for (let i = 0; i < n; i++) alphas[i] = sortie[i * 4 + 3];
-  for (let y = 0; y < haut; y++) {
-    for (let x = 0; x < large; x++) {
-      const i = y * large + x;
-      if (!alphas[i]) continue;
-      let vides = 0, voisins = 0;
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          if (!dx && !dy) continue;
-          const nx = x + dx, ny = y + dy;
-          if (nx < 0 || ny < 0 || nx >= large || ny >= haut) continue;
-          voisins++;
-          if (!alphas[(ny * large + nx)]) vides++;
-        }
-      }
-      if (vides) sortie[i * 4 + 3] = Math.round((255 * (voisins - vides)) / voisins);
-    }
+  /**
+   * Liseré blanc et bord en escalier, traités ensemble par une carte de
+   * distance.
+   *
+   * Deux défauts distincts se voyaient au zoom 4× sur le bord du boîtier, et un
+   * lissage sur un seul pixel n'en réglait aucun.
+   *
+   * Le **liseré** : le remplissage s'arrête sur la dernière rangée de pixels
+   * encore contaminée par le fond, celle où la compression JPEG a mélangé le
+   * blanc et l'arête. Elle reste opaque, et sur une planche bleu nuit elle
+   * dessine un trait clair tout autour du boîtier. On l'enlève en **érodant**
+   * le masque de deux pixels : c'est invisible sur un boîtier de mille pixels
+   * de haut, et ça retire exactement la zone contaminée.
+   *
+   * L'**escalier** : le masque est binaire, donc ses diagonales montent en
+   * marches d'un pixel. On rend l'alpha progressive sur deux pixels de plus,
+   * proportionnelle à la distance au fond.
+   *
+   * La distance est calculée une fois par diffusion en largeur depuis le fond,
+   * plafonnée à ce dont on a besoin. Un lissage par comptage de voisins, essayé
+   * d'abord, ne sait faire qu'un pixel et ne peut pas éroder.
+   */
+  const EROSION = 2;
+  const ADOUCI = 2;
+  const PLAFOND_DIST = EROSION + ADOUCI + 1;
+
+  const dist = new Uint8Array(n);
+  let t2 = 0, q2 = 0;
+  for (let i = 0; i < n; i++) if (dehors[i]) file[q2++] = i;
+  while (t2 < q2) {
+    const i = file[t2++];
+    const d = dist[i];
+    if (d >= PLAFOND_DIST) continue;
+    const x = i % large, y = (i / large) | 0;
+    const voir = (j) => {
+      if (dehors[j] || dist[j]) return;
+      dist[j] = d + 1;
+      file[q2++] = j;
+    };
+    if (x > 0) voir(i - 1);
+    if (x < large - 1) voir(i + 1);
+    if (y > 0) voir(i - large);
+    if (y < haut - 1) voir(i + large);
+  }
+
+  for (let i = 0; i < n; i++) {
+    if (dehors[i]) { sortie[i * 4 + 3] = 0; continue; }
+    const d = dist[i];
+    /* `dist` vaut 0 sur les pixels que la diffusion n'a jamais atteints, donc
+       le cœur du sujet : ils restent pleinement opaques. */
+    if (d === 0) continue;
+    sortie[i * 4 + 3] = d <= EROSION
+      ? 0
+      : Math.min(255, Math.round((255 * (d - EROSION)) / (ADOUCI + 1)));
   }
 
   /* Frontière : pixels gardés qui touchent le fond retiré. Mesurée avant le
