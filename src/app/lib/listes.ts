@@ -58,15 +58,21 @@ function aplatir(lignes: any[]): LigneEdition[] {
 /**
  * Éditions portant un format donné, les illustrées d'abord.
  *
- * `order=image_url.asc.nullslast` fait remonter celles qui ont une jaquette.
- * Ce n'est pas de la coquetterie : une page qui montre des boîtiers doit en
- * montrer. Les visuels sont chez editioncollector, qui ne publie aucune spec,
- * et les specs chez blu-ray.com, qui ne publie aucune image (§3) ; sans ce tri
- * la page de `/formats/steelbook` s'ouvrirait sur soixante lignes de texte nu.
+ * **Triées par `id` croissant, et c'est un revirement.** Le tri d'origine
+ * remontait les éditions illustrées, `image_url.asc.nullslast`, pour qu'une
+ * page de boîtiers montre des boîtiers. Mais il rend le contenu d'une page
+ * numérotée instable : chaque édition illustrée qui entre décale tout vers le
+ * bas. Mesuré le 1er août 2026, une édition indexée par Google en page 21 de
+ * `/formats/steelbook` se trouvait en page 27 trois jours plus tard, après
+ * 2 400 entrées. Google servait donc une URL dont le contenu était parti
+ * ailleurs, et la requête, un code-barres, n'y trouvait plus rien.
  *
- * Le tri secondaire par `id` est indispensable à la pagination : sans ordre
- * total, PostgREST répète et saute des lignes d'une page à l'autre, piège déjà
- * consigné au §9.
+ * `id` croissant est le seul ordre qui ne décale rien : les nouvelles lignes
+ * s'ajoutent à la fin, les pages déjà explorées gardent leur contenu. Le prix
+ * est assumé, les premières pages ne sont plus les mieux illustrées.
+ *
+ * L'ordre doit rester **total**, sans quoi PostgREST répète et saute des
+ * lignes d'une page à l'autre, piège déjà consigné au §9. `id` l'est.
  */
 export async function getEditionsParFormat(
   format: string,
@@ -77,8 +83,7 @@ export async function getEditionsParFormat(
     .from("editions")
     .select(CHAMPS_EDITION, { count: "exact" })
     .contains("formats_extraits", [format])
-    .order("image_url", { ascending: true, nullsFirst: false })
-    .order("id", { ascending: false })
+    .order("id", { ascending: true })
     .range(debut, fin);
   if (error) throw new Error(`Erreur lors du chargement du format ${format}: ${error.message}`);
   return { lignes: aplatir(data as any[]), total: count ?? 0 };
@@ -94,8 +99,7 @@ export async function getEditionsParEditeur(
     .from("editions")
     .select(CHAMPS_EDITION, { count: "exact" })
     .eq("editeur", editeur)
-    .order("date_parution", { ascending: false, nullsFirst: false })
-    .order("id", { ascending: false })
+    .order("id", { ascending: true })
     .range(debut, fin);
   if (error) throw new Error(`Erreur lors du chargement de l'éditeur ${editeur}: ${error.message}`);
   return { lignes: aplatir(data as any[]), total: count ?? 0 };
@@ -139,8 +143,14 @@ export async function getEditionsParCollection(
  * ligne, ses liens dans un tableau imbriqué. `count: "exact"` compte donc bien
  * des films. Vérifié, il n'y a aucun doublon à écarter.
  *
- * `nulls: "last"` est indispensable, PostgreSQL classant les nuls en premier
- * sur un `desc`.
+ * **Triés par `id` croissant**, pour la même raison que les formats : la
+ * popularité TMDB est recalculée chaque semaine, donc trier dessus faisait
+ * changer le contenu de chaque page numérotée à chaque repasse, sous les URL
+ * déjà explorées par Google.
+ *
+ * Les collections d'éditeur, elles, gardent leur tri par numéro : c'est le
+ * rang imprimé sur la tranche, il ne bouge pas, et ces listes tiennent le plus
+ * souvent en une page.
  */
 export async function getFilmsParGenre(genre: string, page = 1): Promise<Page<Film>> {
   const [debut, fin] = bornes(page);
@@ -148,7 +158,6 @@ export async function getFilmsParGenre(genre: string, page = 1): Promise<Page<Fi
     .from("films")
     .select("*, edition_films!inner(edition_id)", { count: "exact" })
     .contains("genres", [genre])
-    .order("popularite", { ascending: false, nullsFirst: false })
     .order("id", { ascending: true })
     .range(debut, fin);
   if (error) throw new Error(`Erreur lors du chargement du genre ${genre}: ${error.message}`);

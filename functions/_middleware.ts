@@ -659,6 +659,18 @@ interface LigneListe {
  * Le tri secondaire par `id` n'est pas décoratif. Sans ordre total, `offset`
  * s'applique à un ensemble non ordonné et PostgREST répète et saute des lignes
  * d'une page à l'autre, piège déjà consigné au §9.
+ *
+ * **L'ordre est `id` croissant, et c'est ce qui rend les pages stables.** Les
+ * tris d'origine, éditions illustrées d'abord, films les plus populaires
+ * d'abord, faisaient changer le contenu d'une page numérotée à chaque import
+ * et à chaque repasse de popularité : une édition indexée par Google en page 21
+ * de `/formats/steelbook` se trouvait en page 27 trois jours plus tard, et la
+ * requête qui l'y avait trouvée, un code-barres, n'y trouvait plus rien. `id`
+ * croissant ajoute les nouvelles lignes à la fin et ne décale rien.
+ *
+ * Ce module et `src/app/lib/listes.ts` doivent trier **exactement pareil** :
+ * une page servie et la même page rendue par l'application montreraient sinon
+ * deux contenus différents.
  */
 async function lireListe(
   axe: NomAxe,
@@ -682,11 +694,11 @@ async function lireListe(
     url =
       `${base}/films?genres=cs.${filtre}` +
       `&select=id,titre,slug,annee,realisateur,edition_films!inner(edition_id)` +
-      `&order=popularite.desc.nullslast,id.asc${tranche}`;
+      `&order=id.asc${tranche}`;
   } else {
     const critere =
       axe === "formats"
-        ? `formats_extraits=cs.${filtre}&order=image_url.asc.nullslast,id.desc`
+        ? `formats_extraits=cs.${filtre}&order=id.asc`
         : axe === "collections"
         ? /* Une série s'ordonne par son numéro de tranche, pas par date : c'est
              le rang imprimé sur le boîtier qui compte, et un collectionneur
@@ -695,7 +707,7 @@ async function lireListe(
              aucune de nos sources ne publie le spine number. */
           `collection_editeur=eq.${encodeURIComponent(libelle)}` +
           `&order=numero_collection.asc.nullslast,date_parution.desc.nullslast,id.desc`
-        : `editeur=eq.${encodeURIComponent(libelle)}&order=date_parution.desc.nullslast,id.desc`;
+        : `editeur=eq.${encodeURIComponent(libelle)}&order=id.asc`;
     url =
       `${base}/editions?${critere}` +
       `&select=id,titre,editeur,formats_extraits,date_parution,ean,numero_collection,` +
@@ -1123,6 +1135,46 @@ async function servirAPropos(url: URL, next: () => Promise<Response>): Promise<R
   );
 
   return injecterListe(reponse, meta, canonical, corps, null);
+}
+
+/**
+ * `/ean/<code>` : le code-barres mène à la fiche du film, en 301.
+ *
+ * Un visiteur qui tape treize chiffres dans Google cherche **le disque**, et la
+ * bonne réponse est la fiche du film qui le porte, pas une page de liste où il
+ * figurait au moment du crawl. Mesuré le 1er août 2026 : Google servait
+ * `/formats/steelbook/21` pour `5051889752028`, alors que l'édition avait
+ * glissé en page 27 entre-temps.
+ *
+ * Cette route ne s'indexe pas et n'a pas à l'être : elle redirige, donc c'est
+ * la fiche qui reçoit le classement. Elle sert aussi de cible au scan de
+ * code-barres prévu au §8, qui n'aura rien d'autre à construire.
+ *
+ * Le code est validé avant d'atteindre PostgREST : treize chiffres, rien
+ * d'autre. Un EAN inconnu répond un vrai 404, pas une page vide en 200.
+ */
+async function servirEan(code: string, url: URL, next: () => Promise<Response>): Promise<Response> {
+  const reponse = await fetch(
+    `https://${PROJET}.supabase.co/rest/v1/editions` +
+      `?ean=eq.${code}&limit=1&select=id,edition_films(film:films(id,slug))`,
+    {
+      headers: { apikey: CLE_ANON, Authorization: `Bearer ${CLE_ANON}` },
+      cf: { cacheTtl: CACHE_SECONDES, cacheEverything: true },
+    } as RequestInit,
+  );
+  if (!reponse.ok) throw new Error(`ean ${code} : HTTP ${reponse.status}`);
+
+  const lignes = (await reponse.json()) as {
+    edition_films?: { film: { id: number; slug: string | null } | null }[];
+  }[];
+  const film = lignes[0]?.edition_films?.find((l) => l?.film)?.film ?? null;
+  /* Un code qu'aucune édition ne porte, ou une édition orpheline : il n'y a
+     aucune fiche où envoyer, donc 404 franc. Rediriger vers l'accueil ferait
+     un « soft 404 » de plus, ce que le reste du fichier s'emploie à éviter. */
+  if (!film) return pageIntrouvable(next);
+
+  const cible = film.slug ? `${BASE_FILMS}/${film.slug}/${film.id}` : `${BASE_FILMS}/${film.id}`;
+  return Response.redirect(`${url.origin}${cible}`, 301);
 }
 
 /**
@@ -1681,6 +1733,15 @@ async function servir(context: Contexte): Promise<Response> {
   if (url.pathname === "/about") {
     try {
       return await servirAPropos(url, next);
+    } catch {
+      return next();
+    }
+  }
+  if (url.pathname.startsWith("/ean/")) {
+    const code = url.pathname.slice(5).replace(/\/$/, "");
+    if (!/^[0-9]{13}$/.test(code)) return pageIntrouvable(next);
+    try {
+      return await servirEan(code, url, next);
     } catch {
       return next();
     }
