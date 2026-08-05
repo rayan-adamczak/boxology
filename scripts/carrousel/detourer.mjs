@@ -246,6 +246,101 @@ function coinsClairs({ large, haut, px }) {
 }
 
 /**
+ * Cherche l'axe d'un reflet en miroir sous le sujet, et rend son ordonnée.
+ *
+ * Le studio pose souvent le boîtier sur un sol brillant : sous lui court une
+ * copie retournée, plus sombre et floue. Elle est **claire et colorée**, donc
+ * ni la règle du blanc ni celle du gris neutre ne l'attrapent, et le remplissage
+ * s'arrête à son bord en laissant une bavure. C'est le seul défaut visible qui
+ * restait sur les cinq planches détourées d'août.
+ *
+ * Ce qui le reconnaît n'est ni la couleur ni la clarté mais la **structure** :
+ * un reflet est symétrique du sujet par rapport à une horizontale. On cherche
+ * donc l'axe qui maximise la corrélation croisée normalisée entre les lignes
+ * `axe - d` et `axe + d`. La NCC est employée exprès plutôt qu'une différence
+ * absolue : le reflet est plus sombre et moins contrasté que l'original, une
+ * différence pixel à pixel le manquerait, une corrélation le voit.
+ *
+ * Rend `null` s'il n'y a pas de reflet franc, et c'est le cas de figure
+ * ordinaire : mieux vaut laisser un reflet que couper le bas d'un boîtier.
+ */
+/**
+ * Seuil de corrélation, et **0,72 est un plancher éprouvé, pas un réglage à
+ * baisser**.
+ *
+ * Le reflet des steelbooks Mario sort à 0,66, juste dessous, et la tentation de
+ * descendre à 0,62 pour l'attraper a été essayée : à ce seuil l'axe gagnant
+ * n'est plus le sol mais une symétrie de hasard **à l'intérieur de
+ * l'illustration**, et deux planches sur huit se sont retrouvées coupées en
+ * deux, boîtier compris. Un reflet laissé se répare à l'œil, un boîtier tranché
+ * ne se rattrape pas.
+ *
+ * Ce qui manque pour descendre serait une preuve que l'axe est bien le sol,
+ * une rupture de netteté ou un dégradé vers le fond sous l'axe, et non une
+ * simple corrélation.
+ */
+const NCC_REFLET = 0.72;
+const PART_REFLET = 0.08;
+
+function axeDuReflet({ large, haut, px }, dehors) {
+  let xMin = large, xMax = -1, yMin = haut, yMax = -1;
+  for (let y = 0; y < haut; y++) {
+    for (let x = 0; x < large; x++) {
+      if (dehors[y * large + x]) continue;
+      if (x < xMin) xMin = x;
+      if (x > xMax) xMax = x;
+      if (y < yMin) yMin = y;
+      if (y > yMax) yMax = y;
+    }
+  }
+  const hauteur = yMax - yMin + 1;
+  if (hauteur < 80 || xMax < xMin) return null;
+
+  const lum = (i) => {
+    const p = i * 4;
+    return 0.2126 * px[p] + 0.7152 * px[p + 1] + 0.0722 * px[p + 2];
+  };
+
+  /* Sous-échantillonnage : sans lui la recherche coûte des milliards
+     d'opérations sur une photo de 1 400 px, et un détourage qui prend une
+     minute par visuel ne serait jamais lancé. */
+  const pasX = Math.max(1, Math.round((xMax - xMin) / 90));
+  const pasD = 4;
+
+  let meilleur = null;
+  let meilleurScore = 0;
+  const departAxe = yMin + Math.round(hauteur * 0.35);
+  for (let axe = departAxe; axe <= yMax - Math.round(hauteur * PART_REFLET); axe++) {
+    const portee = Math.min(60, axe - yMin, yMax - axe);
+    if (portee < 12) continue;
+
+    let sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0, k = 0;
+    for (let d = 1; d <= portee; d += pasD) {
+      for (let x = xMin; x <= xMax; x += pasX) {
+        const iHaut = (axe - d) * large + x;
+        const iBas = (axe + d) * large + x;
+        if (dehors[iHaut] || dehors[iBas]) continue;
+        const a = lum(iHaut), b = lum(iBas);
+        sa += a; sb += b; saa += a * a; sbb += b * b; sab += a * b; k++;
+      }
+    }
+    if (k < 300) continue;
+
+    const cov = sab / k - (sa / k) * (sb / k);
+    const va = saa / k - (sa / k) ** 2;
+    const vb = sbb / k - (sb / k) ** 2;
+    if (va <= 1 || vb <= 1) continue;
+    const ncc = cov / Math.sqrt(va * vb);
+    if (ncc > meilleurScore) { meilleurScore = ncc; meilleur = axe; }
+  }
+
+  if (process.env.CARROUSEL_REFLET) {
+    console.log(`    reflet : meilleure NCC ${meilleurScore.toFixed(2)} à y=${meilleur}`);
+  }
+  return meilleurScore >= NCC_REFLET ? meilleur : null;
+}
+
+/**
  * Rend une copie détourée, ou `null` si la photo n'est pas sur fond clair.
  *
  * Remplissage par diffusion depuis les bords, puis un passage de lissage : un
@@ -278,6 +373,18 @@ export function detourer(image) {
     if (x < large - 1) pousser(i + 1);
     if (y > 0) pousser(i - large);
     if (y < haut - 1) pousser(i + large);
+  }
+
+  /* Le reflet en miroir, coupé quand on le reconnaît vraiment. Voir
+     `axeDuReflet` : il est retiré sur toute sa hauteur, pas atténué. */
+  const axe = axeDuReflet(image, dehors);
+  if (axe !== null) {
+    for (let y = axe; y < haut; y++) {
+      for (let x = 0; x < large; x++) {
+        const i = y * large + x;
+        if (!dehors[i]) { dehors[i] = 1; queue++; }
+      }
+    }
   }
 
   const sortie = Buffer.from(px);
