@@ -293,17 +293,23 @@ export function planchEdition({
   accent, surtitre, titre, annee, edition, badges = [], lignes = [], visuel,
 }) {
   const rapport = visuel?.rapport ?? 2 / 3;
-  /* La largeur est la plus petite des deux contraintes, la seconde étant la
-     hauteur disponible traduite en largeur. Aucune déformation possible, et
-     un packshot carré ou un photogramme paysage tiennent sans réglage à part.
-
-     Le visuel est **au-dessus** du texte et non à côté : sur une toile 4/5, une
+  /* Le visuel est **au-dessus** du texte et non à côté : sur une toile 4/5, une
      colonne de texte à côté d'une jaquette ne laisse que 320 px, où un titre de
-     film passe à la ligne trois fois. Empilé, il a les 928 px du cadre. */
-  /* La hauteur disponible est tombée de 700 à 620 le jour où le texte est
-     passé au-dessus du plancher de lisibilité : à taille lisible, le bloc de
-     texte prend la place, et c'est le bon arbitrage. Un boîtier un peu plus
-     petit se voit encore, une ligne de 7 px ne se lit pas. */
+     film passe à la ligne trois fois. Empilé, il a les 928 px du cadre.
+
+     **Le boîtier occupe la place qui reste, il ne l'impose pas.** Les versions
+     précédentes lui donnaient une largeur fixe et un `aspect-ratio`, donc une
+     hauteur fixe : un bloc de texte plus haut que prévu, deux lignes de titre
+     plus deux lignes de nom d'édition, ne le comprimait pas, il le poussait
+     jusqu'au bord haut de la planche. Le défaut ne se voyait que sur les
+     titres longs, ce qui est le pire cas de figure, il paraît intermittent.
+
+     Ce qui le règle est `background-size: contain` : le rapport de l'image ne
+     dépend plus de celui du cadre, l'image se pose dedans sans se déformer et
+     le fond transparent rend le vide invisible. Le cadre peut donc prendre la
+     hauteur qu'on lui laisse. Ne reste qu'un plafond de largeur, calculé sur
+     un boîtier de 660 px de haut, pour qu'un petit visuel ne soit pas gonflé
+     au-delà de sa définition. */
   const largeur = Math.min(928, Math.round(660 * rapport));
 
   const contenu = `
@@ -311,11 +317,10 @@ export function planchEdition({
       .pile { flex: 1; display: flex; flex-direction: column; min-height: 0; }
       .zone-visuel {
         flex: 1; display: flex; align-items: center; justify-content: center;
-        min-height: 0; padding: 30px 0 44px;
+        min-height: 0; padding: 26px 0 40px;
       }
       .zone-visuel .visuel {
-        width: ${largeur}px; max-width: 100%; aspect-ratio: ${rapport};
-        border-radius: 6px;
+        width: 100%; height: 100%; max-width: ${largeur}px;
       }
       .sans-visuel {
         width: 400px; aspect-ratio: 2/3; border-radius: 6px; background: ${SURFACE};
