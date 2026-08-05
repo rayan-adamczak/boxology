@@ -5228,6 +5228,26 @@ reste `HIT` avec son `age`. Seule la purge agit. Et le jeton OAuth de
 `wrangler`, présent sur la machine, ne peut pas la faire : ses portées
 s'arrêtent à `zone:read`, sans `cache_purge`.
 
+**Cette purge en a oublié un, et il a fallu trois jours pour le voir.** Relevé
+le 1er août 2026 : `favicon.svg`, `favicon-96.png`, `apple-touch-icon.png`,
+`logo.svg` et `og-jaquette.jpg` figuraient bien dans « Vidage récent » du
+tableau de bord, mais pas `favicon.ico`. Il servait donc encore l'entrée d'avant
+le redessin, avec **ses anciens en-têtes**, `max-age=604800` et `age: 208868`,
+alors que `public/_headers` dit 3 600 depuis. Une entrée de cache garde les
+en-têtes qu'elle avait à sa création : changer le fichier `_headers` ne touche
+pas ce qui est déjà en cache, et Cloudflare ne l'aurait revalidé qu'au bout de
+sept jours.
+
+Le contenu servi, lui, était déjà le bon dessin, les empreintes SHA-256
+concordant sur les cinq fichiers entre production, disque et `HEAD`. C'était
+donc invisible à l'œil, et ça ne se serait vu qu'à la prochaine retouche du
+logo, restée coincée une semaine. Purgé, mesuré aussitôt : `MISS` puis `HIT`
+avec `age: 3`, et l'en-tête retombé à `max-age=14400`.
+
+**La liste « Vidage récent » du panneau est le seul endroit qui dise ce qui a
+été purgé.** La relire après une purge multiple, c'est elle qui a montré
+l'oubli.
+
 **Le fond de la tuile est un dégradé vertical, et il a d'abord été raté** : posé
 en aplat `#14181c` avec un arrondi de 44, quand le node n'a ni l'un ni l'autre.
 Les valeurs Tailwind rendues par `get_design_context` sont **semi-transparentes**
