@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Instagram } from "lucide-react";
 import { Logo } from "./Logo";
 
 const CONTACT = "contact@jaquette.app";
@@ -21,28 +21,6 @@ function LienInterne({ to, children }: { to: string; children: ReactNode }) {
   return (
     <li>
       <Link to={to} style={{ color: "var(--reel-muted)" }}>{children}</Link>
-    </li>
-  );
-}
-
-/**
- * Lien sortant du pied de page.
- *
- * `rel="noreferrer noopener"` comme les trois autres `target="_blank"` du site :
- * sans lui, la page ouverte peut manipuler celle qui l'a ouverte par
- * `window.opener`, et l'en-tête `Referer` part avec l'URL complète.
- */
-function LienExterne({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <li>
-      <a
-        href={href}
-        target="_blank"
-        rel="noreferrer noopener"
-        style={{ color: "var(--reel-muted)" }}
-      >
-        {children}
-      </a>
     </li>
   );
 }
@@ -75,6 +53,31 @@ export function Footer() {
             <br />
             Blu-ray, 4K, steelbooks et coffrets, pour le marché français.
           </p>
+
+          {/*
+            Les réseaux sont ici, sous l'identité, et non dans une colonne à eux :
+            une colonne de titre « Réseaux » réclamait la même largeur que
+            « Sections » ou « Parcourir » pour un seul compte ouvert.
+
+            Seul Instagram existe. Bluesky et Letterboxd étaient de simples
+            mentions en texte, ce qui se lisait comme « bientôt » ; une icône,
+            elle, ne sait pas dire ça, elle se lit comme un lien mort. Elles
+            reviendront le jour où les comptes existent, une ligne chacune.
+          */}
+          <ul className="flex items-center gap-2 pt-1">
+            <li>
+              <a
+                href="https://www.instagram.com/jaquette.app/"
+                target="_blank"
+                rel="noreferrer noopener"
+                aria-label="jaquette.app sur Instagram"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full outline-none transition hover:text-[var(--reel-text)] focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
+                style={{ border: "1px solid var(--reel-border)", color: "var(--reel-muted)" }}
+              >
+                <Instagram size={17} />
+              </a>
+            </li>
+          </ul>
         </div>
 
         <div className="flex flex-wrap gap-x-16 gap-y-10">
@@ -100,17 +103,6 @@ export function Footer() {
                 cette colonne que regardera quelqu'un qui n'a pas trouvé son
                 disque. */}
             <LienInterne to="/report">Signaler une édition</LienInterne>
-          </Colonne>
-
-          {/* Instagram est ouvert depuis le 1er août 2026, les deux autres non :
-              ils restent de simples mentions plutôt que des liens morts. À
-              remplacer par des `LienExterne` le jour où les comptes existent.
-              Rien à voir avec les comptes utilisateurs, qui eux existent depuis
-              juillet 2026. */}
-          <Colonne titre="Réseaux">
-            <LienExterne href="https://www.instagram.com/jaquette.app/">Instagram</LienExterne>
-            <li>Bluesky</li>
-            <li>Letterboxd</li>
           </Colonne>
 
           <Colonne titre="Légal">

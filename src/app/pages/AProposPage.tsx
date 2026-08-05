@@ -35,7 +35,7 @@ export function AProposPage() {
   });
 
   return (
-    <div className="mx-auto max-w-[1180px] px-6 pb-24 pt-[120px]">
+    <div className="reel-gouttiere pb-24 pt-[120px]">
       <Link
         to="/"
         className="inline-flex items-center gap-2 pb-6 transition"

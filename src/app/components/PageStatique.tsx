@@ -20,24 +20,36 @@ export function PageStatique({ titre, titreSeo, sousTitre, description, noindex,
   useSeo({ titre: titreSeo ?? titre, description: description ?? sousTitre ?? titre, noindex });
 
   return (
-    <div className="mx-auto max-w-[760px] px-6 pb-24 pt-[120px]">
-      <Link
-        to="/"
-        className="inline-flex items-center gap-2 pb-6 transition"
-        style={{ fontSize: "14px", color: "var(--reel-muted)" }}
-      >
-        <ArrowLeft size={16} />
-        Retour au catalogue
-      </Link>
+    /*
+      Le cadrage de la page vient de `.reel-gouttiere`, jamais d'un `max-w` posé
+      ici : c'est elle qui aligne le bord gauche sur le mot-symbole du bandeau et
+      sur le pied de page, à toutes les tailles d'écran. Une largeur en dur avec
+      son propre `px-6` donnait 24 px de rembourrage là où la gouttière en met 20
+      puis 32, donc le titre ne tombait sous le logo à aucune taille.
 
-      <h1 style={{ fontSize: "30px", fontWeight: 700, color: "var(--reel-text)", lineHeight: "1.2" }}>
-        {titre}
-      </h1>
-      {sousTitre && (
-        <p className="pt-2" style={{ fontSize: "15px", color: "var(--reel-muted)" }}>{sousTitre}</p>
-      )}
+      La colonne de lecture reste bornée à 760 px, mais **calée à gauche** et non
+      centrée : centrée, elle réintroduirait le décalage qu'on vient de retirer.
+    */
+    <div className="reel-gouttiere pb-24 pt-[120px]">
+      <div className="max-w-[760px]">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 pb-6 transition"
+          style={{ fontSize: "14px", color: "var(--reel-muted)" }}
+        >
+          <ArrowLeft size={16} />
+          Retour au catalogue
+        </Link>
 
-      <div className="flex flex-col gap-7 pt-9">{children}</div>
+        <h1 style={{ fontSize: "30px", fontWeight: 700, color: "var(--reel-text)", lineHeight: "1.2" }}>
+          {titre}
+        </h1>
+        {sousTitre && (
+          <p className="pt-2" style={{ fontSize: "15px", color: "var(--reel-muted)" }}>{sousTitre}</p>
+        )}
+
+        <div className="flex flex-col gap-7 pt-9">{children}</div>
+      </div>
     </div>
   );
 }

@@ -21,7 +21,7 @@ export function IntrouvablePage() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-[760px] px-6 pb-24 pt-[140px] text-center">
+    <div className="reel-gouttiere pb-24 pt-[140px] text-center">
       <p style={{ fontSize: "48px", fontWeight: 700, color: "var(--reel-border)", lineHeight: 1 }}>
         404
       </p>

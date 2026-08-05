@@ -154,7 +154,7 @@ export function RegroupementPage({ axe }: { axe: NomAxe }) {
   if (!chargement && !erreur && page > pages) return <IntrouvablePage />;
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-6 pb-24 pt-[120px]">
+    <div className="reel-gouttiere pb-24 pt-[120px]">
       <nav style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
         <Link to="/" className="hover:text-[var(--reel-accent-clair)]">
           Catalogue
