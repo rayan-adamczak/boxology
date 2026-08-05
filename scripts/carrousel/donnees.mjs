@@ -290,7 +290,7 @@ export function finDeMois(iso) {
  * la règle du §9, un nom redondant vaut mieux que pas de nom.
  */
 const VOCABULAIRE =
-  /^(blu-?ray|4k|ultra\s*hd|dvd|combo|coffret|digipack|digibook|mediabook|steelbook|édition|edition|limitée|limitee|collector|3d|\+|—|-|\s)+$/i;
+  /^(blu-?ray|4k|uhd|ultra\s*hd|dvd|disc|disque|combo|coffret|digipack|digibook|mediabook|steelbook|édition|edition|limitée|limitee|collector|3d|\+|—|–|-|:|\/|\s)+$/i;
 
 /**
  * Vrai quand un titre d'édition n'est que du vocabulaire de boîtier.

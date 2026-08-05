@@ -106,7 +106,19 @@ function nomEdition(edition, titreFilm) {
   const nom = titreEdition(edition);
   if (!nom) return null;
   if (estFormatSeul(nom)) return null;
-  return replier(nom) === replier(titreFilm) ? null : nom;
+  if (replier(nom) === replier(titreFilm)) return null;
+
+  /* Le titre du film est retiré, puis on reteste : les sources qui le recopient
+     lui accolent souvent le format, « Les Spécialistes BLU-RAY DISC ». Ni le
+     test d'égalité ni celui de vocabulaire ne l'attrapent seuls, et le
+     sous-titre répétait alors le titre juste au-dessus en y ajoutant ce que les
+     capsules disent déjà. */
+  const i = nom.toLowerCase().indexOf((titreFilm ?? "").toLowerCase());
+  if (titreFilm && i !== -1) {
+    const reste = (nom.slice(0, i) + nom.slice(i + titreFilm.length)).trim();
+    if (!reste || estFormatSeul(reste)) return null;
+  }
+  return nom;
 }
 
 /**
@@ -347,6 +359,21 @@ async function aparaitre(argument, { max = 8, jusqu = null } = {}) {
   if (fin_ < debut) throw new Error(`aparaitre : ${fin_} est avant ${debut}`);
 
   const { brutes, editions } = await parutions("aparaitre", debut, fin_, max);
+
+  /**
+   * La popularité choisit **lesquelles**, la date décide de **l'ordre**.
+   *
+   * Les deux tris ne répondent pas à la même question. Prendre huit disques sur
+   * cent quarante et un demande de savoir lesquels valent la place, et c'est la
+   * popularité ; les montrer demande un fil à suivre, et sur une annonce ce fil
+   * est le calendrier. Trié par popularité, le carrousel sautait du 26 au 7 puis
+   * au 19, et il fallait relire chaque surtitre pour se situer.
+   *
+   * `sorties` garde l'ordre par popularité, et ce n'est pas une incohérence :
+   * il raconte ce qui vient de paraître, où l'on ouvre sur le plus gros titre,
+   * pas un agenda qu'on parcourt.
+   */
+  editions.sort((a, b) => a.date_parution.localeCompare(b.date_parution));
 
   /* Le mois n'est nommé que si la fenêtre tient dedans. Une fenêtre à cheval
      dirait « Sorties d'août » en montrant des disques de septembre. */
