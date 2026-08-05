@@ -61,8 +61,13 @@ export function echapper(s) {
  * Plancher typographique, mesuré et non choisi.
  *
  * Un fil mobile affiche une planche sur environ 374 px de large, soit une
- * réduction de 2,9. Tout ce qui est sous **34 px ici passe sous 12 px chez le
- * lecteur**, et 12 px est le seuil en dessous duquel on ne lit plus, on devine.
+ * réduction de 2,9. Tout ce qui est sous 34 px ici passe sous 12 px chez le
+ * lecteur, et 12 px est le seuil en dessous duquel on ne lit plus, on devine.
+ *
+ * **Le plancher est à 40 et non à 34**, c'est-à-dire 13,8 px chez le lecteur.
+ * 12 px était le seuil de lisibilité, pas celui du confort : sur une planche
+ * qu'on croise en défilant, on ne lit pas, on attrape. La place vient du
+ * bandeau de tête, retiré au même moment.
  *
  * Le premier jet mettait les métadonnées à 22 px, donc 7,6 px dans un fil : le
  * gabarit d'aperçu l'a montré d'un coup d'œil, ce qu'aucune relecture de la
@@ -73,7 +78,7 @@ export function echapper(s) {
  * métadonnée** au lieu de quatre. Le code-barres, la collection et le nombre de
  * disques sont sortis : ils se lisent sur la fiche, pas dans un fil.
  */
-const PLANCHER = 34;
+const PLANCHER = 40;
 
 const CSS = `
   @font-face {
@@ -125,14 +130,14 @@ const CSS = `
     z-index: 2;
   }
 
-  /* --- bandeau de tête, identique sur toutes les planches --- */
-  .tete { display: flex; align-items: center; justify-content: space-between; }
-  .lockup { display: flex; align-items: center; gap: 13px; }
-  .lockup svg { display: block; height: 30px; width: auto; }
-  .lockup .nom {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-weight: 800; font-size: 37px; letter-spacing: -0.035em; line-height: 1;
-  }
+  /* --- pas de bandeau de tête ---
+     Le mot-symbole était répété sur les huit planches. L'application affiche
+     déjà le nom du compte juste au-dessus du post : c'était la même redite que
+     le compteur, en haut à gauche cette fois. Il ne reste qu'à la dernière
+     planche, qui est la carte de marque, et le filet tricolore signe les
+     autres. Contrepartie assumée : une planche repartagée hors du fil ne porte
+     plus le nom, seulement les trois couleurs.
+     La place ainsi rendue est ce qui paie le plancher à 40. */
   .corps { flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 34px; }
 
   /* --- pied : le filet tricolore, et rien d'autre ---
@@ -166,7 +171,7 @@ const CSS = `
      Ici rien ne se clique, donc pas d'état de survol et pas de bordure vive. */
   .badges { display: flex; flex-wrap: wrap; gap: 10px; }
   .badge {
-    font-size: ${PLANCHER}px; font-weight: 600; padding: 12px 24px; border-radius: 999px;
+    font-size: ${PLANCHER}px; font-weight: 600; padding: 13px 26px; border-radius: 999px;
     background: ${SURFACE_2}; color: ${TEXTE}; border: 1px solid ${BORDURE};
   }
   .badge.accent { border-color: currentColor; background: transparent; border-width: 2px; }
@@ -198,9 +203,6 @@ function planche({ accent, contenu, fondSupplementaire = "" }) {
   <div class="halo halo-b"></div>
   ${fondSupplementaire}
   <div class="cadre">
-    <div class="tete">
-      <div class="lockup">${LOGO}<span class="nom">jaquette.app</span></div>
-    </div>
     <div class="corps">${contenu}</div>
   </div>
   <div class="filet">
@@ -252,12 +254,6 @@ export function couverture({ accent, surtitre, titre, annee, sous, mosaique = []
       .voile {
         position: absolute; inset: 0; z-index: 1;
         background:
-          /* Bandeau de tête : le mot-symbole et le compteur tombent sur la
-             mosaïque, et une jaquette claire les efface. Un voile court en
-             haut plutôt qu'un fond plein derrière le bandeau, qui se lirait
-             comme une barre d'application. */
-          linear-gradient(180deg, rgba(16,23,32,.88) 0%,
-                                  rgba(16,23,32,.55) 9%, rgba(16,23,32,0) 17%),
           linear-gradient(180deg,
             rgba(16,23,32,.34) 0%, rgba(16,23,32,.58) 30%,
             rgba(16,23,32,.92) 54%, ${FOND} 68%),
@@ -268,10 +264,10 @@ export function couverture({ accent, surtitre, titre, annee, sous, mosaique = []
          l'application affiche déjà ses puces et personne n'apprend à balayer
          sur une planche. */
       .bloc { margin-top: auto; padding-bottom: 46px; position: relative; z-index: 2; }
-      .bloc h1 { font-size: 96px; margin-top: 24px; }
+      .bloc h1 { font-size: 116px; margin-top: 26px; }
       .bloc h1 .annee { font-weight: 300; color: ${DISCRET}; }
-      .bloc .sous { font-size: 40px; color: ${TEXTE}; margin-top: 30px; line-height: 1.3;
-                    max-width: 860px; font-weight: 500; }
+      .bloc .sous { font-size: 48px; color: ${TEXTE}; margin-top: 32px; line-height: 1.26;
+                    max-width: 900px; font-weight: 500; }
     </style>
     <div class="bloc">
       <div class="surtitre" style="color:${accent}">${echapper(surtitre)}</div>
@@ -308,7 +304,7 @@ export function planchEdition({
      passé au-dessus du plancher de lisibilité : à taille lisible, le bloc de
      texte prend la place, et c'est le bon arbitrage. Un boîtier un peu plus
      petit se voit encore, une ligne de 7 px ne se lit pas. */
-  const largeur = Math.min(928, Math.round(590 * rapport));
+  const largeur = Math.min(928, Math.round(660 * rapport));
 
   const contenu = `
     <style>
@@ -326,10 +322,10 @@ export function planchEdition({
         border: 1px dashed ${BORDURE};
       }
       .bloc-texte { padding-bottom: 30px; }
-      .bloc-texte h2 { font-size: 74px; margin-top: 16px; -webkit-line-clamp: 2; }
+      .bloc-texte h2 { font-size: 88px; margin-top: 0; -webkit-line-clamp: 2; }
       .bloc-texte .annee { font-weight: 300; color: ${DISCRET}; }
       .edition-nom {
-        font-size: 42px; font-weight: 600; margin-top: 18px; line-height: 1.22;
+        font-size: 48px; font-weight: 600; margin-top: 18px; line-height: 1.2;
         -webkit-line-clamp: 2;
       }
       .badges { margin-top: 28px; }
@@ -396,8 +392,8 @@ export function grille({ accent, titre, sous, cases }) {
   const contenu = `
     <style>
       .entete-grille { padding: 26px 0 30px; }
-      .entete-grille h2 { font-size: 56px; }
-      .entete-grille .sous { font-size: 32px; color: ${DISCRET}; margin-top: 10px; }
+      .entete-grille h2 { font-size: 68px; }
+      .entete-grille .sous { font-size: 38px; color: ${DISCRET}; margin-top: 10px; }
 
       /* Les rangées valent 1fr et la vignette se dimensionne sur la hauteur
          reçue, sa largeur suivant le rapport. C'est la règle de la visionneuse
@@ -424,12 +420,12 @@ export function grille({ accent, titre, sous, cases }) {
       }
       .vignette.vide { border: 1px dashed ${BORDURE}; box-shadow: none; }
       .rang {
-        position: absolute; top: -14px; left: -14px; min-width: 54px; height: 54px;
-        border-radius: 999px; color: #101720; font-weight: 800; font-size: 28px;
+        position: absolute; top: -16px; left: -16px; min-width: 62px; height: 62px;
+        border-radius: 999px; color: #101720; font-weight: 800; font-size: 33px;
         display: flex; align-items: center; justify-content: center; padding: 0 12px;
         font-variant-numeric: tabular-nums;
       }
-      .nom { height: 62px; margin-top: 14px; font-size: 27px; line-height: 1.22;
+      .nom { height: 70px; margin-top: 14px; font-size: 31px; line-height: 1.2;
              color: ${DISCRET}; -webkit-line-clamp: 2; }
     </style>
     <div class="entete-grille">
@@ -458,19 +454,19 @@ export function fin({ accent, titre, sous, chemin = "" }) {
     <style>
       .fin { flex: 1; display: flex; flex-direction: column; justify-content: center;
              align-items: center; text-align: center; padding-bottom: 40px; }
-      .fin .marque svg { height: 108px; width: auto; display: block; margin: 0 auto; }
-      .fin h1 { font-size: 62px; margin-top: 46px; max-width: 840px; }
-      .fin .sous { font-size: 34px; color: ${DISCRET}; margin-top: 26px; line-height: 1.42;
-                   max-width: 780px; }
+      .fin .marque svg { height: 124px; width: auto; display: block; margin: 0 auto; }
+      .fin h1 { font-size: 76px; margin-top: 48px; max-width: 900px; }
+      .fin .sous { font-size: 40px; color: ${DISCRET}; margin-top: 26px; line-height: 1.38;
+                   max-width: 840px; }
       .adresse {
         margin-top: 52px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800;
-        font-size: 44px; letter-spacing: -0.03em;
+        font-size: 56px; letter-spacing: -0.03em;
         background: linear-gradient(90deg, ${COULEURS[0]}, ${COULEURS[1]}, ${COULEURS[2]});
         -webkit-background-clip: text; background-clip: text; color: transparent;
       }
-      .chemin { font-size: 32px; color: ${DISCRET}; margin-top: 12px; }
+      .chemin { font-size: 38px; color: ${DISCRET}; margin-top: 12px; }
       .signalement {
-        margin-top: 46px; font-size: 30px; color: ${DISCRET}; line-height: 1.45;
+        margin-top: 48px; font-size: 36px; color: ${DISCRET}; line-height: 1.4;
         border-top: 1px solid ${BORDURE}; padding-top: 28px; max-width: 720px;
       }
       .signalement b { color: ${TEXTE}; font-weight: 600; }

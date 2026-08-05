@@ -164,11 +164,6 @@ const html = `<!doctype html>
 
   .scene { position: relative; background: #000; touch-action: pan-y; user-select: none; }
   .scene img { display: block; width: 100%; aspect-ratio: 4/5; object-fit: cover; }
-  .compteur {
-    position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,.62);
-    color: #fff; font-size: 12px; font-weight: 600; border-radius: 999px;
-    padding: 4px 10px; backdrop-filter: blur(2px);
-  }
   .zone { position: absolute; top: 0; bottom: 0; width: 42%; cursor: pointer; }
   .zone.g { left: 0; } .zone.d { right: 0; }
   .fleche {
@@ -238,7 +233,6 @@ const html = `<!doctype html>
 
     <div class="scene" id="scene">
       <img id="planche" alt="planche 1" />
-      <div class="compteur" id="compteur">1/${images.length}</div>
       <div class="zone g" data-pas="-1"></div>
       <div class="zone d" data-pas="1"></div>
       <div class="fleche g eteinte" id="fg">‹</div>
@@ -280,7 +274,6 @@ const html = `<!doctype html>
 <script>
   const IMAGES = ${JSON.stringify(images)};
   const planche = document.getElementById("planche");
-  const compteur = document.getElementById("compteur");
   const puces = document.getElementById("puces");
   const fg = document.getElementById("fg");
   const fd = document.getElementById("fd");
@@ -296,7 +289,6 @@ const html = `<!doctype html>
     i = Math.max(0, Math.min(IMAGES.length - 1, n));
     planche.src = IMAGES[i];
     planche.alt = "planche " + (i + 1);
-    compteur.textContent = (i + 1) + "/" + IMAGES.length;
     [...puces.children].forEach((b, n2) => b.classList.toggle("on", n2 === i));
     fg.classList.toggle("eteinte", i === 0);
     fd.classList.toggle("eteinte", i === IMAGES.length - 1);
