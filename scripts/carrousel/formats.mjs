@@ -59,27 +59,24 @@ function badgesDe(edition) {
 }
 
 /**
- * **Une seule ligne de pied**, et c'est un arbitrage, pas une limite technique.
+ * La ligne de pied, réduite à la date.
  *
- * Le premier jet en posait quatre : éditeur, collection, date, code-barres.
- * Le gabarit d'aperçu a montré qu'à la taille d'un fil elles tombent sous 8 px,
- * donc qu'elles n'informaient personne. À taille lisible elles ne tiennent plus
- * à quatre, et il faut choisir : c'est l'éditeur qui reste, parce que c'est lui
- * qui distingue deux disques du même film, et la date sinon.
+ * Le premier jet en posait quatre, éditeur, collection, date et code-barres,
+ * illisibles à la taille d'un fil. Puis deux, éditeur et date. Puis celle-ci.
  *
- * Le code-barres, la collection et le nombre de disques sortent de la planche.
- * Ils se lisent sur la fiche, ce que la dernière planche invite à faire.
- * Aucun prix, jamais : voir `gabarit.fin`.
+ * **L'éditeur est sorti de la planche le 5 août 2026.** `Warner Bros.` ou
+ * `20th Century Studios` sur une image ne dit rien à qui la croise : ce n'est
+ * pas ce qui fait choisir un disque, et sur un post d'annonce ça occupait la
+ * dernière ligne pour une information de catalogue. Il reste dans la légende,
+ * où `mentionEditeurs` le cite, et le compte l'identifie mieux en l'étiquetant
+ * sur l'image : une étiquette notifie l'éditeur, une ligne de texte non.
+ *
+ * La collection, le nombre de disques et le code-barres se lisent sur la fiche,
+ * ce que la dernière planche invite à faire. Aucun prix, jamais, voir
+ * `gabarit.fin`.
  */
 function lignesDe(edition) {
   const date = dateFr(edition.date_parution);
-  /* Pas de mot « Éditeur » devant : à 36 px il coûte 145 px de largeur, et
-     c'est exactement ce qui faisait passer la ligne à deux et pousser le rail
-     hors de la planche. Un nom propre en gras suivi d'une date se lit sans
-     étiquette. */
-  if (edition.editeur) {
-    return [`<b>${edition.editeur}</b>${date ? ` · ${date}` : ""}`];
-  }
   if (date) return [`Paru le <b>${date}</b>`];
   if (edition.disques) return [`<b>${edition.disques}</b> disques`];
   return [];
@@ -402,7 +399,10 @@ async function aparaitre(argument, { max = 8, jusqu = null } = {}) {
         annee: film?.annee,
         edition: film ? nomEdition(e, film.titre) : null,
         badges: badgesDe(e),
-        lignes: e.editeur ? [`<b>${e.editeur}</b>`] : [],
+        /* Rien en pied : la date est en surtitre et l'éditeur est sorti des
+           planches. Une annonce tient en quatre lignes, date, film, édition,
+           format. */
+        lignes: [],
         visuel: e.visuel,
       };
     }),
