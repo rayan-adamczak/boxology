@@ -33,13 +33,49 @@ if (!projectId || !anonKey) {
 const API = `https://${projectId}.supabase.co/rest/v1`;
 const entetes = { apikey: anonKey, Authorization: `Bearer ${anonKey}` };
 
+/**
+ * Une lecture qui rate se rejoue avant de casser le build.
+ *
+ * Le 5 août 2026, le déploiement de `1fd1c63` est tombé sur un seul
+ * `formats/Blu-ray : HTTP 500`, la première des 210 lectures d'effectif. La
+ * même requête rendait 206 en 0,14 s quinze minutes plus tard, trois fois de
+ * suite : c'était un hoquet, et il a coûté un build entier alors que rien
+ * n'était cassé.
+ *
+ * **Seuls les 5xx et les pannes réseau se rejouent.** Un 4xx dit qu'on demande
+ * mal, un filtre fautif ou une colonne disparue, et il doit casser le build tout
+ * de suite : c'est le garde-fou qui empêche de publier un sitemap tronqué, et le
+ * §7 y tient. Rejouer trois fois une erreur de programmation ne ferait que
+ * retarder le message.
+ *
+ * Trois essais, une puis trois secondes. Assez pour traverser une contention
+ * passagère, trop peu pour masquer une panne qui dure.
+ */
+async function demander(url, options = {}) {
+  const attentes = [1000, 3000];
+  for (let essai = 0; ; essai++) {
+    let reponse;
+    try {
+      reponse = await fetch(url, options);
+    } catch (e) {
+      if (essai >= attentes.length) throw e;
+      console.warn(`  réseau : ${e.message}, nouvel essai`);
+      await new Promise((s) => setTimeout(s, attentes[essai]));
+      continue;
+    }
+    if (reponse.ok || reponse.status < 500 || essai >= attentes.length) return reponse;
+    console.warn(`  HTTP ${reponse.status} sur ${url.slice(0, 90)}, nouvel essai`);
+    await new Promise((s) => setTimeout(s, attentes[essai]));
+  }
+}
+
 /** Récupère toutes les lignes d'une table en suivant la pagination. */
 async function lireTout(table, colonnes) {
   const lignes = [];
   for (let debut = 0; ; debut += PAGE) {
     const url = `${API}/${table}?select=${colonnes}&order=${colonnes.split(",")[0]}.asc` +
       `&offset=${debut}&limit=${PAGE}`;
-    const reponse = await fetch(url, { headers: entetes });
+    const reponse = await demander(url, { headers: entetes });
     if (!reponse.ok) {
       throw new Error(`${table} : HTTP ${reponse.status} ${await reponse.text()}`);
     }
@@ -146,7 +182,7 @@ async function effectif(axe, libelle) {
       : axe === "collections"
       ? `${API}/editions?collection_editeur=eq.${encodeURIComponent(libelle)}&select=id`
       : `${API}/editions?editeur=eq.${encodeURIComponent(libelle)}&select=id`;
-  const reponse = await fetch(url, {
+  const reponse = await demander(url, {
     headers: { ...entetes, Prefer: "count=exact", Range: "0-0" },
   });
   if (!reponse.ok) throw new Error(`${axe}/${libelle} : HTTP ${reponse.status}`);
@@ -195,7 +231,7 @@ for (const [axe, base, slugs, libelles] of AXES_SITEMAP) {
  */
 let identifiants = [];
 try {
-  const reponse = await fetch(`${API}/rpc/profils_au_sitemap`, { headers: entetes });
+  const reponse = await demander(`${API}/rpc/profils_au_sitemap`, { headers: entetes });
   if (!reponse.ok) throw new Error(`HTTP ${reponse.status}`);
   identifiants = await reponse.json();
 } catch (erreur) {

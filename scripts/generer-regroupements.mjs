@@ -44,12 +44,35 @@ if (!projectId || !anonKey) throw new Error("utils/supabase/info.tsx illisible")
 const API = `https://${projectId}.supabase.co/rest/v1`;
 const entetes = { apikey: anonKey, Authorization: `Bearer ${anonKey}` };
 
+/**
+ * Une lecture qui rate se rejoue, comme dans `generer-sitemap.mjs`, et pour la
+ * même raison : ce script tourne dans le même `npm run build`, un hoquet de
+ * PostgREST y coûterait un déploiement entier. Seuls les 5xx et les pannes
+ * réseau se rejouent, un 4xx doit casser tout de suite.
+ */
+async function demander(url, options = {}) {
+  const attentes = [1000, 3000];
+  for (let essai = 0; ; essai++) {
+    let reponse;
+    try {
+      reponse = await fetch(url, options);
+    } catch (e) {
+      if (essai >= attentes.length) throw e;
+      await new Promise((s) => setTimeout(s, attentes[essai]));
+      continue;
+    }
+    if (reponse.ok || reponse.status < 500 || essai >= attentes.length) return reponse;
+    console.warn(`  HTTP ${reponse.status}, nouvel essai`);
+    await new Promise((s) => setTimeout(s, attentes[essai]));
+  }
+}
+
 /** PostgREST plafonne à 1 000 lignes. Paginer, toujours, et ordonner. */
 async function lireTout(table, colonnes) {
   const lignes = [];
   for (let debut = 0; ; debut += 1000) {
     const url = `${API}/${table}?select=${colonnes}&order=id.asc&offset=${debut}&limit=1000`;
-    const reponse = await fetch(url, { headers: entetes });
+    const reponse = await demander(url, { headers: entetes });
     if (!reponse.ok) throw new Error(`${table} : HTTP ${reponse.status} ${await reponse.text()}`);
     const lot = await reponse.json();
     lignes.push(...lot);
