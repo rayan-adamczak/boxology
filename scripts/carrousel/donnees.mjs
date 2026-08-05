@@ -266,7 +266,20 @@ export function dateFr(iso) {
  * Si la coupe ne laisse rien de substantiel, on garde le titre complet : c'est
  * la règle du §9, un nom redondant vaut mieux que pas de nom.
  */
-const VOCABULAIRE = /^(blu-?ray|4k|ultra\s*hd|dvd|combo|coffret|digipack|steelbook|3d|\+|—|-|\s)+$/i;
+const VOCABULAIRE =
+  /^(blu-?ray|4k|ultra\s*hd|dvd|combo|coffret|digipack|digibook|mediabook|steelbook|édition|edition|limitée|limitee|collector|3d|\+|—|-|\s)+$/i;
+
+/**
+ * Vrai quand un titre d'édition n'est que du vocabulaire de boîtier.
+ *
+ * `Blu-ray 4K Steelbook` ne dit rien que les capsules ne disent déjà, en plus
+ * gros et en couleur : l'afficher en sous-titre écrit deux fois la même chose
+ * sur la même planche. Ce qui mérite d'être écrit est ce qui **nomme** une
+ * édition, `Coffret Édition Spéciale Fnac`, `Titans of cult`.
+ */
+export function estFormatSeul(titre) {
+  return VOCABULAIRE.test((titre ?? "").trim());
+}
 
 export function titreEdition(edition) {
   const brut = (edition.titre ?? "").trim();

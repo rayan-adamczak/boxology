@@ -15,7 +15,9 @@
  * visuels des cinq sources non licenciées sont repris en connaissance de cause.
  */
 
-import { lire, compter, visuel, zonesDe, dateFr, titreEdition, filmDe } from "./donnees.mjs";
+import {
+  lire, compter, visuel, zonesDe, dateFr, titreEdition, estFormatSeul, filmDe,
+} from "./donnees.mjs";
 
 const COLONNES = [
   "id", "titre", "ean", "date_parution", "editeur", "distributeur", "formats_extraits",
@@ -102,6 +104,7 @@ function replier(s) {
 function nomEdition(edition, titreFilm) {
   const nom = titreEdition(edition);
   if (!nom) return null;
+  if (estFormatSeul(nom)) return null;
   return replier(nom) === replier(titreFilm) ? null : nom;
 }
 
@@ -228,21 +231,64 @@ async function sorties(argument, { max = 6, jours = 30 } = {}) {
 
   const brutes = await lire(
     `editions?select=${AVEC_FILM}&date_parution=gte.${debut}&date_parution=lte.${fin_}` +
-    `&image_url=not.is.null&order=date_parution.desc,id.desc&limit=80`);
+    `&image_url=not.is.null&order=date_parution.desc,id.desc&limit=400`);
   if (!brutes.length) {
     throw new Error(`sorties : aucune parution datée entre ${debut} et ${fin_}`);
   }
 
-  const editions = (await avecVisuels(brutes)).slice(0, max);
+  /**
+   * Six sur deux cents : c'est le **classement** qui décide, pas la date.
+   *
+   * Trier par `date_parution` seule rendait les six plus récentes, c'est-à-dire
+   * six lignes tirées au hasard dans la semaine. Un rendez-vous hebdomadaire
+   * doit ouvrir sur ce que les gens attendent, et `films.popularite` est
+   * exactement cette mesure : elle est recalculée tous les jours chez TMDB à
+   * partir des consultations récentes (§3).
+   *
+   * Une édition par film, aussi. Un titre sorti le même jour en Blu-ray et en
+   * 4K prendrait deux des six places pour un seul film, et le carrousel dirait
+   * deux fois la même nouvelle.
+   */
+  const idsFilms = [...new Set(brutes.map((e) => filmDe(e)?.id).filter(Boolean))];
+  const popularites = new Map();
+  for (let i = 0; i < idsFilms.length; i += 200) {
+    const lot = await lire(
+      `films?id=in.(${idsFilms.slice(i, i + 200).join(",")})&select=id,popularite`);
+    for (const f of lot) popularites.set(f.id, f.popularite ?? 0);
+  }
+
+  brutes.sort((a, b) =>
+    (popularites.get(filmDe(b)?.id) ?? -1) - (popularites.get(filmDe(a)?.id) ?? -1));
+
+  const vus = new Set();
+  const candidats = brutes.filter((e) => {
+    const id = filmDe(e)?.id ?? `sans-film-${e.id}`;
+    if (vus.has(id)) return false;
+    vus.add(id);
+    return true;
+  });
+
+  const editions = (await avecVisuels(candidats.slice(0, max * 3))).slice(0, max);
   if (!editions.length) throw new Error("sorties : aucun visuel net sur la période");
+
+  /* Le libellé suit la fenêtre réelle et non le mot employé à l'appel : une
+     passe lancée avec une date de début quelconque ne doit pas annoncer une
+     semaine si elle en couvre cinq. */
+  const jourMs = 24 * 3600 * 1000;
+  const etendue = Math.round((Date.parse(fin_) - Date.parse(debut)) / jourMs);
+  const periode = etendue <= 9 ? "semaine" : etendue <= 40 ? "mois" : "recentes";
+  const TITRES = {
+    semaine: "Sorties de la semaine",
+    mois: "Sorties du mois",
+    recentes: "Sorties récentes",
+  };
 
   const planches = [
     {
       type: "couverture",
-      surtitre: "Parutions",
-      titre: "Sorties récentes",
-      sous: `${dateFr(debut)} au ${dateFr(fin_)}<br />` +
-        `${editions.length} disques entrés au catalogue.`,
+      surtitre: `Du ${dateFr(debut).replace(/ \d{4}$/, "")} au ${dateFr(fin_)}`,
+      titre: TITRES[periode],
+      sous: `${brutes.length} parutions recensées.`,
       mosaique: editions.map((e) => e.visuel),
     },
     ...editions.map((e) => {
@@ -265,11 +311,13 @@ async function sorties(argument, { max = 6, jours = 30 } = {}) {
   ];
 
   const legende =
-    `Les sorties Blu-ray et 4K du moment, du ${dateFr(debut)} au ${dateFr(fin_)}.\n\n` +
-    `Laquelle rejoint ta collection&nbsp;? Fiches complètes, lien en bio.` +
+    `${TITRES[periode]} : ${brutes.length} parutions recensées ` +
+    `du ${dateFr(debut)} au ${dateFr(fin_)}.\n\n` +
+    `En voici ${editions.length}. Laquelle rejoint ta collection ? ` +
+    `Fiches complètes, lien en bio.` +
     `${mentionEditeurs(editions)}\n\n${MOTS_CLES}`;
 
-  return { nom: `sorties-${fin_}`, planches, legende };
+  return { nom: `sorties-${periode}-${fin_}`, planches, legende };
 }
 
 /* ================================================================ collection */
