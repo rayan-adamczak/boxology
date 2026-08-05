@@ -26,6 +26,7 @@ import { resolve, dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
+import { cadrerFichier } from "./cadrer.mjs";
 import { detourerFichier } from "./detourer.mjs";
 
 export const RACINE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -160,9 +161,24 @@ const POIDS_MINIMAL = 6000;
 
 const cache = new Map();
 
-/* Détourage actif par défaut. `CARROUSEL_SANS_DETOURAGE=1` le coupe, pour
-   comparer une série avec et sans sans toucher au code. */
-const detourage = !process.env.CARROUSEL_SANS_DETOURAGE;
+/**
+ * Deux traitements de visuel, et **le cadrage est le défaut**.
+ *
+ * Le détourage retire le cyclo blanc. Il marche bien quand le boîtier a une
+ * arête franche, et il demande de deviner où finit le sujet quand elle est
+ * claire : sur ce cas il a fallu une enveloppe convexe, qui a réglé les
+ * jaquettes claires et cassé les packshots à plusieurs objets, dont elle
+ * protège aussi les interstices. Un détourage raté se voit plus qu'un fond.
+ *
+ * Le cadrage assume le fond et corrige la seule chose qui gênait vraiment,
+ * l'inégalité de cadrage d'une source à l'autre. Il n'efface rien, donc il ne
+ * peut pas abîmer un visuel.
+ *
+ * `CARROUSEL_DETOURAGE=1` rebascule sur le détourage, `CARROUSEL_BRUT=1` ne
+ * fait ni l'un ni l'autre.
+ */
+const detourage = !!process.env.CARROUSEL_DETOURAGE;
+const cadrage = !process.env.CARROUSEL_BRUT && !detourage;
 
 let travail = null;
 let compteur = 0;
@@ -229,21 +245,31 @@ export async function visuel(edition, { minLargeur = 400 } = {}) {
        parfaitement lisible, simplement sur son cyclo. */
     let buf = fichier.buf;
     let type = fichier.type;
-    let detoure = false;
+    let largeur = fichier.largeur;
+    let hauteur = fichier.hauteur;
+    let traite = null;
+
     if (detourage) {
       const r = detourerFichier(fichier.buf, dossierTravail(), `d${compteur++}`);
-      if (r.buf) { buf = r.buf; type = "image/png"; detoure = true; }
+      if (r.buf) { buf = r.buf; type = "image/png"; traite = "détouré"; }
       else if (process.env.CARROUSEL_VERBEUX) console.log(`  fond gardé : ${r.refus}`);
+    } else if (cadrage) {
+      const r = cadrerFichier(fichier.buf, dossierTravail(), `c${compteur++}`);
+      if (r.buf) {
+        buf = r.buf; type = "image/png";
+        largeur = r.cote; hauteur = r.cote;
+        traite = `cadré ${Math.round(r.margeAvant * 100)}→${Math.round(r.marge * 100)} %`;
+      } else if (process.env.CARROUSEL_VERBEUX) console.log(`  cadrage sauté : ${r.refus}`);
     }
 
     return {
       src: `data:${type};base64,${buf.toString("base64")}`,
-      detoure,
-      largeur: fichier.largeur ?? null,
-      hauteur: fichier.hauteur ?? null,
+      traite,
+      largeur: largeur ?? null,
+      hauteur: hauteur ?? null,
       /* Sans en-tête lisible on ne connaît pas le rapport : le gabarit
          retombera sur le 2/3 d'une jaquette, qui est le cas courant. */
-      rapport: fichier.largeur && fichier.hauteur ? fichier.largeur / fichier.hauteur : 2 / 3,
+      rapport: largeur && hauteur ? largeur / hauteur : 2 / 3,
       url,
     };
   }

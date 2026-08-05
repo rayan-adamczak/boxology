@@ -240,7 +240,7 @@ try {
     console.log(
       `  ${numero}  ${descripteur.type.padEnd(11)} ` +
       `${NOMS_COULEURS[i % 3].padEnd(6)} ${String(poids).padStart(4)} Ko` +
-      `${descripteur.visuel?.detoure ? "  détouré" : ""}`);
+      `${descripteur.visuel?.traite ? `  ${descripteur.visuel.traite}` : ""}`);
   }
 
   /* La légende part dans un fichier plutôt qu'à l'écran : elle porte des sauts
