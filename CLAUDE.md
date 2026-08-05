@@ -2809,6 +2809,70 @@ script peuvent tourner de front sur des colonnes différentes ; avec un fichier
 d'avancement partagé, la seconde saute tout ce que la première a déjà noté.
 `champs_tmdb.py` accepte aussi `SORTIE`, pour la même raison.
 
+#### Rattrapage du 5 août 2026, les deux tiers du catalogue n'avaient rien vu
+
+Les passes de juillet n'avaient traité que 3 604 et 4 682 films ; le catalogue
+en compte 12 129, et **tout ce qui est entré depuis leur échappait**. Quatre
+passes enchaînées, plus une cinquième écrite pour l'occasion :
+
+| | avant | après |
+|---|---|---|
+| sans synopsis | 1 475 | **17** |
+| sans titres étrangers | 7 825 | 1 177 |
+| sans pays | 2 463 | **5** |
+| sans producteurs | 3 682 | 1 553 |
+| sans compositeur | 4 854 | 3 117 |
+| sans backdrop | 595 | 477 |
+| acteurs par film, moyenne | 5 | **11,0** |
+
+**Le plafond de cinq acteurs du §8 est levé**, `NB_ACTEURS=12` sur tout le
+catalogue : 11 348 films en portent plus de cinq, contre 1 004 avant.
+
+**Ce qui reste n'est pas un reliquat, c'est ce que TMDB ne publie pas.** Les
+477 backdrops manquants n'existent ni en français ni en anglais, les 1 177
+titres étrangers n'ont aucune des six langues retenues, et le budget reste
+absent sur 7 399 films parce que TMDB rend `0` quand il l'ignore.
+
+**La popularité a été rafraîchie**, périmée depuis la coupure d'Actions. Tête
+de liste au 5 août : *Spider-Man : Brand New Day* (1 991), *L'Odyssée* (944),
+*Spider-Man : No Way Home* (521).
+
+### `combler_tmdb.py`, et le trou de synopsis qui était un trou de traduction
+
+Écrit le 5 août 2026 pour ce que les deux autres ne couvrent pas : synopsis,
+backdrop, affiche, accroche, note. **Enrichir, jamais corriger**, une colonne
+déjà remplie n'est pas touchée.
+
+**Premier passage en français seul : 119 comblés sur 1 695, zéro synopsis.**
+Mesuré ensuite sur 50 films tirés parmi les 1 421 concernés :
+
+    0 %   ont un synopsis français chez TMDB
+    98 %  en ont un en anglais
+    2 %   n'ont rien nulle part
+
+Le trou n'était donc pas un trou de données mais de **traduction**, et aucune
+passe française ne l'aurait jamais comblé. D'où `--synopsis-anglais`, drapeau
+explicite plutôt que repli silencieux : écrire de l'anglais sur un site
+français est une décision éditoriale, elle doit se voir dans la commande.
+**1 458 synopsis écrits.**
+
+**La mention « (Synopsis indisponible en Français pour l'instant) » va à la
+fin du texte, pas au début.** `useSeo` compose la description et l'`og:description`
+depuis le début du synopsis (§7) : une mention en tête les mangerait
+entièrement, or donner du texte à lire à un moteur est précisément le gain
+visé. En queue, la description reste le résumé du film.
+
+**Deux pièges de sélection, tous deux muets :**
+
+- **`tagline` ne peut pas servir de critère.** Nulle sur des milliers de films
+  et presque jamais publiée en français par TMDB, elle sélectionnait 7 258
+  fiches dont les douze premières n'avaient rien à recevoir. Un critère qui
+  ramasse tout ne sélectionne rien ;
+- **`synopsis.is.null` ne voit pas une chaîne vide.** 54 fiches en portaient
+  une, invisibles du filtre. Même faute que les 375 EAN editioncollector
+  écrits `''` (§9), dans l'autre sens : là une absence passait pour une
+  valeur, ici pour une présence.
+
 ### Classement (2026-07-31)
 
 | Fichier | Rôle |
@@ -4680,11 +4744,11 @@ branché sur l'enrichissement dvdfr par code-barres, et les flux marchands.
   de la migration Cloudflare. Ne pas fermer le catalogue.
 - **Rapatrier les images** hébergées chez editioncollector
 - **Supprimer la branche `DEPLOY_TARGET=github`** de `vite.config.ts`
-- **Cinq acteurs par film au maximum**, limite de l'import TMDB et non de
-  l'affichage. La passe photos du 30 juillet 2026 a réinterrogé les crédits
-  sans lever la limite : `NB_ACTEURS` vaut 5 par défaut dans `enrichir_tmdb.py`
-  et se règle par l'environnement. Passer à 12 est une commande, plus un
-  chantier :
+- ~~**Cinq acteurs par film au maximum**~~, **fait le 5 août 2026.** La limite
+  venait de l'import TMDB et non de l'affichage, `NB_ACTEURS` valant 5 par
+  défaut. Passée à 12 sur tout le catalogue : la moyenne va de 5 à **11,0
+  acteurs**, et 11 348 films en portent plus de cinq contre 1 004 avant. Les
+  681 qui restent sous six sont des films dont TMDB ne crédite pas davantage.
 
       NB_ACTEURS=12 AVANCEMENT=cast12.avancement.json \
         python3 enrichir_tmdb.py --apply --cast-seul
