@@ -4,6 +4,22 @@
 
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+      <!--
+        Vérification de propriété Awin, seconde méthode.
+        `public/9a3309900ec9987a63d8812301e689c2.html` porte déjà la première,
+        mais **Cloudflare Pages retire l'extension `.html`** et répond 308 vers
+        la forme sans extension. Awin interroge l'URL avec l'extension : si son
+        vérificateur ne suit pas les redirections, le fichier seul échoue.
+        Les deux méthodes ensemble ne dépendent d'aucune supposition.
+
+        Ce jeton n'est pas un secret, comme l'enregistrement TXT de la Search
+        Console : il prouve la possession, il n'ouvre rien. Il est inerte et ne
+        varie pas d'une page à l'autre, donc il échappe à la règle du canonical
+        commentée plus bas.
+      -->
+      <meta name="verification" content="9a3309900ec9987a63d8812301e689c2" />
+
       <title>jaquette.app, le catalogue des éditions Blu-ray et 4K françaises</title>
       <meta name="description" content="Retrouvez toutes les éditions physiques d’un film : steelbook, coffret collector, 4K, digibook. Comparez formats et contenus, et gardez la trace de votre collection." />
 
