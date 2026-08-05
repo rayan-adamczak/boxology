@@ -21,9 +21,12 @@
  * Lecture seule, aucune écriture en base.
  */
 
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { resolve, dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
+
+import { detourerFichier } from "./detourer.mjs";
 
 export const RACINE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
@@ -157,6 +160,15 @@ const POIDS_MINIMAL = 6000;
 
 const cache = new Map();
 
+/* Détourage actif par défaut. `CARROUSEL_SANS_DETOURAGE=1` le coupe, pour
+   comparer une série avec et sans sans toucher au code. */
+const detourage = !process.env.CARROUSEL_SANS_DETOURAGE;
+
+let travail = null;
+let compteur = 0;
+const dossierTravail = () =>
+  (travail ??= mkdtempSync(join(tmpdir(), "jaquette-detour-")));
+
 async function telecharger(url) {
   if (cache.has(url)) return cache.get(url);
   let resultat = null;
@@ -211,8 +223,22 @@ export async function visuel(edition, { minLargeur = 400 } = {}) {
     const fichier = await telecharger(url);
     if (!fichier) continue;
     if (fichier.largeur && fichier.largeur < minLargeur) continue;
+
+    /* Détourage du fond blanc, quand la photo s'y prête. `detourerFichier`
+       refuse de lui-même et dit pourquoi ; on garde alors l'original, qui reste
+       parfaitement lisible, simplement sur son cyclo. */
+    let buf = fichier.buf;
+    let type = fichier.type;
+    let detoure = false;
+    if (detourage) {
+      const r = detourerFichier(fichier.buf, dossierTravail(), `d${compteur++}`);
+      if (r.buf) { buf = r.buf; type = "image/png"; detoure = true; }
+      else if (process.env.CARROUSEL_VERBEUX) console.log(`  fond gardé : ${r.refus}`);
+    }
+
     return {
-      src: `data:${fichier.type};base64,${fichier.buf.toString("base64")}`,
+      src: `data:${type};base64,${buf.toString("base64")}`,
+      detoure,
       largeur: fichier.largeur ?? null,
       hauteur: fichier.hauteur ?? null,
       /* Sans en-tête lisible on ne connaît pas le rapport : le gabarit

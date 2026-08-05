@@ -234,9 +234,13 @@ try {
     await rendre(chrome, join(profil, numero), cheminHtml, cheminPng);
 
     const poids = Math.round(statSync(cheminPng).size / 1024);
+    /* Le détourage est annoncé planche par planche : c'est une heuristique, elle
+       se trompe sur un visuel de temps en temps, et l'aperçu est l'endroit où on
+       le voit. Le taire ferait chercher longtemps d'où vient une bavure. */
     console.log(
       `  ${numero}  ${descripteur.type.padEnd(11)} ` +
-      `${NOMS_COULEURS[i % 3].padEnd(6)} ${String(poids).padStart(4)} Ko`);
+      `${NOMS_COULEURS[i % 3].padEnd(6)} ${String(poids).padStart(4)} Ko` +
+      `${descripteur.visuel?.detoure ? "  détouré" : ""}`);
   }
 
   /* La légende part dans un fichier plutôt qu'à l'écran : elle porte des sauts
