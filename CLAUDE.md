@@ -1,7 +1,28 @@
 # Jaquette, contexte projet
 
-Catalogue des éditions physiques de films (Blu-ray, 4K, steelbooks, coffrets)
-pour le marché français. Anciennement *Boxology*, renommé en juillet 2026.
+Catalogue des éditions physiques de films (Blu-ray, 4K, DVD, steelbooks,
+coffrets) pour le marché français. Anciennement *Boxology*, renommé en
+juillet 2026.
+
+**Le DVD est entré le 6 août 2026**, et c'est le premier élargissement du
+périmètre depuis l'origine. Ce qui l'a emporté n'est pas le volume :
+
+- **le code-barres.** Les DVD Leclerc en portent 100 %, là où Zavvi et Metaluna
+  n'en publient aucun. C'est la couverture EAN qui bloque le scan, fonction la
+  plus demandée du §8, et le DVD est la première vague à la faire monter ;
+- **les collections réelles.** Le banc d'essai du 2 août portait sur des listes
+  intitulées « DVD / Blu-ray / Steelbook » et « vidéothèque UHD/BD/DVD ». Les
+  gens rangent leurs DVD sur la même étagère.
+
+**Ce n'est pas le trou 2000-2014 qui l'a motivé, et il ne faut pas le vendre
+comme tel.** Cherchés dans les 3 478 DVD Leclerc, les 19 absents nommés du banc
+d'essai rendent 4 titres, exactement ceux que le Blu-ray apportait déjà. Le trou
+est un trou de **fonds**, pas de format.
+
+**Le périmètre était déjà entamé sans que personne le sache** : 1 647 fiches
+Zavvi `/p/dvd/` étaient en base depuis le 2 août, sans étiquette de format, et
+la FAQ promettait encore que « le catalogue ne vise pas le DVD seul ». C'est ce
+qui a fait de l'étiquetage (§6) le préalable, et non une finition.
 
 ---
 
@@ -2263,6 +2284,33 @@ prochaine source de ce genre** : Zavvi ne publie aucun code-barres, donc la
 couverture EAN redescend de 34,5 à 33,8 %, exactement ce qui bloque le scan
 du §8. Le contenu est propre, 533 des 556 sont des films et séries ordinaires,
 le reste une vingtaine de spectacles et de captations que TMDB référence.
+
+#### Le DVD n'y ajoute rien, mesuré le 6 août 2026
+
+L'entrée du DVD au catalogue (§1) laissait espérer un gisement Zavvi : 5 051
+fiches `/p/dvd/` sont crawlées, dont 3 404 jamais écrites. **Il est nul**, et il
+faut le chiffre pour ne pas rouvrir le dossier une troisième fois.
+
+La chaîne Zavvi **n'a jamais écarté le DVD** : `ecrire_zavvi.py` le porte dans
+son vocabulaire de formats depuis le début, et la reprise du 4 août a bien
+traité les DVD avec les quatre mesures.
+
+    321 surs      dont 282 deja en base, 39 restants
+    663 a_relire  jamais ecrits
+  2 516 echecs    dont 2 222 « aucun titre exact » et 294 sans nom
+
+    ecrire_zavvi.py --reprise --rattachees-seules  ->  0 édition à créer
+
+**Les 39 tombent sur les deux filtres de l'écriture**, dédup et contrôle croisé
+de durée, ceux-là mêmes décrits ci-dessus. Et les 663 `a_relire` ne sont pas un
+reliquat à forcer : ils tiennent par **une seule mesure faible**, la durée seule
+la plupart du temps, c'est-à-dire le cas `Andy's Baby Animals` documenté plus
+haut, un documentaire animalier rattaché à une série d'horreur japonaise sur une
+concordance 100/100. Sans année ni date de parution, le plafond ne s'applique
+pas et rien ne les départage.
+
+**Filon épuisé, comme Metaluna, et pour la même raison** : ce qui manque n'est
+pas la mesure mais le **candidat**. Ne pas relancer sans une mesure neuve.
 
 ---
 
