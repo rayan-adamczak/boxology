@@ -1760,6 +1760,37 @@ liste pas les autres éditions du même film, et leurs pages éditeur sont vides
 côté HTML. Elle enrichit l'existant, elle ne l'élargit pas, donc **le trou de
 source du §8 reste entier**.
 
+#### Interroger dvdfr par titre : fermé, et cette fois c'est établi
+
+La question revient à chaque fois qu'on bute sur les éditions sans code-barres,
+parce qu'elle est la bonne : leurs URL de fiche **portent l'EAN en clair**, avec
+le titre et le réalisateur, donc une recherche par titre donnerait le code sans
+même ouvrir la page.
+
+    /dvd/3512394012783-reglements-de-comptes-a-o-k-corral-john-sturges/
+          └── EAN ──┘ └──────── titre ────────┘ └─ réalisateur ─┘
+
+Sondé une bonne fois le 6 août 2026, `sonde_recherche.py`, et **les quatre voies
+sont closes** :
+
+    /api/search.php, /api/dvd.php   404 d'Express, l'API XML n'existe plus
+    facettes du listing             Disallow
+    /listeliv.php                   200, 81 464 o, aucun lien de fiche
+    /sitemap.xml                    200, mais 26 nouveautés, pas un catalogue
+    recherche par mots              Disallow: /*mots_recherche*
+
+**La dernière est une politique déclarée, pas un obstacle technique**, et c'est
+ce qui tranche : `/recherche_avancee.php` répond, le formulaire existe, seul le
+paramètre qui porte la requête est interdit au bloc `User-agent: *`. Le §5
+respecte un `Disallow` nommé ; s'y soustraire parce que la page répond quand
+même serait exactement ce que ce paragraphe refuse ailleurs.
+
+`ClaudeBot: Disallow: /` s'y ajoute, donc l'assistant ne sonde pas non plus.
+
+**Ne pas rouvrir sans qu'une de ces cinq lignes ait changé.** Ce qui reste pour
+les éditions sans code-barres est ailleurs : les boutiques d'éditeur quand elles
+existent, et les flux marchands français, Fnac et Cultura, en attente sur Awin.
+
 Résultat du 3 août 2026 : 5 440 codes interrogés, **4 967 fiches trouvées**,
 473 inconnues chez eux, **zéro erreur**, et 4 951 éditions enrichies.
 
