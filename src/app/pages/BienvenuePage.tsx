@@ -603,7 +603,7 @@ export function BienvenuePage() {
   useSeo({
     titre: "Bienvenue",
     description:
-      "jaquette.app recense les éditions physiques de films sorties en France : Blu-ray, 4K, steelbooks et coffrets. Marquez ce que vous possédez, gardez la liste de ce qu’il vous manque.",
+      "jaquette.app recense les éditions physiques de films sorties en France : Blu-ray, 4K, DVD, steelbooks et coffrets. Marquez ce que vous possédez, gardez la liste de ce qu’il vous manque.",
   });
 
   useEffect(() => {

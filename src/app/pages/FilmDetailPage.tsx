@@ -536,10 +536,10 @@ export function FilmDetailPage() {
       ? extrait(film.synopsis)
       : nb > 0
       ? `${nb} édition${nb > 1 ? "s" : ""} de ${film.titre}${annee} recensée${nb > 1 ? "s" : ""} : formats, zones, dates de sortie et codes-barres.`
-      : `Les éditions Blu-ray, 4K et coffrets de ${film.titre}${annee}.`;
+      : `Les éditions Blu-ray, 4K, DVD et coffrets de ${film.titre}${annee}.`;
 
     return {
-      titre: `${film.titre}${annee}, éditions Blu-ray, 4K et coffrets`,
+      titre: `${film.titre}${annee}, éditions Blu-ray, 4K, DVD et coffrets`,
       description,
       image: film.affiche_url,
       type: "video.movie",

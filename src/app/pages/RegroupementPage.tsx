@@ -55,7 +55,7 @@ const TEXTES: Record<NomAxe, { intro: (l: string, total: number) => string; vide
   },
   genres: {
     intro: (libelle, total) =>
-      `${total} films de genre ${libelle.toLowerCase()} disponibles en édition physique : Blu-ray, 4K, steelbooks et coffrets.`,
+      `${total} films de genre ${libelle.toLowerCase()} disponibles en édition physique : Blu-ray, 4K, DVD, steelbooks et coffrets.`,
     vide: "Aucun film de ce genre n'a d'édition recensée.",
   },
   collections: {
@@ -212,6 +212,7 @@ export function RegroupementPage({ axe }: { axe: NomAxe }) {
           editions={editions}
           montrerEditeur={axe !== "publishers"}
           montrerNumero={axe === "collections"}
+          formatEnTete={axe === "formats" ? entree.libelle : undefined}
         />
       )}
 
@@ -271,16 +272,35 @@ function GrilleEditions({
   editions,
   montrerEditeur,
   montrerNumero,
+  formatEnTete,
 }: {
   editions: LigneEdition[];
   montrerEditeur: boolean;
   /** Affiche le rang dans la série : vrai sur une page de collection seule. */
   montrerNumero: boolean;
+  /**
+   * Le format de la page, à faire passer devant les autres badges.
+   *
+   * La carte n'en montre que deux, faute de place à six colonnes, et les
+   * formats sortent dans l'ordre où la source les a écrits : sur
+   * `/formats/dvd`, « Répulsion » s'annonçait « Blu-ray · Coffret », son DVD
+   * tombant en troisième. Une page qui ne montre jamais le format qu'elle
+   * liste se lit comme un défaut de filtre, alors que la sélection est juste.
+   */
+  formatEnTete?: string;
 }) {
   return (
     <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
       {editions.map((edition) => {
-        const formats = splitList(edition.formats_extraits).slice(0, 2);
+        const tous = splitList(edition.formats_extraits);
+        const formats = (
+          formatEnTete
+            ? [
+                ...tous.filter((f) => f === formatEnTete),
+                ...tous.filter((f) => f !== formatEnTete),
+              ]
+            : tous
+        ).slice(0, 2);
         const lien = lienFilm(edition.film);
         const contenu = (
           <>

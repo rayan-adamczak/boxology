@@ -54,7 +54,7 @@ export const FAQ: SectionFaq[] = [
         ancre: "what-is-jaquette",
         question: "Qu’est-ce que jaquette.app ?",
         reponse: [
-          "Un catalogue des éditions physiques de films sorties en France : Blu-ray, 4K, steelbooks, digibooks, coffrets. Plus de 15 000 éditions rattachées à plus de 8 500 œuvres.",
+          "Un catalogue des éditions physiques de films sorties en France : Blu-ray, 4K, DVD, steelbooks, digibooks, coffrets. Plus de 23 000 éditions rattachées à plus de 12 000 œuvres.",
           "Un même film existe souvent en dizaines d’éditions, et ces différences comptent pour qui collectionne. Aucune base ne les recensait correctement en français.",
         ],
       },
@@ -117,8 +117,8 @@ export const FAQ: SectionFaq[] = [
         ancre: "which-formats",
         question: "Quels supports sont couverts ?",
         reponse: [
-          "Le Blu-ray, le Blu-ray 4K et le Blu-ray 3D, avec leurs variantes de boîtier : steelbook, digipack, digibook, coffret, slipcover.",
-          "Le DVD n’est présent que lorsqu’il accompagne un Blu-ray dans un combo. Le catalogue ne vise pas le DVD seul.",
+          "Le Blu-ray, le Blu-ray 4K, le Blu-ray 3D et le DVD, avec leurs variantes de boîtier : steelbook, digipack, digibook, coffret, slipcover.",
+          "Le DVD a longtemps été écarté, et il est entré au catalogue en août 2026 : les collections qu’on nous décrit mêlent les deux, et un disque qu’on possède n’a pas à être haute définition pour figurer sur son étagère.",
         ],
       },
       {

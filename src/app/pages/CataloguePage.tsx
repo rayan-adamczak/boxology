@@ -56,7 +56,7 @@ export function CataloguePage() {
       : {
           titre: "Parcourir le catalogue",
           description:
-            "Cherchez un film et comparez ses éditions physiques françaises : Blu-ray, 4K, steelbooks, digibooks et coffrets.",
+            "Cherchez un film et comparez ses éditions physiques françaises : Blu-ray, 4K, DVD, steelbooks, digibooks et coffrets.",
         },
   );
 

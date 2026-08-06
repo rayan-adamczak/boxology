@@ -51,7 +51,7 @@ export function Footer() {
           <p style={{ fontSize: "14px", lineHeight: "21px", color: "var(--reel-muted)" }}>
             Le catalogue des éditions physiques de films.
             <br />
-            Blu-ray, 4K, steelbooks et coffrets, pour le marché français.
+            Blu-ray, 4K, DVD, steelbooks et coffrets, pour le marché français.
           </p>
 
           {/*

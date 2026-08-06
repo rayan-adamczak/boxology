@@ -202,10 +202,10 @@ function metadonnees(film: FilmSeo) {
     ? extrait(film.synopsis)
     : nb > 0
     ? `${nb} édition${nb > 1 ? "s" : ""} de ${film.titre}${annee} recensée${nb > 1 ? "s" : ""} : formats, zones, dates de sortie et codes-barres.`
-    : `Les éditions Blu-ray, 4K et coffrets de ${film.titre}${annee}.`;
+    : `Les éditions Blu-ray, 4K, DVD et coffrets de ${film.titre}${annee}.`;
 
   return {
-    titre: `${film.titre}${annee}, éditions Blu-ray, 4K et coffrets | ${SITE_NOM}`,
+    titre: `${film.titre}${annee}, éditions Blu-ray, 4K, DVD et coffrets | ${SITE_NOM}`,
     description,
     image: film.affiche_url,
   };
@@ -782,7 +782,7 @@ function metaRegroupement(axe: NomAxe, libelle: string | null, total: number, pa
       titre: `${nom} du catalogue | ${SITE_NOM}`,
       description:
         axe === "formats"
-          ? "Blu-ray, 4K, steelbook, digipack, coffret. Le format est relevé sur la fiche de l'édition, jamais déduit du titre."
+          ? "Blu-ray, 4K, DVD, steelbook, digipack, coffret. Le format vient de la fiche de l'édition quand la source le publie, et du nom du produit sinon."
           : /* `publishers` et non `editeurs` : la clé d'axe a été renommée
                avec les URL le 1er août 2026, et cette branche testait encore
                l'ancienne. Elle ne s'exécutait donc jamais, et les 44 pages
@@ -802,7 +802,7 @@ function metaRegroupement(axe: NomAxe, libelle: string | null, total: number, pa
       ? `${total} éditions publiées par ${libelle} : formats, dates de parution et codes-barres.`
       : axe === "collections"
       ? `${total} éditions de la collection ${libelle}, dans l'ordre de la série quand le numéro est connu.`
-      : `${total} films de genre ${libelle.toLowerCase()} disponibles en édition physique : Blu-ray, 4K, steelbooks et coffrets.`;
+      : `${total} films de genre ${libelle.toLowerCase()} disponibles en édition physique : Blu-ray, 4K, DVD, steelbooks et coffrets.`;
   const suffixe = page > 1 ? `, page ${page} sur ${pages}` : "";
   return { titre: `${libelle}, ${nom.toLowerCase()}${suffixe} | ${SITE_NOM}`, description };
 }
@@ -1037,7 +1037,7 @@ async function servirAccueil(url: URL, next: () => Promise<Response>): Promise<R
 
   const canonical = `${url.origin}/`;
   const meta = {
-    titre: `${SITE_NOM}, le catalogue des éditions Blu-ray et 4K françaises`,
+    titre: `${SITE_NOM}, le catalogue des éditions Blu-ray, 4K et DVD françaises`,
     description:
       `Les éditions physiques de ${films_total} films et séries publiées en France : Blu-ray, 4K, ` +
       `steelbooks et coffrets, avec leurs formats, leur éditeur et leur code-barres.`,

@@ -112,9 +112,9 @@ export function BrowsePage() {
           noindex: true,
         }
       : {
-          titre: "jaquette.app, le catalogue des éditions Blu-ray et 4K françaises",
+          titre: "jaquette.app, le catalogue des éditions Blu-ray, 4K et DVD françaises",
           description:
-            "Retrouvez toutes les éditions physiques d’un film : steelbook, coffret collector, 4K, digibook. Comparez formats et contenus, et gardez la trace de votre collection.",
+            "Retrouvez toutes les éditions physiques d’un film : steelbook, coffret collector, 4K, Blu-ray, DVD. Comparez formats et contenus, et gardez la trace de votre collection.",
           racine: true,
         },
   );

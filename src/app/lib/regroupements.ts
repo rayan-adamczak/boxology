@@ -23,15 +23,16 @@ export interface Regroupement {
 
 /** `formats_extraits` des éditions. */
 export const FORMATS: Regroupement[] = [
-  { slug: "blu-ray", libelle: "Blu-ray", compte: 14364 },
-  { slug: "blu-ray-4k", libelle: "Blu-ray 4K", compte: 5715 },
-  { slug: "steelbook", libelle: "Steelbook", compte: 2204 },
-  { slug: "dvd", libelle: "DVD", compte: 1553 },
+  { slug: "blu-ray", libelle: "Blu-ray", compte: 17307 },
+  { slug: "blu-ray-4k", libelle: "Blu-ray 4K", compte: 5831 },
+  { slug: "dvd", libelle: "DVD", compte: 3268 },
+  { slug: "steelbook", libelle: "Steelbook", compte: 2569 },
+  { slug: "coffret", libelle: "Coffret", compte: 2368 },
   { slug: "slipcover", libelle: "Slipcover", compte: 1070 },
+  { slug: "digibook", libelle: "Digibook", compte: 843 },
   { slug: "digipack", libelle: "Digipack", compte: 706 },
-  { slug: "coffret", libelle: "Coffret", compte: 463 },
-  { slug: "digibook", libelle: "Digibook", compte: 220 },
-  { slug: "blu-ray-3d", libelle: "Blu-ray 3D", compte: 128 },
+  { slug: "blu-ray-3d", libelle: "Blu-ray 3D", compte: 153 },
+  { slug: "combo", libelle: "Combo", compte: 29 },
 ];
 
 /** `editeur` des éditions, source blu-ray.com. */

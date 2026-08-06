@@ -16,7 +16,7 @@ import { useSeo } from "../lib/seo";
 
 const INTROS: Record<NomAxe, string> = {
   formats:
-    "Blu-ray, 4K, steelbook, digipack, coffret. Le format est relevé sur la fiche de l'édition, jamais déduit du titre.",
+    "Blu-ray, 4K, DVD, steelbook, digipack, coffret. Le format vient de la fiche de l'édition quand la source le publie, et du nom du produit sinon.",
   publishers:
     "Les éditeurs vidéo présents au catalogue. L'information vient de la fiche technique du disque, elle qualifie donc l'objet et non l'œuvre.",
   genres: "Les genres des films du catalogue, tels que TMDB les renseigne.",
