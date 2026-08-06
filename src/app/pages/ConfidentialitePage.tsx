@@ -34,10 +34,19 @@ export function ConfidentialitePage() {
           affilié : si vous cliquez et que vous achetez, une commission nous est versée par le
           marchand. Le prix que vous payez est identique, avec ou sans ce lien.
         </p>
+        {/*
+          **La liste des marchands est nommée, pas résumée.** « Nos partenaires »
+          serait plus commode à tenir et ne dirait rien : l'article L. 121-1 du
+          code de la consommation demande que la nature commerciale du lien soit
+          identifiable, et savoir chez qui l'on part en fait partie. momox shop
+          s'ajoute le 6 août 2026, et il faut préciser qu'il vend de l'occasion :
+          un prix bien plus bas que le neuf a une raison, et elle se dit.
+        */}
         <p>
           Ces liens passent par <strong style={{ color: "var(--reel-text)" }}>Awin</strong>, une
-          plateforme d’affiliation, et mènent aujourd’hui à un seul marchand,{" "}
-          <strong style={{ color: "var(--reel-text)" }}>E.Leclerc</strong>.
+          plateforme d’affiliation, et mènent aujourd’hui à deux marchands,{" "}
+          <strong style={{ color: "var(--reel-text)" }}>E.Leclerc</strong> pour les disques neufs
+          et <strong style={{ color: "var(--reel-text)" }}>momox shop</strong> pour l’occasion.
         </p>
         <p>
           <strong style={{ color: "var(--reel-text)" }}>Rien n’est déposé tant que vous ne
@@ -188,8 +197,9 @@ export function ConfidentialitePage() {
             des boîtiers.
           </li>
           <li>
-            <strong style={{ color: "var(--reel-text)" }}>Awin</strong> et le marchand{" "}
-            <strong style={{ color: "var(--reel-text)" }}>E.Leclerc</strong>, uniquement si vous
+            <strong style={{ color: "var(--reel-text)" }}>Awin</strong> et les marchands{" "}
+            <strong style={{ color: "var(--reel-text)" }}>E.Leclerc</strong> et{" "}
+            <strong style={{ color: "var(--reel-text)" }}>momox shop</strong>, uniquement si vous
             cliquez sur un prix affiché.
           </li>
         </ul>

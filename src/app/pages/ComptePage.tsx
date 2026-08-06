@@ -14,6 +14,7 @@ import {
 } from "../lib/identifiant";
 import { exporterCollectionCsv, telecharger } from "../lib/export-collection";
 import { etatIdentifiant, majProfil, useProfil, type EtatIdentifiant } from "../lib/profils";
+import { formaterEuros, valeurCollection, type ValeurCollection } from "../lib/valeur";
 import { SITE_ORIGIN } from "../lib/seo";
 
 /**
@@ -78,6 +79,8 @@ export function ComptePage() {
           </Section>
 
           <ProfilPublicReglages />
+
+          <ValeurEstimee />
 
           <ExportCollection />
 
@@ -342,6 +345,126 @@ function normaliser(valeur: string): string {
  * aucune sauvegarde de laquelle revenir, le geste doit demander une intention
  * explicite.
  */
+/**
+ * Valeur estimée de la collection, sur les prix d'occasion.
+ *
+ * **Deuxième fonction la plus demandée** du relevé du 2 août 2026, et la
+ * première fois qu'elle peut s'écrire sans mentir : momox shop, accepté sur
+ * Awin le 6 août 2026, est la première source de seconde main du catalogue.
+ * Ce que le nombre veut dire, et ce qu'il ne veut pas dire, est dans
+ * `lib/valeur.ts`.
+ *
+ * **Sur `/account` et nulle part ailleurs, en particulier pas sur `/u/…`.** Le
+ * profil public montre ce qu'on possède, et c'est déjà un changement de posture
+ * assumé (§10) ; ce qu'une collection vaut est autre chose. Publier l'inventaire
+ * chiffré de biens qui dorment chez quelqu'un, sous un identifiant qu'un moteur
+ * indexe, n'est pas une fonction qu'on ajoute sans que la personne l'ait
+ * demandé. Cette page-là est en `noindex` et ne se lit que connecté.
+ *
+ * **Rien n'est calculé avant qu'on le demande.** Un compte de mille éditions
+ * coûte cinq requêtes par lots de deux cents, et l'immense majorité des visites
+ * à `/account` viennent chercher autre chose. C'est aussi la règle du §8 vue de
+ * l'autre bout : ce qui se décide au premier rendu doit se décider sans réseau,
+ * donc ce qui demande le réseau ne se décide pas au premier rendu.
+ */
+function ValeurEstimee() {
+  const [etat, setEtat] = useState<"repos" | "calcul" | "fait" | "panne">("repos");
+  const [valeur, setValeur] = useState<ValeurCollection | null>(null);
+
+  async function estimer() {
+    setEtat("calcul");
+    try {
+      setValeur(await valeurCollection());
+      setEtat("fait");
+    } catch {
+      setEtat("panne");
+    }
+  }
+
+  return (
+    <Section titre="Valeur estimée de ma collection">
+      <p>
+        Une estimation de ce qu’il coûterait de racheter vos disques d’occasion aujourd’hui, au
+        moins cher des exemplaires en vente chez nos partenaires.
+      </p>
+
+      {etat !== "fait" && (
+        <div className="pt-1">
+          <Bouton onClick={() => { void estimer(); }} disabled={etat === "calcul"}>
+            {etat === "calcul" ? "Calcul…" : "Estimer ma collection"}
+          </Bouton>
+        </div>
+      )}
+
+      {etat === "panne" && (
+        <p>Le calcul a échoué. Réessayez dans un instant.</p>
+      )}
+
+      {etat === "fait" && valeur && valeur.possedees === 0 && (
+        <p>
+          Votre collection est vide. Marquez des éditions comme possédées depuis une fiche film,
+          et le calcul aura de quoi travailler.
+        </p>
+      )}
+
+      {etat === "fait" && valeur && valeur.possedees > 0 && (
+        <>
+          <Encadre>
+            {valeur.estimees === 0 ? (
+              <>
+                Aucune de vos {valeur.possedees} édition{valeur.possedees > 1 ? "s" : ""} ne porte
+                de prix d’occasion connu. Ce n’est pas un défaut de votre collection : nos
+                partenaires publient un prix pour une édition sur quinze.
+              </>
+            ) : (
+              <>
+                <span
+                  className="tabular-nums"
+                  style={{ fontSize: "24px", fontWeight: 600, color: "var(--reel-text)" }}
+                >
+                  {formaterEuros(valeur.total)}
+                </span>
+                <br />
+                {/*
+                  **Le dénominateur est collé au total, jamais dans une note plus
+                  bas.** 1 618 éditions du catalogue portent un prix d'occasion
+                  sur 23 803 : un montant présenté seul laisserait croire qu'il
+                  couvre toute la collection. C'est la même règle qu'au §4, un
+                  taux se lit avec ce qui le divise.
+                */}
+                sur {valeur.estimees} édition{valeur.estimees > 1 ? "s" : ""} estimée
+                {valeur.estimees > 1 ? "s" : ""} — vous en possédez {valeur.possedees}.
+                {valeur.medianeUnitaire !== null && (
+                  <> Médiane {formaterEuros(valeur.medianeUnitaire)} par disque.</>
+                )}
+              </>
+            )}
+          </Encadre>
+
+          {valeur.estimees > 0 && (
+            <>
+              <p>
+                {/* La date la plus ancienne du lot, pas la plus fraîche : c'est
+                    elle qui dit ce que vaut l'estimation (§10). */}
+                Prix d’occasion relevés chez {valeur.marchands.join(", ")}, le plus ancien datant du{" "}
+                {new Date(valeur.releveLePlusAncien ?? "").toLocaleDateString("fr-FR")}.
+              </p>
+              <p>
+                {/* Trois limites, écrites parce qu'elles sont le sujet. Le §8
+                    refusait ce total tant qu'il ne pouvait pas être qualifié. */}
+                C’est un plancher, pas une cote : le total ne compte que les éditions dont un
+                partenaire publie un prix, retient le moins cher, et ne dit pas ce qu’un
+                revendeur vous en donnerait — un marchand d’occasion achète bien moins cher
+                qu’il ne vend. Rien n’est publié sur votre page publique.
+              </p>
+            </>
+          )}
+        </>
+      )}
+    </Section>
+  );
+}
+
 /**
  * Export CSV de la collection et des envies.
  *

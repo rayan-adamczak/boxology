@@ -87,6 +87,7 @@ export const FAQ: SectionFaq[] = [
         reponse: [
           "Non. Le site ne vend rien et n’encaisse aucun paiement : tout achat se conclut chez le marchand, sous ses propres conditions.",
           "Certaines éditions affichent en revanche un prix accompagné du nom d’un marchand, depuis août 2026. Ce sont des liens affiliés : si vous achetez après avoir cliqué, une commission nous est versée. Le prix que vous payez, lui, ne change pas.",
+          "Deux marchands aujourd’hui : E.Leclerc pour les disques neufs, momox shop pour l’occasion. Une offre d’occasion porte la mention de son état à côté du prix, et c’est ce qui explique un montant parfois très inférieur au neuf.",
           "Un prix affiché sans nom de marchand est un prix conseillé par l’éditeur du disque, relevé à sa sortie. Ce n’est pas une offre de vente.",
         ],
       },
@@ -252,7 +253,18 @@ export const FAQ: SectionFaq[] = [
         ancre: "import-and-export",
         question: "Puis-je exporter ou importer mes listes ?",
         reponse: [
-          "Pas encore. Il n’y a ni import depuis un autre service ni export au format fichier. C’est une lacune connue.",
+          "L’export existe depuis août 2026, dans les réglages du compte : un fichier CSV de votre collection et de vos envies, une ligne par édition, avec le film, l’éditeur, le code-barres et le lien vers la fiche. Il est gratuit et le restera.",
+          "L’import depuis un autre service n’existe pas encore. C’est une lacune connue.",
+        ],
+      },
+      {
+        ancre: "collection-value",
+        question: "Combien vaut ma collection ?",
+        reponse: [
+          "Les réglages du compte donnent une estimation, sur demande. Elle additionne, pour chaque édition que vous possédez, le prix d’occasion le moins cher relevé chez nos partenaires.",
+          "C’est un plancher, pas une cote. Elle ne compte que les éditions dont un partenaire publie un prix d’occasion, soit une sur quinze du catalogue aujourd’hui, et elle retient le moins cher des exemplaires en vente.",
+          "Et ce n’est pas ce qu’on vous en donnerait : un marchand d’occasion achète bien moins cher qu’il ne revend. L’estimation dit ce qu’il coûterait de racheter vos disques, pas ce que vous en tireriez.",
+          "Elle n’apparaît jamais sur votre page publique, et rien de chiffré n’y est publié.",
         ],
       },
     ],

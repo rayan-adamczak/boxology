@@ -14,6 +14,9 @@ import {
   splitList,
   agregerSpecs,
   zonesDe,
+  offreAAfficher,
+  estOccasion,
+  LIBELLE_ETAT,
   type Film,
   type Edition,
   type StatutValue,
@@ -1313,12 +1316,22 @@ export function FilmDetailPage() {
                             ligne d'un film à soixante éditions noierait la
                             valeur qu'on vient chercher.
                           */}
+                          {/*
+                            **L'offre est choisie, pas prise au hasard**, depuis
+                            que momox shop vend de l'occasion à côté du neuf
+                            d'E.Leclerc : `offreAAfficher` prend la moins chère
+                            et l'état est écrit à côté du marchand. Sans ce
+                            libellé, le classement par prix serait trompeur, un
+                            « état acceptable » à 3,49 € n'étant pas une bonne
+                            affaire sur un neuf mais un autre produit.
+                          */}
                           {(() => {
-                            const offre = (ed.offres ?? []).find((o) => formaterMontant(o.prix, o.devise));
+                            const offre = offreAAfficher(ed.offres);
                             if (offre) {
                               const montant = formaterMontant(offre.prix, offre.devise);
                               const jour = new Date(offre.releve_le).toLocaleDateString("fr-FR");
                               const lien = lienMarchand(offre.url);
+                              const etat = offre.etat ? LIBELLE_ETAT[offre.etat] : null;
                               /* Sans lien utilisable, on garde le prix et le
                                  marchand : c'est l'information, le lien n'est
                                  que le chemin pour y aller. Même repli que
@@ -1331,7 +1344,10 @@ export function FilmDetailPage() {
                                   >
                                     {montant}
                                   </span>
-                                  <span style={{ fontSize: "12px" }}>chez {offre.marchand}</span>
+                                  <span style={{ fontSize: "12px" }}>
+                                    chez {offre.marchand}
+                                    {etat ? ` — ${etat}` : ""}
+                                  </span>
                                 </>
                               );
                               return (
@@ -1436,6 +1452,19 @@ export function FilmDetailPage() {
                 Les prix marchands sont des liens affiliés : une commission peut nous être
                 versée si vous achetez, sans que le prix change pour vous. Prix relevés à la
                 date indiquée au survol, seul le site marchand fait foi.
+                {/*
+                  **La phrase d'occasion n'est écrite que si une occasion est
+                  affichée.** Même règle que la mention elle-même, qui ne paraît
+                  pas sur les 82 % du catalogue sans offre : annoncer de la
+                  seconde main sur une liste qui n'en porte pas est l'inverse
+                  d'informer. Et le test porte sur l'offre **retenue** par
+                  `offreAAfficher`, pas sur celles en base : dire « certains
+                  prix » d'une offre qu'on n'affiche pas serait faux.
+                */}
+                {filteredEditions.some((ed) => {
+                  const o = offreAAfficher(ed.offres);
+                  return o !== null && estOccasion(o);
+                }) && " Certaines offres portent sur un disque d'occasion, indiqué à côté du prix."}
               </p>
             )}
           </div>
