@@ -4576,9 +4576,59 @@ dans une barre de navigation rendait 500 sur un chemin de consultation. Elle
 rend maintenant 301 puis 404.
 
 **L'identifiant n'a pas d'id derrière lui**, contrairement à une fiche film où
-le slug est décoratif. Le changer change donc l'adresse pour de bon : les liens
-partagés cessent de fonctionner et l'ancien identifiant redevient libre.
-`/account` l'écrit avant le champ, pas après l'enregistrement.
+le slug est décoratif. Il a désormais une **table d'anciens noms**, ce qui
+revient au même pour qui suit un lien.
+
+#### Un lien partagé survit au renommage, le 6 août 2026
+
+`identifiants_precedents`, migration `20260806_identifiants_precedents.sql`.
+Clé primaire l'identifiant, `user_id` en cascade sur `auth.users`, `libere_le`.
+Un déclencheur `after insert or update` sur `profils` consigne l'ancien nom et
+retire celui qu'on reprend. `/u/<ancien>` répond **301** vers `/u/<courant>`,
+dans le middleware comme dans `ProfilPublicPage`.
+
+**Ce que la version précédente disait était l'inverse**, et c'était le mauvais
+arbitrage : « les liens partagés cessent de fonctionner et l'ancien identifiant
+redevient libre ». Une adresse de profil est faite pour être **donnée**, elle
+part dans un message ou une signature, et celui qui la reçoit n'a aucun moyen
+de savoir qu'elle a changé. Un 404 parce que quelqu'un a corrigé une faute de
+frappe dans son pseudonyme est une panne, pas une conséquence.
+
+**La contrepartie est réelle et non négociable : un identifiant porté n'est
+plus jamais rendu à la circulation.** Les deux règles ne peuvent pas coexister,
+et le sens est clair : si un tiers reprend `@rayan`, un lien partagé mène à
+**la collection de quelqu'un d'autre**, ce qui est bien pire qu'un 404.
+`etat_identifiant` rend donc `pris` pour l'ancien identifiant d'un autre
+compte, et `libre` pour les siens propres, revenir en arrière étant le cas
+normal. Ça se déjuge sans migration, un `delete` sur la table rend tout.
+
+**Le déclencheur est `security definer`, et c'est le point à ne pas rater** :
+il écrit dans une table en `revoke all`, donc en `security invoker` il
+s'exécuterait sous le rôle qui met à jour son profil et buterait sur ce refus.
+C'est le piège du §3 pris dans l'autre sens, là où on avait cru à tort qu'un
+déclencheur tournait sous le propriétaire.
+
+**`identifiant_courant` ne rend rien pour un profil devenu masqué**, alors même
+que la ligne existe : une redirection qui ne partirait que dans ce cas serait
+l'oracle que `profil_public` s'emploie à ne pas être. Un seul saut résout
+`a → b → c`, toutes les lignes d'un compte pointant le même `user_id`.
+
+**Elle n'est appelée qu'après un `profil_public` à `null`**, jamais avant : le
+renommage est le cas rare, et l'ajouter au chemin normal coûterait un
+aller-retour à chaque profil ouvert.
+
+**Rien n'est rattrapable en arrière** : aucun ancien identifiant n'était
+conservé avant cette date, donc les liens cassés par un renommage antérieur le
+restent. Ne pas chercher la passe de rattrapage, elle n'existe pas.
+
+Mesuré à l'application, huit contrôles sur huit, par un renommage réel du
+profil puis retour immédiat, et les barrières exercées à la clé anon :
+
+    GET  identifiants_precedents        401  42501 permission denied
+    POST identifiants_precedents        401  42501 permission denied
+    rpc/identifiant_courant <ancien>    200  "rayan"
+    rpc/identifiant_courant <inconnu>   200  null
+    rpc/etat_identifiant                401  permission denied for function
 
 `ProfilPublicPage` **n'est pas en `lazy()`** : c'est une porte d'entrée depuis
 l'extérieur, donc un chemin de consultation, et le §9 interdit qu'un tel chemin

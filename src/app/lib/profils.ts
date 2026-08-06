@@ -281,6 +281,32 @@ export async function profilPublic(identifiant: string): Promise<ProfilPublic | 
   };
 }
 
+/**
+ * L'identifiant du jour d'un compte qui en portait un autre, ou `null`.
+ *
+ * C'est ce qui fait qu'un lien partagé survit à un renommage : l'ancienne
+ * adresse redirige vers la nouvelle en 301, comme `/films/560` redirige vers
+ * `/movies/<slug>/560` (§7). Le §3 posait l'inverse, « l'ancien identifiant
+ * redevient libre » ; la contrepartie assumée est qu'un identifiant, une fois
+ * porté, n'est plus rendu à la circulation. Détail dans
+ * `20260806_identifiants_precedents.sql`.
+ *
+ * **Ne s'appelle qu'après un `profil_public` à `null`**, jamais avant : c'est
+ * le cas rare, et l'ajouter au chemin normal coûterait un aller-retour à
+ * chaque profil ouvert. Rend `null` pour un profil devenu masqué, exactement
+ * comme pour un identifiant inconnu — sinon la redirection deviendrait
+ * l'oracle que `profil_public` s'emploie à ne pas être.
+ */
+export async function identifiantCourant(identifiant: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("identifiant_courant", {
+    p_identifiant: identifiant,
+  });
+  // Une panne ici ne doit pas transformer un 404 en écran d'erreur : on rend
+  // `null`, l'appelant sert la page introuvable, qui est la bonne réponse.
+  if (error) return null;
+  return typeof data === "string" && data.length > 0 ? data : null;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Signalement                                                                 */
 /* -------------------------------------------------------------------------- */
