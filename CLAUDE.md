@@ -981,6 +981,38 @@ Mesuré le 3 août 2026 en fin de journée. **Ces chiffres bougent plusieurs foi
 par jour** depuis que les cinq passes tournent sur Actions et que les vagues
 Metaluna s'enchaînent : les relever plutôt que les recopier.
 
+### 6 août 2026, l'entrée du DVD
+
+| | 5 août | 6 août |
+|---|---|---|
+| Éditions | 23 803 | **26 689** |
+| Films | 12 129 | **13 216** |
+| **Codes-barres** | 8 090 (34,0 %) | **10 921 (40,9 %)** |
+| Éditions rattachées | 92,0 % | **92,9 %** |
+| Éditions portant un support connu | 19 027 (79,9 %) | **23 235 puis 26 121 (97,9 %)** |
+| dont `DVD` | 1 553 | **6 154** |
+| Sitemap | 13 623 URL | **14 857 URL** |
+
+    étiquetage des formats          7 418 éditions complétées, 0 créée
+    Leclerc, DVD qualifiés dvdfr    2 750 éditions,  1 087 films créés
+    boutiques d'éditeur               136 éditions
+    Zavvi                               0, filon épuisé (§5)
+
+**La couverture EAN franchit 40 % pour la première fois**, et c'est le vrai
+résultat de la journée. Toutes les vagues depuis Zavvi la faisaient baisser,
+le dénominateur montant plus vite que le numérateur ; celle-ci la relève de
+**6,9 points** parce que les DVD Leclerc portent un code-barres à 100 %. C'est
+elle qui bloquait le scan du §8, fonction la plus demandée.
+
+**Le taux de rattachement monte, et pour la raison habituelle** : ces lots
+n'écrivent que du rattaché. Un taux qui monte dit ce qu'on a écrit, pas ce
+qu'on a mesuré (§4, 4 août).
+
+**Ce que la journée n'a pas réglé**, et c'était mesuré d'avance : le creux
+2000-2014. Les 19 absents nommés du banc d'essai rendent 4 titres dans les
+3 478 DVD Leclerc, exactement ceux que le Blu-ray apportait déjà. Le DVD
+élargit le catalogue, il ne comble pas le fonds.
+
 Relevé à nouveau le **4 août 2026** après les imports Leclerc et The Jokers,
 puis en fin de journée, les écritures Leclerc s'étant poursuivies entre les deux.
 
@@ -4769,6 +4801,22 @@ disque.
   **Le flux Leclerc est la première source à pouvoir la relever**, avec 100 %
   d'EAN sur ses 7 090 disques, dont 6 393 inconnus de nous. C'est le meilleur
   argument d'un import, et le seul obstacle est le format non déclaré.
+
+  **Relevée le 6 août 2026 : 40,9 %**, 10 921 codes pour 26 689 éditions, contre
+  26,5 % ici et 34,0 % la veille. Ce qui a débloqué la chose n'est pas une
+  source neuve mais **l'entrée du DVD au catalogue** (§1) : les 3 478 DVD que
+  dvdfr avait qualifiés en août dormaient dans le cache, écartés par le seul
+  périmètre. Deux disques sur cinq se scannent désormais.
+
+  **Ce n'est toujours pas assez pour poser la caméra sans le dire.** Un scan qui
+  échoue trois fois sur cinq reste un scan qui déçoit, et la réponse au cas
+  manquant existe déjà, `/report` branché sur l'enrichissement dvdfr par
+  code-barres (§8). C'est ce couple qu'il faut livrer, pas le lecteur seul.
+
+  **Le levier suivant est mesuré et il est gros** : le flux Momox porte 154 887
+  lignes à EAN complet (§5). Il ne se déverse pas tel quel, marché allemand et
+  format déclaré sur un quart des lignes, mais c'est le seul gisement de cette
+  taille jamais relevé.
 - **La valeur de la collection, deuxième plus demandée. Le premier étage est
   posé**, `public.offres` portant 724 prix marchands réels et datés au 3 août
   2026.
