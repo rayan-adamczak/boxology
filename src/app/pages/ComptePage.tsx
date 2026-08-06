@@ -88,17 +88,22 @@ export function ComptePage() {
  * Cadre commun aux trois états.
  *
  * La bannière est **hors** de la gouttière, elle doit filer d'un bord à
- * l'autre ; le contenu, lui, s'aligne sur le mot-symbole du bandeau comme le
- * reste du site. La colonne reste bornée à 720 px : une ligne de réglage large
- * de 1 200 px met son libellé et sa valeur à deux mètres l'un de l'autre.
+ * l'autre ; le contenu, lui, prend la gouttière entière, comme `/u/<@>` juste
+ * à côté.
+ *
+ * **Il a d'abord été borné à 720 px**, au motif qu'une ligne de réglage large
+ * met son libellé et sa valeur à deux mètres l'un de l'autre. L'argument est
+ * juste sur la ligne, faux sur la page : la bannière file d'un bord à l'autre,
+ * et une colonne plus étroite qu'elle fait lire l'écran comme une page
+ * éditoriale posée sous un décor, pas comme le pendant du profil. Le §8 pose
+ * déjà la règle pour tout le site, la gouttière est le cadrage, un `max-w`
+ * local est ce dont on s'est débarrassé le 5 août 2026 sur sept pages.
  */
 function Coquille({ children }: { children: ReactNode }) {
   return (
     <>
       <Banniere />
-      <div className="reel-gouttiere pb-24">
-        <div className="max-w-[720px]">{children}</div>
-      </div>
+      <div className="reel-gouttiere pb-24">{children}</div>
     </>
   );
 }
