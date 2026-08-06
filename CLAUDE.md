@@ -6060,11 +6060,76 @@ Seule la capture d'écran dit vrai. Et dans le panneau d'aperçu, `input.focus()
 en JavaScript ne déclenche rien quand le panneau est masqué ; il faut un vrai
 clic.
 
+### Audience, premier relevé le 6 août 2026
+
+Le chiffre qui commande tous les autres : **0 lien externe**. Search Console n'en
+voit aucun, et c'est ce qui plafonne le classement, pas le contenu.
+
+    10 clics | 469 impressions | 82 requêtes | position moyenne 14,5
+    sur huit jours de mesure, du 28 juillet au 4 août
+
+    13 493 URL au sitemap, lues le 5 août
+       223 pages ayant reçu au moins une impression, soit 1,7 %
+        28 liens internes vus par Google
+
+**Deux pièges de lecture, tous deux rencontrés ce jour-là :**
+
+- **le sélecteur de période ment.** Il propose « 28 jours » et affiche ce qui
+  existe, ici huit. Lire les bornes sur le graphique, jamais le libellé du
+  filtre : annoncer dix clics sur vingt-huit jours sous-vend le trafic d'un
+  facteur trois et demi ;
+- **Search Console a ~48 h de latence.** Les données s'arrêtaient au 4 août
+  alors qu'on était le 6. Ce n'est pas un relevé périmé et recharger n'y change
+  rien.
+
+**Les 28 liens internes pointent des adresses mortes**, `/confidentialite`,
+`/a-propos`, `/films/7`, c'est-à-dire les formes d'avant le renommage du 1er
+août. L'index de Google est en retard d'une semaine sur le site, et les
+anciennes URL reçoivent encore des clics : les 301 sont en cours d'absorption,
+ce que le §7 annonçait à deux à quatre semaines. **Ne pas retoucher aux
+adresses tant que ça n'est pas résorbé.**
+
+**Ce que les requêtes disent, et c'est encourageant** : elles sont exactement
+celles que le site vise, des codes-barres saisis tels quels (`5051889753537`),
+des noms d'éditeur (`lcj editions`), des recherches d'édition précise
+(`will hunting 4k`). Le créneau du §7 fonctionne à petite échelle ; il lui
+manque l'autorité pour sortir de la page 2.
+
+**Le levier est donc hors-site.** Les six éditeurs référencés ont chacun une
+page `/publishers/…` qui les met en valeur et leur donne une raison de créer le
+lien. Premier contact **Coin de Mire Cinéma le 6 août 2026**, par le formulaire
+de leur site, en signalant explicitement que leurs visuels figurent au catalogue
+et en proposant de les retirer à leur demande.
+
+**Prévenir vaut mieux que se taire, et c'est un calcul, pas une politesse.** Le
+§10 assume que l'usage des visuels d'éditeur est commercial donc discutable : un
+éditeur prévenu qui ne dit rien vaut accord tacite, un éditeur qui découvre seul
+écrit à un avocat. Et le refus coûte peu, la carte retombant sur l'affiche TMDB.
+Ce qui ne se fait **pas** : invoquer un « droit de citation » ou un « usage
+loyal », notions inexistantes en droit français dans ce sens, qui changeraient
+un échange commercial en débat juridique.
+
 ### Awin
 
 **E.Leclerc accepté le 3 août 2026**, premier programme validé, **Momox shop FR
 le 6 août**, second. Fnac, Cultura, Zavvi et Cdiscount restent en attente, **tous
 avec flux produits** (EAN, images, prix).
+
+**Fnac a répondu, et son critère est le trafic.** « Nous n'acceptons pas sur les
+programmes FNAC&DARTY les sites en construction ou qui n'ont pas de trafic
+visible sur les outils comme SimilarWeb », avec l'invitation à revenir « lorsque
+nous pourrons analyser le trafic ». Avec dix clics en huit jours, SimilarWeb ne
+publie rien : représenter le dossier aujourd'hui, c'est récolter un second refus,
+plus difficile à rouvrir qu'une attente. La relance du 6 août ne redemande donc
+pas l'acceptation, elle signale le changement de nom, donne les chiffres tels
+quels et demande le seuil à partir duquel revenir.
+
+**Cultura relancé le 6 août**, sur un autre argument : leurs conditions
+classent les partenaires, et **« sites de contenus affinitaires » est la seule
+case autorisée sans réserve** qui corresponde au site. Le message s'y range
+explicitement et écarte nommément leurs trois interdits, achat de mots-clés,
+codes promo et CSS. À retenir pour les suivants : **lire la grille de l'annonceur
+avant d'écrire**, elle donne le vocabulaire dans lequel se présenter.
 
 **Momox a confirmé ce que le §8 attendait de lui et rien de plus** : c'est une
 source de **prix d'occasion**, pas une source de catalogue (§5). Elle débloque la
