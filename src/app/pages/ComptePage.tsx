@@ -9,9 +9,7 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
-  Heart,
   LogOut,
-  Disc3,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -27,7 +25,6 @@ import {
   identifiantBienForme,
   normaliserIdentifiant,
 } from "../lib/identifiant";
-import { idsParStatut } from "../lib/collections";
 import { exporterCollectionCsv, telecharger } from "../lib/export-collection";
 import { etatIdentifiant, majProfil, useProfil, type EtatIdentifiant } from "../lib/profils";
 import { formaterEuros, valeurCollection, type ValeurCollection } from "../lib/valeur";
@@ -143,7 +140,7 @@ function Connecte({ nom, email }: { nom: string; email: string }) {
     <Coquille>
       <EnTete nom={profil?.nom || nom} email={email} identifiant={profil?.identifiant ?? null} visible={profil?.visible ?? false} />
 
-      <Tuiles />
+      <ValeurEstimee />
 
       {etat.statut === "attente" ? (
         <AttentePleine hauteur={200} />
@@ -231,75 +228,6 @@ function EnTete({
 }
 
 /**
- * Trois nombres : possédé, voulu, estimé.
- *
- * **Les deux premiers se chargent seuls, le troisième se demande.** Compter des
- * lignes de `collections` coûte une requête ; estimer une valeur en coûte
- * jusqu'à six et l'immense majorité des visites viennent chercher autre chose
- * (§8). La tuile de valeur est donc un bouton tant qu'on n'a pas cliqué, ce qui
- * la distingue à l'œil des deux autres sans avoir à l'écrire.
- */
-function Tuiles() {
-  const [comptes, setComptes] = useState<{ possede: number; envie: number } | null>(null);
-
-  useEffect(() => {
-    let annule = false;
-    (async () => {
-      try {
-        const [possede, envie] = await Promise.all([
-          idsParStatut("possede"),
-          idsParStatut("envie"),
-        ]);
-        if (!annule) setComptes({ possede: possede.length, envie: envie.length });
-      } catch {
-        // Un compteur muet vaut mieux qu'un écran en panne : le reste de la
-        // page, réglages et suppression compris, doit rester utilisable.
-        if (!annule) setComptes({ possede: 0, envie: 0 });
-      }
-    })();
-    return () => { annule = true; };
-  }, []);
-
-  return (
-    <div className="grid grid-cols-2 gap-3 pt-7 sm:grid-cols-3">
-      <Tuile icone={Disc3} libelle="Éditions possédées" valeur={comptes?.possede ?? null} />
-      <Tuile icone={Heart} libelle="Envies" valeur={comptes?.envie ?? null} />
-      <ValeurEstimee />
-    </div>
-  );
-}
-
-function Tuile({
-  icone: Icone,
-  libelle,
-  valeur,
-}: {
-  icone: typeof Disc3;
-  libelle: string;
-  valeur: number | null;
-}) {
-  return (
-    <div
-      className="rounded-[12px] px-4 py-3.5"
-      style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
-    >
-      <Icone size={16} style={{ color: "var(--reel-muted)" }} />
-      {valeur === null ? (
-        <span className="reel-attente mt-2 block h-[26px] w-16 rounded-[6px]" />
-      ) : (
-        <p
-          className="tabular-nums pt-1"
-          style={{ fontSize: "26px", fontWeight: 700, color: "var(--reel-text)", lineHeight: 1.1 }}
-        >
-          {valeur.toLocaleString("fr-FR")}
-        </p>
-      )}
-      <p style={{ fontSize: "13px", fontWeight: 500, color: "var(--reel-muted)" }}>{libelle}</p>
-    </div>
-  );
-}
-
-/**
  * Valeur estimée de la collection, sur les prix d'occasion.
  *
  * **Deuxième fonction la plus demandée** du relevé du 2 août 2026, et la
@@ -310,17 +238,23 @@ function Tuile({
  *
  * **Sur `/account` et nulle part ailleurs, en particulier pas sur `/u/…`.** Le
  * profil public montre ce qu'on possède, et c'est déjà un changement de posture
- * assumé (§10) ; ce qu'une collection vaut est autre chose. Publier l'inventaire
- * chiffré de biens qui dorment chez quelqu'un, sous un identifiant qu'un moteur
- * indexe, n'est pas une fonction qu'on ajoute sans que la personne l'ait
- * demandé. Cette page-là est en `noindex` et ne se lit que connecté.
+ * assumé (§10) ; ce qu'une collection vaut est autre chose. Publier
+ * l'inventaire chiffré de biens qui dorment chez quelqu'un, sous un identifiant
+ * qu'un moteur indexe, n'est pas une fonction qu'on ajoute sans que la personne
+ * l'ait demandé. Cette page-là est en `noindex` et ne se lit que connecté.
  *
- * **Le montant et son dénominateur tiennent dans la même tuile.** 1 618
- * éditions du catalogue portent un prix d'occasion sur 23 803 : un total
- * présenté seul laisserait croire à une couverture qu'on n'a pas, et la tuile
- * n'a pas le droit d'être plus flatteuse que le paragraphe qu'elle remplace.
- * Les trois limites, elles, sont sous la grille, en clair et non repliées : le
- * §10 les pose comme le sujet, pas comme une note de bas de page.
+ * **C'est le seul chiffre de cette page, et c'est ce qui le rend lisible.** Une
+ * première version l'entourait de deux tuiles de comptage, éditions possédées
+ * et envies. Elles étaient redondantes : `VueProfil` les affiche déjà, plus
+ * complètes puisqu'elle distingue les titres des éditions, sur `/u/<@>` que le
+ * bouton « Ma page » ouvre juste au-dessus. Deux endroits qui comptent la même
+ * chose finissent par ne plus donner le même nombre.
+ *
+ * **Rien n'est calculé avant qu'on le demande.** Un compte de mille éditions
+ * coûte cinq requêtes par lots de deux cents, et l'immense majorité des visites
+ * à `/account` viennent chercher autre chose. C'est aussi la règle du §8 vue de
+ * l'autre bout : ce qui se décide au premier rendu doit se décider sans réseau,
+ * donc ce qui demande le réseau ne se décide pas au premier rendu.
  */
 function ValeurEstimee() {
   const [etat, setEtat] = useState<"repos" | "calcul" | "fait" | "panne">("repos");
@@ -336,95 +270,82 @@ function ValeurEstimee() {
     }
   }
 
-  const cadre = {
-    backgroundColor: "var(--reel-surface)",
-    border: "1px solid var(--reel-border)",
-  } as const;
-
-  if (etat !== "fait" || !valeur) {
-    return (
-      <>
-        <button
-          type="button"
-          onClick={() => { void estimer(); }}
-          disabled={etat === "calcul"}
-          className="col-span-2 rounded-[12px] px-4 py-3.5 text-left outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] disabled:opacity-60 sm:col-span-1"
-          style={cadre}
-        >
-          <Coins size={16} style={{ color: "var(--reel-accent-clair)" }} />
-          <p
-            className="pt-1"
-            style={{ fontSize: "26px", fontWeight: 700, color: "var(--reel-muted)", lineHeight: 1.1 }}
-          >
-            —
-          </p>
-          <p style={{ fontSize: "13px", fontWeight: 500, color: "var(--reel-accent-clair)" }}>
-            {etat === "calcul" ? "Calcul…" : etat === "panne" ? "Échec, réessayer" : "Estimer ma valeur"}
-          </p>
-        </button>
-      </>
-    );
-  }
-
-  if (valeur.possedees === 0 || valeur.estimees === 0) {
-    return (
-      <div className="col-span-2 rounded-[12px] px-4 py-3.5 sm:col-span-1" style={cadre}>
-        <Coins size={16} style={{ color: "var(--reel-muted)" }} />
-        <p
-          className="pt-1"
-          style={{ fontSize: "26px", fontWeight: 700, color: "var(--reel-muted)", lineHeight: 1.1 }}
-        >
-          —
-        </p>
-        <p style={{ fontSize: "13px", fontWeight: 500, color: "var(--reel-muted)" }}>
-          {valeur.possedees === 0
-            ? "Collection vide"
-            : "Aucun prix d’occasion connu"}
-        </p>
-      </div>
-    );
-  }
+  const chiffre = etat === "fait" && valeur && valeur.estimees > 0 ? valeur : null;
 
   return (
-    <>
-      <div className="col-span-2 rounded-[12px] px-4 py-3.5 sm:col-span-1" style={cadre}>
-        <Coins size={16} style={{ color: "var(--reel-accent-clair)" }} />
-        <p
-          className="tabular-nums pt-1"
-          style={{ fontSize: "26px", fontWeight: 700, color: "var(--reel-text)", lineHeight: 1.1 }}
-        >
-          {formaterEuros(valeur.total)}
-        </p>
-        {/*
-          **Le dénominateur est collé au total, jamais dans une note plus bas.**
-          C'est la règle du §4, un taux se lit avec ce qui le divise, et elle ne
-          s'assouplit pas parce que la place manque dans une tuile.
-        */}
-        <p style={{ fontSize: "13px", fontWeight: 500, color: "var(--reel-muted)" }}>
-          sur {valeur.estimees} édition{valeur.estimees > 1 ? "s" : ""} estimée
-          {valeur.estimees > 1 ? "s" : ""}, {valeur.possedees} possédée
-          {valeur.possedees > 1 ? "s" : ""}
-        </p>
-      </div>
+    <section className="pt-8">
+      <Titre>Valeur de ma collection</Titre>
 
-      <p className="col-span-2 sm:col-span-3" style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "20px" }}>
-        {/* La date la plus ancienne du lot, pas la plus fraîche : c'est elle qui
-            dit ce que vaut l'estimation (§10). */}
-        Prix d’occasion relevés chez {valeur.marchands.join(", ")}, le plus ancien du{" "}
-        {new Date(valeur.releveLePlusAncien ?? "").toLocaleDateString("fr-FR")}
-        {valeur.medianeUnitaire !== null && (
-          <> — médiane {formaterEuros(valeur.medianeUnitaire)} par disque</>
+      <div
+        className="rounded-[12px] px-4 py-4"
+        style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
+      >
+        <div className="flex flex-wrap items-center gap-4">
+          <Coins size={20} className="shrink-0" style={{ color: "var(--reel-accent-clair)" }} />
+
+          <div className="min-w-0 flex-1">
+            {chiffre ? (
+              <>
+                <p
+                  className="tabular-nums"
+                  style={{ fontSize: "30px", fontWeight: 700, color: "var(--reel-text)", lineHeight: 1.1 }}
+                >
+                  {formaterEuros(chiffre.total)}
+                </p>
+                {/*
+                  **Le dénominateur est collé au total, jamais dans une note
+                  plus bas.** C'est la règle du §4, un taux se lit avec ce qui
+                  le divise, et elle ne s'assouplit pas parce que le montant
+                  fait une belle ligne tout seul.
+                */}
+                <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+                  sur {chiffre.estimees} édition{chiffre.estimees > 1 ? "s" : ""} estimée
+                  {chiffre.estimees > 1 ? "s" : ""}, {chiffre.possedees} possédée
+                  {chiffre.possedees > 1 ? "s" : ""}
+                  {chiffre.medianeUnitaire !== null && (
+                    <> — médiane {formaterEuros(chiffre.medianeUnitaire)} par disque</>
+                  )}
+                </p>
+              </>
+            ) : (
+              <p style={{ fontSize: "14px", color: "var(--reel-muted)", lineHeight: "21px" }}>
+                {etat === "panne"
+                  ? "Le calcul a échoué. Réessayez dans un instant."
+                  : etat === "fait" && valeur?.possedees === 0
+                  ? "Votre collection est vide. Marquez des éditions comme possédées depuis une fiche film."
+                  : etat === "fait"
+                  ? `Aucune de vos ${valeur?.possedees} éditions ne porte de prix d’occasion connu. Nos partenaires en publient un pour une édition sur quinze.`
+                  : "Ce qu’il coûterait de racheter vos disques d’occasion aujourd’hui, au moins cher des exemplaires en vente."}
+              </p>
+            )}
+          </div>
+
+          {(etat === "repos" || etat === "calcul" || etat === "panne") && (
+            <Bouton principal onClick={() => { void estimer(); }} disabled={etat === "calcul"}>
+              {etat === "calcul" ? "Calcul…" : etat === "panne" ? "Réessayer" : "Estimer"}
+            </Bouton>
+          )}
+        </div>
+
+        {chiffre && (
+          <p
+            className="pt-3"
+            style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "20px" }}
+          >
+            {/* La date la plus ancienne du lot, pas la plus fraîche : c'est elle
+                qui dit ce que vaut l'estimation (§10). */}
+            Prix relevés chez {chiffre.marchands.join(", ")}, le plus ancien du{" "}
+            {new Date(chiffre.releveLePlusAncien ?? "").toLocaleDateString("fr-FR")}.{" "}
+            {/* Trois limites, écrites parce qu'elles sont le sujet. Le §8
+                refusait ce total tant qu'il ne pouvait pas être qualifié. */}
+            C’est un plancher, pas une cote : au moins cher, sur les seules éditions couvertes, et un
+            revendeur vous en donnerait bien moins. Rien n’est publié sur votre page.
+          </p>
         )}
-        .{" "}
-        {/* Trois limites, écrites parce qu'elles sont le sujet. Le §8 refusait ce
-            total tant qu'il ne pouvait pas être qualifié. */}
-        C’est un plancher, pas une cote : au moins cher, sur les seules éditions couvertes, et un
-        revendeur vous en donnerait bien moins. Rien n’est publié sur votre page.
-      </p>
-    </>
+      </div>
+    </section>
   );
 }
-
 /**
  * L'identifiant, le nom affiché et la visibilité de la page publique.
  *
@@ -433,12 +354,16 @@ function ValeurEstimee() {
  * consentement, alors que c'est précisément ce qui doit se lire d'un coup
  * d'œil.
  *
- * **Changer d'identifiant casse les liens déjà partagés**, et rien ne les
- * répare : il n'y a pas d'id stable derrière comme sur une fiche film, où le
- * slug est décoratif (§7). C'est écrit dans la ligne ouverte plutôt que
- * découvert après coup, et c'est aussi pourquoi l'ancien identifiant redevient
- * libre : le garder en réserve n'aiderait personne et priverait les autres d'un
- * mot.
+ * **Changer d'identifiant ne casse plus les liens déjà partagés**, depuis
+ * `20260806_identifiants_precedents.sql` : l'ancienne adresse redirige en 301
+ * vers la nouvelle, comme `/films/560` redirige vers `/movies/<slug>/560`
+ * (§7). La ligne ouverte le dit, parce que c'est exactement l'inquiétude qui
+ * retient de corriger une faute de frappe dans son pseudonyme.
+ *
+ * La contrepartie est l'inverse de ce que le §3 posait au départ : **un
+ * identifiant, une fois porté, n'est plus rendu à la circulation.** Le laisser
+ * reprendre par quelqu'un d'autre ferait mener un lien partagé vers la
+ * collection d'un tiers, ce qui est bien pire qu'un 404.
  */
 function ReglagesProfil({ profil }: { profil: { identifiant: string; nom: string; visible: boolean } }) {
   const [ouverte, setOuverte] = useState<"identifiant" | "nom" | null>(null);
@@ -558,7 +483,7 @@ function ReglagesProfil({ profil }: { profil: { identifiant: string; nom: string
               ? "Cet identifiant n’est pas disponible."
               : verdict === "invalide"
               ? `Entre ${IDENTIFIANT_MIN} et ${IDENTIFIANT_MAX} signes : lettres, chiffres et « _ ».`
-              : `Les liens déjà partagés vers ${arobase(profil.identifiant)} cesseront de fonctionner si vous le changez.`}
+              : `Les liens déjà partagés vers ${arobase(profil.identifiant)} suivront : l’ancienne adresse redirigera vers la nouvelle.`}
           </p>
         </Ligne>
 
