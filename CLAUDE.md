@@ -1926,6 +1926,39 @@ même principe que `pleineResolution` pour TMDB, dans l'autre sens. `func=fit`
 est conservé, c'est lui qui garde le rapport au lieu de rogner. Les autres hôtes
 passent sans être touchés, leur grammaire n'étant pas celle-ci.
 
+### Momox par Awin, flux mesuré le 6 août 2026, rien importé
+
+**Le programme demandé le 5 août est accepté**, et son flux est dans
+`awin/brut/`. C'est la **première source de seconde main du dépôt**, celle que
+le §8 réclame depuis le 2 août pour la valeur de collection, deuxième fonction
+la plus demandée : aucune des huit autres n'est un marchand d'occasion.
+
+    154 887 lignes | catégorie « Film » sur 100 % | EAN sur 100 %
+    98,3 % d'occasion | prix médian 7,54 €, de 0,99 à 199,49
+
+**Six fois et demie le catalogue actuel, et un EAN partout.** C'est la
+meilleure couverture de code-barres jamais relevée, Leclerc compris.
+
+**Rien n'est importé, et trois choses sont à mesurer avant de s'y engager :**
+
+- **le format n'est déclaré que sur 26 % des lignes**, 28 230 Blu-ray,
+  10 213 DVD, 1 274 **VHS** et 808 4K d'après le nom du produit. C'est le trou
+  de Leclerc à nouveau, en plus grand, et la VHS est hors périmètre même
+  élargi ;
+- **le marché n'est pas le nôtre.** Momox est allemand et le flux est plein
+  d'`[IT Import]`, `[FR Import]`, de titres allemands et italiens. Le §1 vise
+  le marché français, et rien dans le flux ne dit la zone ;
+- **une offre d'occasion n'est pas un prix de catalogue.** `offres` porte
+  aujourd'hui des prix neufs relevés chez un marchand ; y mêler de l'occasion
+  sans distinguer les deux donnerait une colonne dont on ne saurait plus dire
+  ce qu'elle mesure, exactement ce que le §3 reproche à l'idée de poser le prix
+  sur `editions`.
+
+**Ce que ça débloquerait quand même, et c'est le vrai sujet** : une cote de
+seconde main, que le §8 déclare impossible faute de source. 154 887 prix
+d'occasion datés sont précisément cette source. Chantier à part entière, à ne
+pas mêler à un import de catalogue.
+
 ### thejokers-shop.com, 29 éditions, 4 août 2026
 
 **Éditeur français d'auteur**, et la première source choisie pour combler le
@@ -2121,14 +2154,26 @@ boutique et pas aux titres en base, qui portent les mêmes formes,
 titre d'œuvre avait bien été essayé et rendait 14 candidats ; la symétrie en
 rend 27.
 
-### solaris-distribution.com : mesuré le 4 août 2026, et écarté
+### solaris-distribution.com : écartée le 4 août 2026, entrée le 6
 
 Même plateforme, même `robots.txt` ouvert, chaîne déjà écrite : il ne restait
 qu'à lancer. **Un seul Blu-ray sur 50 produits**, le reste étant 27 DVD et
-22 affiches. Le catalogue écarte le DVD systématiquement, 69 chez Coin de Mire,
-3 344 chez Leclerc : écrire une édition pour justifier la chaîne n'a pas de
-sens. L'entrée reste dans `boutiques.py`, prête si leur catalogue Blu-ray
-grandit.
+22 affiches. Le catalogue écartant alors le DVD systématiquement, écrire une
+édition pour justifier la chaîne n'avait pas de sens.
+
+**Le DVD entré au catalogue (§1), la raison de l'écarter tombe d'elle-même**, et
+c'est la seule source que le changement de périmètre ressuscite. 28 candidats au
+lieu d'un, **4 écrits** : le rattachement TMDB est mauvais, 24 non résolus, leur
+fonds de distributeur de salle étant mal indexé. Modeste, mais la chaîne existait
+déjà et n'a rien coûté.
+
+**Les autres boutiques y gagnent plus qu'elle**, le même jour, sans une requête
+de plus, leurs fiches étant déjà crawlées :
+
+    Coin de Mire     67 éditions écrites
+    Diaphana         51
+    The Jokers       14
+    Solaris           4
 
 ### Zavvi, les 6 514 non rattachées : mesuré le 4 août 2026, et écarté
 
@@ -3065,6 +3110,49 @@ neuves, la distribution et le studio. Détail de la règle et de son
 éditions du 2 août et ces 460 sortent de deux passes à deux jeux de contrôles
 différents ; les mêler rendrait l'une inannulable sans l'autre. Le §3 pose la
 règle, la source d'un lien dit **comment** il a été obtenu.
+
+### Étiquetage des formats (`formats.py`, `etiqueter_formats.py`, 2026-08-06)
+
+    python3 etiqueter_formats.py                 # simulation
+    python3 etiqueter_formats.py --source zavvi.com
+    python3 etiqueter_formats.py --apply
+
+**Préalable à l'entrée du DVD, et il l'était pour de bon.** 4 711 éditions sur
+23 803, soit 19,8 %, ne portaient aucun format, et **1 647 fiches Zavvi
+`/p/dvd/` étaient déjà en base sans que rien ne le dise** : le périmètre
+« Blu-ray et 4K » du §1 était entamé depuis le 2 août sans que personne le
+sache. Faire entrer sept mille DVD par-dessus aurait faussé d'un coup les pages
+`/formats`, les filtres et les décomptes d'axe.
+
+Résultat : 7 418 éditions complétées, les éditions portant un support passent de
+**19 027 à 23 235, soit 97,6 %**. Les 568 restantes n'ont aucun signal.
+
+**`formats.py` porte le vocabulaire et les trois déductions, en une seule
+copie**, et c'est le §6 appliqué à lui-même : deux copies de `chercher()` ont
+porté le même défaut pendant des semaines avec deux symptômes opposés.
+
+    support dvdfr    le plus sûr, apparié par code-barres
+    segment d'URL    `/p/{blu-ray,4k,dvd}/`, que seul Zavvi publie, sur 12 665 fiches
+    titre            ce que le nom du produit déclare
+
+**Elles s'unissent, elles ne se remplacent pas.** Onze fiches du segment
+`blu-ray` portaient `DVD` seul d'après leur titre, et il n'y avait **aucune
+contradiction** : ce sont des `(Includes DVD)`, donc des combos que la catégorie
+range à juste titre en Blu-ray. Le titre disait le disque d'appoint, l'URL le
+support principal, et prendre l'un pour l'autre perdait la moitié de
+l'information.
+
+**Rien n'est jamais retiré**, le script n'écrit que s'il ajoute : rejouable sans
+effet de bord, comme `ecrire_dvdfr.py`. Sauvegarde de la colonne entière dans
+`formats_avant_20260806.json`.
+
+**Le compte se fait sur les supports, pas sur les colonnes vides.** Une édition
+qui ne porte que `Steelbook` n'est pas étiquetée : un boîtier existe en Blu-ray
+comme en 4K. Sans `porte_un_support()`, la mesure d'avancement se félicite trop
+tôt.
+
+Deux pièges rencontrés en l'écrivant sont au §9, et le premier a failli remplir
+`/formats/blu-ray` de 4K.
 
 ### Coffrets Leclerc (`awin/coffrets_leclerc.py`, 2026-08-04)
 
@@ -4023,6 +4111,23 @@ tiennent presque toujours en une page.
 **`lib/listes.ts` et le middleware doivent trier exactement pareil.** Une même
 URL servie à la périphérie et rendue par l'application montrerait sinon deux
 contenus différents, ce qu'aucun contrôle ne signalerait.
+
+**Le format de la page passe devant les autres badges, depuis le 6 août 2026.**
+La carte n'en montre que deux, faute de place à six colonnes, et les formats
+sortaient dans l'ordre de la source : `/formats/dvd` ouvrait sur « Répulsion —
+Blu-ray · Coffret », son DVD tombant en troisième, et la page ne montrait
+**jamais** le format qu'elle liste. La sélection était juste, l'affichage la
+faisait passer pour un défaut de filtre.
+
+Le tri est local à `GrilleEditions` et ne vaut que sur l'axe `formats` : rien à
+changer au plafond de deux badges, qui est un choix de mise en page.
+
+**Une page de regroupement doit dire d'où vient ce qu'elle groupe.**
+`/formats` annonçait un format « relevé sur la fiche de l'édition, jamais déduit
+du titre », ce que l'étiquetage du 6 août a rendu faux, lui qui déduit du titre
+dès que la source se tait. La phrase dit maintenant les deux cas. Le §10 vaut
+pour les pages d'index comme pour les mentions légales : une promesse qui ne
+correspond plus au code est pire que pas de promesse.
 
 #### Pagination, en place le 31 juillet 2026
 
@@ -6229,6 +6334,26 @@ Documentés parce qu'ils se reproduiront.
   probant : le `Support principal` de dvdfr sur les mêmes 213 codes rend
   `Blu-ray 137 | DVD 69 | 4K Ultra HD 7`, au disque près. Une seconde source vaut
   mieux qu'une relecture de son propre parseur.
+- **Tester des motifs dans l'ordre et les collecter tous sont deux choses
+  différentes**, et la règle « `Blu-ray 4K` avant `Blu-ray` » ne protège que la
+  première. `depuis_titre()` retient **tous** les motifs qui répondent, or
+  `blu-?ray` répond à l'intérieur de « Blu-ray 4K » : chaque 4K recevait donc
+  aussi `Blu-ray`, 5 619 ajouts en simulation dont l'essentiel était ce faux, et
+  `/formats/blu-ray` se serait rempli de 4K. Le refus se pose sur ce qui **suit**
+  la mention, `blu-?ray(?!\s*(?:4K|3D|ultra\s*hd|uhd))`, et non sur la présence
+  de « 4K » dans le titre : `Blu-ray + Blu-ray 4K` est un vrai combo dont le
+  premier terme doit répondre.
+
+  Deux motifs retirés au passage, pour la même famille de raison : `\bBD\b` pour
+  le Blu-ray, alors que le flux Leclerc porte 5 986 **bandes dessinées**, et
+  `\b3D\b` seul, qu'un titre suffit à déclencher.
+- **Un support moins précis n'est pas un désaccord.** dvdfr range en `Blu-ray`
+  des disques que le titre annonce en 4K ; ajouter le `Blu-ray` gonflerait
+  `/formats/blu-ray` sans rien apprendre. C'est la granularité du §9 sur
+  `Universal Studios` contre `Universal Pictures Home Entertainment`, appliquée
+  au format. `formats.redondant()` ne vaut que pour les déductions à **support
+  unique**, l'URL et dvdfr : un titre, lui, énumère, et ses deux mentions
+  comptent.
 - **Une part de collection TMDB sans année ni durée est une œuvre à venir.**
   `Untitled Top Gun 3` figure dans la collection et n'existe pas : elle gonflait
   le dénominateur d'un contrôle par la somme sans rien apporter au total, et un
@@ -6281,6 +6406,21 @@ Documentés parce qu'ils se reproduiront.
 
   Surveiller un **marqueur du journal** ou un compte de lignes en sortie, pas
   un nom de processus qui figure dans la commande de surveillance.
+
+  **Refait le 6 août 2026, cette note sous les yeux**, sur
+  `pgrep -qf "resoudre_leclerc.py --source leclerc"`. Ce qui la rend facile à
+  ignorer, c'est qu'elle se lit comme une curiosité de `pgrep` alors que c'est
+  une propriété de toute surveillance qui se nomme elle-même. La forme sûre
+  n'est pas un `pgrep` mieux écrit, c'est de ne pas surveiller un processus :
+  `until grep -q "<phrase finale>" journal.log`.
+- **`sorted(dossier.glob("*.csv.gz"))[-1]` n'est le plus récent que tant qu'il
+  n'y a qu'un marchand.** `croiser_leclerc.py` prenait le dernier fichier par
+  ordre alphabétique, ce qui a marché tant que `brut/` n'a porté que du
+  Leclerc. Le flux Momox du 6 août 2026 est passé après `leclerc-…` : le
+  croisement a tourné sur **Momox** en annonçant du Leclerc, et il a rendu
+  855 DVD au lieu de 3 478, chiffre assez plausible pour être rapporté tel
+  quel. Filtrer sur le préfixe du marchand, et sortir en erreur plutôt que de
+  se rabattre sur le voisin.
 - **dvdfr refuse aussi l'IP des runners, et la mesure est sans appel.** Le run
   du 2 août 2026 a demandé 2 720 fiches depuis un runner : `trouvés 0 |
   inconnus 0 | erreurs 2720`, une `HTTPError` sur chacune dès la première.
