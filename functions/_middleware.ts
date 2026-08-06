@@ -1070,7 +1070,7 @@ async function servirAccueil(url: URL, next: () => Promise<Response>): Promise<R
   const meta = {
     titre: `${SITE_NOM}, le catalogue des éditions Blu-ray, 4K et DVD françaises`,
     description:
-      `Les éditions physiques de ${films_total} films et séries publiées en France : Blu-ray, 4K, ` +
+      `Les éditions physiques de ${films_total} films et séries publiées en France : Blu-ray, 4K, DVD, ` +
       `steelbooks et coffrets, avec leurs formats, leur éditeur et leur code-barres.`,
   };
   const corps = enveloppe(
@@ -1317,7 +1317,7 @@ async function servirBienvenue(url: URL, next: () => Promise<Response>): Promise
   const meta = {
     titre: `Bienvenue | ${SITE_NOM}`,
     description:
-      `${SITE_NOM} recense les éditions physiques de films sorties en France : Blu-ray, 4K, ` +
+      `${SITE_NOM} recense les éditions physiques de films sorties en France : Blu-ray, 4K, DVD, ` +
       `steelbooks et coffrets. Marquez ce que vous possédez, gardez la liste de ce qu'il vous manque.`,
   };
   const corps = enveloppe(
