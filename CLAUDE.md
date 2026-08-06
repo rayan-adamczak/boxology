@@ -3046,8 +3046,25 @@ catalogue qu'on veut réactualiser.
 | Fichier | Rôle |
 |---|---|
 | `telecharger_awin.py` | Récupère le flux, garde le brut sous `brut/`, n'interprète rien |
+| | et élague : `--garder N`, défaut 1, par marchand |
 | `sonde_awin.py` | Mesure : colonnes, catégories, EAN, recoupement, manques. **Lecture seule** |
 | `offres_awin.py` | Écrit `offres` par EAN exact (`--apply`), purge ce que la passe n'a pas revu |
+
+**« Garder le brut » n'est pas « garder l'archive », précisé le 6 août 2026.**
+Chaque passe complète ajoutait 72 Mo à `brut/` et rien ne les élaguait : 5
+fichiers pour 176 Mo, dont **deux flux Momox identiques à l'octet**, la boutique
+ne régénérant le sien qu'une fois par jour. Ce que la règle du §9 protège est la
+possibilité de rejouer un parseur sur le flux **courant**, pas une série
+temporelle qu'on n'a jamais consultée. `telecharger_awin.py` garde donc le
+dernier de chaque marchand, `--garder N` pour en garder plus, `--garder 0` pour
+ne rien toucher.
+
+**Deux points d'ordre, et les deux se paieraient cher inversés** : le motif
+d'élagage porte le marchand, sans quoi une passe Leclerc supprimerait les flux
+Momox, et l'élagage vient **après** le contrôle de taille. Un flux refusé sort en
+erreur en gardant son fichier pour examen, et c'est précisément là que le
+précédent sert de point de comparaison : élaguer d'abord détruirait le seul
+témoin au moment où on en a besoin.
 
 **Aucune colonne n'est supposée.** Le jeu de colonnes d'un flux Awin est un choix
 fait dans Create-a-Feed, pas un contrat : la sonde relève l'en-tête, le publie,
