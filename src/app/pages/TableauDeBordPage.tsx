@@ -17,6 +17,7 @@ import {
 import { lienFilm } from "../lib/liens";
 import { arobase, cheminProfil } from "../lib/identifiant";
 import { useProfil } from "../lib/profils";
+import { formaterEuros, valeurCollection, type ValeurCollection } from "../lib/valeur";
 import { useSeo } from "../lib/seo";
 
 /**
@@ -166,23 +167,7 @@ export function TableauDeBordPage() {
           <div className="flex flex-col gap-2.5">
             <Tuile icone={Library} libelle="Éditions possédées" valeur={resume ? String(resume.possedees) : "—"} />
             <Tuile icone={Bookmark} libelle="Envies" valeur={resume ? String(resume.envies) : "—"} />
-            {/*
-              La valeur est une estimation par le prix conseillé, jamais une
-              cote : aucune source de prix du marché n'existe (§8). La couverture
-              est donc écrite sous le montant, seule ligne ajoutée à la maquette,
-              sans quoi un total qui ignore les éditions sans prix se lirait comme
-              une valeur réelle.
-            */}
-            <Tuile
-              icone={Wallet}
-              libelle="Valeur estimée"
-              valeur={resume ? formaterEuros(resume.valeur) : "—"}
-              note={
-                resume && resume.possedees > 0
-                  ? `prix éditeur connu sur ${resume.valorisees} des ${resume.possedees}`
-                  : undefined
-              }
-            />
+            <EncartValeur />
           </div>
 
           {/* Vers l'adresse canonique du profil quand elle est connue. Il y
@@ -321,6 +306,117 @@ export function TableauDeBordPage() {
 }
 
 /**
+ * Ce que vaudrait la collection d'occasion, sur demande.
+ *
+ * **Elle est ici et plus dans `/account`**, parce que c'est ici qu'on regarde
+ * sa collection. Elle y était par accident d'écriture : `/account` est l'écran
+ * des réglages, on y va changer son pseudonyme ou effacer son compte, pas
+ * contempler un chiffre. Le §8 impose seulement qu'elle ne paraisse **jamais**
+ * sur `/u/<@>`, et l'accueil connecté remplit cette condition : il ne se rend
+ * qu'avec une session, il est en `noindex`, et `public/avant-montage.js` retire
+ * le corps injecté aux visiteurs connectés, donc aucun robot ne le voit.
+ *
+ * **Un bouton et non un chiffre posé au chargement.** Un compte de mille
+ * éditions coûte cinq requêtes par lots de deux cents, et la page en fait déjà
+ * quatre. C'est la règle du §8 prise par l'autre bout : ce qui se décide au
+ * premier rendu doit se décider sans réseau, donc ce qui demande le réseau ne
+ * se décide pas au premier rendu.
+ *
+ * Ce que le montant veut dire, et ce qu'il ne veut pas dire, est dans
+ * `lib/valeur.ts`. Ce qui compte à l'écran : le dénominateur est collé au
+ * total, jamais renvoyé à une note plus bas.
+ */
+function EncartValeur() {
+  const [etat, setEtat] = useState<"repos" | "calcul" | "fait" | "panne">("repos");
+  const [valeur, setValeur] = useState<ValeurCollection | null>(null);
+
+  async function estimer() {
+    setEtat("calcul");
+    try {
+      setValeur(await valeurCollection());
+      setEtat("fait");
+    } catch {
+      setEtat("panne");
+    }
+  }
+
+  const chiffre = etat === "fait" && valeur && valeur.estimees > 0 ? valeur : null;
+
+  return (
+    <div
+      className="rounded-[10px] p-[13px]"
+      style={{ backgroundColor: "var(--reel-surface-2)", border: "1px solid var(--reel-border)" }}
+    >
+      <p className="flex items-center gap-1.5" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+        <Wallet size={16} /> Valeur estimée
+      </p>
+
+      <p
+        className="tabular-nums pt-1"
+        style={{
+          fontSize: "24px",
+          fontWeight: 700,
+          lineHeight: "26.4px",
+          color: chiffre ? "var(--reel-text)" : "var(--reel-muted)",
+        }}
+      >
+        {chiffre ? formaterEuros(chiffre.total) : "—"}
+      </p>
+
+      {chiffre ? (
+        <>
+          {/* Le dénominateur est collé au total, jamais dans une note plus bas :
+              1 618 éditions du catalogue portent un prix d'occasion sur 23 803,
+              donc un montant seul laisserait croire à une couverture qu'on n'a
+              pas. C'est la règle du §4, un taux se lit avec ce qui le divise. */}
+          <p className="pt-0.5" style={{ fontSize: "12px", lineHeight: "17px", color: "var(--reel-muted)" }}>
+            prix d’occasion connu sur {chiffre.estimees} des {chiffre.possedees}
+          </p>
+          <p className="pt-2" style={{ fontSize: "12px", lineHeight: "17px", color: "var(--reel-muted)" }}>
+            {/* Trois limites, écrites parce qu'elles sont le sujet (§10), et la
+                date du relevé le plus ancien, pas la plus fraîche : c'est elle
+                qui dit ce que vaut l'estimation. */}
+            Un plancher, pas une cote : au moins cher des exemplaires en vente chez{" "}
+            {chiffre.marchands.join(", ")}, relevés au plus tard le{" "}
+            {new Date(chiffre.releveLePlusAncien ?? "").toLocaleDateString("fr-FR")}. Un revendeur
+            vous en donnerait bien moins. Rien n’est publié sur votre page.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="pt-0.5" style={{ fontSize: "12px", lineHeight: "17px", color: "var(--reel-muted)" }}>
+            {etat === "panne"
+              ? "Le calcul a échoué."
+              : etat === "fait" && valeur?.possedees === 0
+              ? "Votre collection est vide."
+              : etat === "fait"
+              ? `aucun prix d’occasion connu sur vos ${valeur?.possedees}`
+              : "ce que coûterait leur rachat d’occasion"}
+          </p>
+          {etat !== "fait" && (
+            <button
+              type="button"
+              onClick={() => { void estimer(); }}
+              disabled={etat === "calcul"}
+              className="mt-2.5 w-full rounded-full px-3 py-1.5 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] disabled:opacity-60"
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                backgroundColor: "var(--reel-accent)",
+                color: "#ffffff",
+                border: "1px solid var(--reel-accent)",
+              }}
+            >
+              {etat === "calcul" ? "Calcul…" : etat === "panne" ? "Réessayer" : "Estimer"}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/**
  * Une tuile de statistique : icône et libellé sur une ligne, valeur dessous.
  * Cadre, rayon et rembourrage repris du node Figma 1:572.
  */
@@ -445,15 +541,6 @@ function LigneSortie({ edition }: { edition: EditionWithFilm }) {
   );
 
   return <li>{lien ? <Link to={lien} className="block transition hover:brightness-125">{corps}</Link> : corps}</li>;
-}
-
-/** `1 245,50 €`, sans décimale au-delà de mille : on donne un ordre de grandeur. */
-function formaterEuros(montant: number): string {
-  return montant.toLocaleString("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: montant >= 1000 ? 0 : 2,
-  });
 }
 
 function formaterDate(iso: string | null | undefined): string {

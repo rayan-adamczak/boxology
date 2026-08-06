@@ -1,7 +1,6 @@
 import { identiteCourante } from "./auth";
 import { clientAuthentifie, supabase } from "./supabase";
 import type { EditionWithFilm, Film, StatutValue } from "./reelio-db";
-import { prixEnEuros } from "./prix";
 
 /**
  * Données de l'accueil connecté.
@@ -34,10 +33,6 @@ export interface ResumeCollection {
   possedees: number;
   /** Éditions marquées « envie ». */
   envies: number;
-  /** Somme des prix conseillés **en euros**, sur les seules possédées. */
-  valeur: number;
-  /** Combien de possédées portent un prix en euros : ce qui qualifie `valeur`. */
-  valorisees: number;
 }
 
 /** Une ligne du journal : ce que l'utilisateur a marqué, et quand. */
@@ -51,25 +46,29 @@ export interface ActiviteLigne {
 }
 
 /**
- * Compteurs et valeur estimée.
+ * Les deux compteurs de la colonne : possédées et envies.
  *
  * Rend `null` sans session : la page appelante affiche alors le catalogue
  * public, elle ne montre pas un tableau de bord vide.
  *
- * La valeur est une **estimation par le prix conseillé**, pas une cote : au
- * 3 août 2026, 10 089 éditions sur 16 923 portent un `prix_editeur`, dont
- * 4 446 en livres chez Zavvi, écartées du total (cf. `lib/prix.ts`).
- * D'où `valorisees`, que l'écran affiche à côté du montant. Un total qui
- * ignorerait la moitié du catalogue sans le dire se lirait comme une valeur
- * réelle, et c'est exactement le grief relevé au §8 contre les concurrents.
+ * **Il portait aussi une valeur, retirée le 6 août 2026, et ce n'était pas le
+ * bon nombre.** Elle sommait les `prix_editeur`, c'est-à-dire des prix
+ * conseillés **neufs** figés à la sortie du disque. Le §8 posait déjà qu'un
+ * total de prix neufs « se lit comme une valeur de collection et n'en est pas
+ * une » : ce que vaut un steelbook épuisé n'a rien à voir avec ce qu'il coûtait
+ * en rayon. La vraie mesure existe depuis l'acceptation de momox shop, elle
+ * somme de l'occasion, et elle vit dans `lib/valeur.ts`.
+ *
+ * Le retrait fait aussi gagner une lecture : ce résumé interrogeait `editions`
+ * par lots de 500 à chaque ouverture de l'accueil, pour un chiffre que
+ * personne n'avait demandé.
  */
 export async function getResumeCollection(): Promise<ResumeCollection | null> {
   const identite = await identiteCourante();
   if (!identite) return null;
 
   const client = clientAuthentifie(identite.jeton);
-  const resume: ResumeCollection = { possedees: 0, envies: 0, valeur: 0, valorisees: 0 };
-  const possedees: number[] = [];
+  const resume: ResumeCollection = { possedees: 0, envies: 0 };
 
   for (let debut = 0; ; debut += PAGE) {
     const { data, error } = await client
@@ -84,31 +83,11 @@ export async function getResumeCollection(): Promise<ResumeCollection | null> {
     for (const ligne of lignes) {
       if (ligne.statut === "possede") {
         resume.possedees += 1;
-        possedees.push(ligne.edition_id);
       } else if (ligne.statut === "envie") {
         resume.envies += 1;
       }
     }
     if (lignes.length < PAGE) break;
-  }
-
-  // Les prix se lisent en anon, cf. l'en-tête de fichier.
-  for (let debut = 0; debut < possedees.length; debut += 500) {
-    const { data, error } = await supabase
-      .from("editions")
-      .select("prix_editeur, source")
-      .in("id", possedees.slice(debut, debut + 500));
-    if (error) throw new Error(`Prix des éditions indisponibles : ${error.message}`);
-
-    for (const ligne of (data ?? []) as { prix_editeur: string | null; source: string | null }[]) {
-      // Les prix Zavvi sont en livres : `prixEnEuros` les écarte plutôt que de
-      // les additionner à des euros, ce qui ne voudrait rien dire.
-      const prix = prixEnEuros(ligne.prix_editeur, ligne.source);
-      if (prix !== null) {
-        resume.valeur += prix;
-        resume.valorisees += 1;
-      }
-    }
   }
 
   return resume;

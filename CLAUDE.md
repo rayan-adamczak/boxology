@@ -5062,7 +5062,8 @@ disque.
   seule reconnaissance réelle. Le levier reste `/report`, qui part du code que
   quelqu'un a vraiment scanné.
 - ~~**La valeur de la collection, deuxième plus demandée.**~~ **Faite le 6 août
-  2026**, dans `/account`, sur les prix d'occasion de Momox shop.
+  2026**, sur les prix d'occasion de Momox shop, et **déplacée sur l'accueil
+  connecté le même jour**.
 
   **Ce qui manquait n'était pas le calcul, c'était la source.** Le §8 écrivait
   qu'additionner les 724 prix Leclerc « donnerait un total qui se lit comme une
@@ -5089,30 +5090,47 @@ disque.
   ancien** du lot, pas la plus fraîche : c'est elle qui dit ce que vaut
   l'estimation (§10).
 
-  **Sur `/account` et nulle part ailleurs, en particulier pas sur `/u/…`.** Le
-  profil public montre ce qu'on possède, ce qui est déjà un changement de posture
-  assumé (§10) ; ce qu'une collection vaut est autre chose. Publier l'inventaire
-  chiffré de biens qui dorment chez quelqu'un, sous un identifiant qu'un moteur
-  indexe, n'est pas une fonction qu'on ajoute sans qu'elle ait été demandée.
+  **Elle vit dans la colonne de l'accueil connecté**, `TableauDeBordPage`, sous
+  les deux compteurs. Elle avait d'abord été posée dans `/account` : c'est
+  l'écran des réglages, on y va changer son pseudonyme ou effacer son compte,
+  pas contempler un chiffre, et l'accueil est justement l'endroit où l'on
+  regarde sa collection.
+
+  **Jamais sur `/u/…`, et cette règle-là ne bouge pas.** Le profil public montre
+  ce qu'on possède, ce qui est déjà un changement de posture assumé (§10) ; ce
+  qu'une collection vaut est autre chose. Publier l'inventaire chiffré de biens
+  qui dorment chez quelqu'un, sous un identifiant qu'un moteur indexe, n'est pas
+  une fonction qu'on ajoute sans qu'elle ait été demandée. L'accueil connecté
+  tient la condition par trois côtés : il ne se rend qu'avec une session, il est
+  en `noindex`, et `public/avant-montage.js` retire le corps injecté aux
+  visiteurs connectés (§7), donc aucun robot ne le voit.
+
+  **Elle a remplacé un chiffre qui était faux.** La colonne portait déjà une
+  tuile « Valeur estimée », sommant les `prix_editeur`, c'est-à-dire des prix
+  conseillés **neufs** figés à la sortie du disque. C'était exactement le total
+  que ce paragraphe refusait deux alinéas plus haut, affiché sans qu'on le
+  remarque. `getResumeCollection` ne lit donc plus `editions` du tout, ce qui
+  retire au passage une lecture par lots de 500 à chaque ouverture de l'accueil.
 
   **Rien n'est calculé avant qu'on le demande**, un bouton et non un chiffre posé
-  au chargement : un compte de mille éditions coûte cinq requêtes, et l'immense
-  majorité des visites à `/account` viennent chercher autre chose. C'est la règle
-  du §8 vue de l'autre bout, ce qui se décide au premier rendu doit se décider
-  sans réseau, donc ce qui demande le réseau ne se décide pas au premier rendu.
+  au chargement : un compte de mille éditions coûte cinq requêtes par lots de
+  deux cents, et l'accueil en fait déjà quatre. C'est la règle du §8 vue de
+  l'autre bout, ce qui se décide au premier rendu doit se décider sans réseau,
+  donc ce qui demande le réseau ne se décide pas au premier rendu.
 
-  **Reste non vérifié, et c'est le même trou que partout ailleurs** : le chemin
-  connecté. La section a été montée sous une session forgée dans le stockage, ce
-  qui valide sa place dans la page et sa dégradation — le jeton étant invalide,
-  la lecture de `collections` est refusée et l'écran affiche « Le calcul a
-  échoué » sans casser la page. **La branche à chiffres n'a jamais été rendue** :
-  l'unique compte réel a deux éditions possédées et aucune ne porte de prix
-  d'occasion. Ce qui a été vérifié à sa place est la requête, exercée à la clé
-  anon sur deux éditions portant les deux marchands (elle rend les deux occasions
-  et écarte les deux neufs), et son équivalent SQL sur le compte réel, `2
-  possédées, 0 estimées`. Pour éprouver la branche à chiffres il faut une vraie
-  session Google, donc soit le site en production, soit réajouter l'adresse
-  locale dans Supabase, ce que le §3 a délibérément retirée le 4 août.
+  **La branche à chiffres a enfin été rendue, le 6 août 2026.** Le §8 la donnait
+  pour non vérifiée, faute de session réelle portant une édition à prix
+  d'occasion : l'unique compte en a deux, aucune couverte. Éprouvée en ajoutant
+  temporairement à cette collection les trois éditions les plus chères portant
+  une offre d'occasion, puis en les retirant.
+
+      452,57 EUR | prix d'occasion connu sur 3 des 5 | momox shop | 06/08/2026
+
+  Ce qui restait faux dans la note précédente : la dégradation avait bien été
+  vue sous une session forgée, mais un jeton invalide fait échouer la lecture de
+  `collections`, donc c'est le message d'échec qui s'affichait, pas le zéro. Les
+  deux états se distinguent maintenant à l'écran, « Le calcul a échoué » contre
+  « aucun prix d'occasion connu sur vos N ».
 
 #### Abonnement envisagé en v2, deux à trois euros par mois
 

@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import {
   AtSign,
   ChevronDown,
-  Coins,
   Download,
   ExternalLink,
   Eye,
@@ -27,7 +26,6 @@ import {
 } from "../lib/identifiant";
 import { exporterCollectionCsv, telecharger } from "../lib/export-collection";
 import { etatIdentifiant, majProfil, useProfil, type EtatIdentifiant } from "../lib/profils";
-import { formaterEuros, valeurCollection, type ValeurCollection } from "../lib/valeur";
 import { SITE_ORIGIN, useSeo } from "../lib/seo";
 
 /**
@@ -140,8 +138,6 @@ function Connecte({ nom, email }: { nom: string; email: string }) {
     <Coquille>
       <EnTete nom={profil?.nom || nom} email={email} identifiant={profil?.identifiant ?? null} visible={profil?.visible ?? false} />
 
-      <ValeurEstimee />
-
       {etat.statut === "attente" ? (
         <AttentePleine hauteur={200} />
       ) : profil ? (
@@ -227,125 +223,6 @@ function EnTete({
   );
 }
 
-/**
- * Valeur estimée de la collection, sur les prix d'occasion.
- *
- * **Deuxième fonction la plus demandée** du relevé du 2 août 2026, et la
- * première fois qu'elle peut s'écrire sans mentir : momox shop, accepté sur
- * Awin le 6 août 2026, est la première source de seconde main du catalogue.
- * Ce que le nombre veut dire, et ce qu'il ne veut pas dire, est dans
- * `lib/valeur.ts`.
- *
- * **Sur `/account` et nulle part ailleurs, en particulier pas sur `/u/…`.** Le
- * profil public montre ce qu'on possède, et c'est déjà un changement de posture
- * assumé (§10) ; ce qu'une collection vaut est autre chose. Publier
- * l'inventaire chiffré de biens qui dorment chez quelqu'un, sous un identifiant
- * qu'un moteur indexe, n'est pas une fonction qu'on ajoute sans que la personne
- * l'ait demandé. Cette page-là est en `noindex` et ne se lit que connecté.
- *
- * **C'est le seul chiffre de cette page, et c'est ce qui le rend lisible.** Une
- * première version l'entourait de deux tuiles de comptage, éditions possédées
- * et envies. Elles étaient redondantes : `VueProfil` les affiche déjà, plus
- * complètes puisqu'elle distingue les titres des éditions, sur `/u/<@>` que le
- * bouton « Ma page » ouvre juste au-dessus. Deux endroits qui comptent la même
- * chose finissent par ne plus donner le même nombre.
- *
- * **Rien n'est calculé avant qu'on le demande.** Un compte de mille éditions
- * coûte cinq requêtes par lots de deux cents, et l'immense majorité des visites
- * à `/account` viennent chercher autre chose. C'est aussi la règle du §8 vue de
- * l'autre bout : ce qui se décide au premier rendu doit se décider sans réseau,
- * donc ce qui demande le réseau ne se décide pas au premier rendu.
- */
-function ValeurEstimee() {
-  const [etat, setEtat] = useState<"repos" | "calcul" | "fait" | "panne">("repos");
-  const [valeur, setValeur] = useState<ValeurCollection | null>(null);
-
-  async function estimer() {
-    setEtat("calcul");
-    try {
-      setValeur(await valeurCollection());
-      setEtat("fait");
-    } catch {
-      setEtat("panne");
-    }
-  }
-
-  const chiffre = etat === "fait" && valeur && valeur.estimees > 0 ? valeur : null;
-
-  return (
-    <section className="pt-8">
-      <Titre>Valeur de ma collection</Titre>
-
-      <div
-        className="rounded-[12px] px-4 py-4"
-        style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
-      >
-        <div className="flex flex-wrap items-center gap-4">
-          <Coins size={20} className="shrink-0" style={{ color: "var(--reel-accent-clair)" }} />
-
-          <div className="min-w-0 flex-1">
-            {chiffre ? (
-              <>
-                <p
-                  className="tabular-nums"
-                  style={{ fontSize: "30px", fontWeight: 700, color: "var(--reel-text)", lineHeight: 1.1 }}
-                >
-                  {formaterEuros(chiffre.total)}
-                </p>
-                {/*
-                  **Le dénominateur est collé au total, jamais dans une note
-                  plus bas.** C'est la règle du §4, un taux se lit avec ce qui
-                  le divise, et elle ne s'assouplit pas parce que le montant
-                  fait une belle ligne tout seul.
-                */}
-                <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
-                  sur {chiffre.estimees} édition{chiffre.estimees > 1 ? "s" : ""} estimée
-                  {chiffre.estimees > 1 ? "s" : ""}, {chiffre.possedees} possédée
-                  {chiffre.possedees > 1 ? "s" : ""}
-                  {chiffre.medianeUnitaire !== null && (
-                    <> — médiane {formaterEuros(chiffre.medianeUnitaire)} par disque</>
-                  )}
-                </p>
-              </>
-            ) : (
-              <p style={{ fontSize: "14px", color: "var(--reel-muted)", lineHeight: "21px" }}>
-                {etat === "panne"
-                  ? "Le calcul a échoué. Réessayez dans un instant."
-                  : etat === "fait" && valeur?.possedees === 0
-                  ? "Votre collection est vide. Marquez des éditions comme possédées depuis une fiche film."
-                  : etat === "fait"
-                  ? `Aucune de vos ${valeur?.possedees} éditions ne porte de prix d’occasion connu. Nos partenaires en publient un pour une édition sur quinze.`
-                  : "Ce qu’il coûterait de racheter vos disques d’occasion aujourd’hui, au moins cher des exemplaires en vente."}
-              </p>
-            )}
-          </div>
-
-          {(etat === "repos" || etat === "calcul" || etat === "panne") && (
-            <Bouton principal onClick={() => { void estimer(); }} disabled={etat === "calcul"}>
-              {etat === "calcul" ? "Calcul…" : etat === "panne" ? "Réessayer" : "Estimer"}
-            </Bouton>
-          )}
-        </div>
-
-        {chiffre && (
-          <p
-            className="pt-3"
-            style={{ fontSize: "13px", color: "var(--reel-muted)", lineHeight: "20px" }}
-          >
-            {/* La date la plus ancienne du lot, pas la plus fraîche : c'est elle
-                qui dit ce que vaut l'estimation (§10). */}
-            Prix relevés chez {chiffre.marchands.join(", ")}, le plus ancien du{" "}
-            {new Date(chiffre.releveLePlusAncien ?? "").toLocaleDateString("fr-FR")}.{" "}
-            {/* Trois limites, écrites parce qu'elles sont le sujet. Le §8
-                refusait ce total tant qu'il ne pouvait pas être qualifié. */}
-            C’est un plancher, pas une cote : au moins cher, sur les seules éditions couvertes, et un
-            revendeur vous en donnerait bien moins. Rien n’est publié sur votre page.
-          </p>
-        )}
-      </div>
-    </section>
-  );
-}
 /**
  * L'identifiant, le nom affiché et la visibilité de la page publique.
  *
