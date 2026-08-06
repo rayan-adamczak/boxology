@@ -1009,16 +1009,17 @@ Metaluna s'enchaînent : les relever plutôt que les recopier.
 
 | | 5 août | 6 août |
 |---|---|---|
-| Éditions | 23 803 | **26 689** |
-| Films | 12 129 | **13 216** |
-| **Codes-barres** | 8 090 (34,0 %) | **10 921 (40,9 %)** |
+| Éditions | 23 803 | **26 754** |
+| Films | 12 129 | **13 234** |
+| **Codes-barres** | 8 090 (34,0 %) | **41,1 %** |
 | Éditions rattachées | 92,0 % | **92,9 %** |
-| Éditions portant un support connu | 19 027 (79,9 %) | **23 235 puis 26 121 (97,9 %)** |
-| dont `DVD` | 1 553 | **6 154** |
+| Éditions portant un support connu | 19 027 (79,9 %) | **97,9 %** |
+| dont `DVD` | 1 553 | **6 219** |
 | Sitemap | 13 623 URL | **14 857 URL** |
 
     étiquetage des formats          7 418 éditions complétées, 0 créée
     Leclerc, DVD qualifiés dvdfr    2 750 éditions,  1 087 films créés
+    coffrets Leclerc, découpés         65 éditions,    149 liens
     boutiques d'éditeur               136 éditions
     Zavvi                               0, filon épuisé (§5)
 
@@ -1036,6 +1037,20 @@ qu'on a mesuré (§4, 4 août).
 2000-2014. Les 19 absents nommés du banc d'essai rendent 4 titres dans les
 3 478 DVD Leclerc, exactement ceux que le Blu-ray apportait déjà. Le DVD
 élargit le catalogue, il ne comble pas le fonds.
+
+**Les 1 154 refus de la passe DVD sont des coffrets, pas des ratés.** Le motif
+dominant, 517 sur 1 154, est « titre exact, aucun contrôle ne confirme », ce qui
+se lit comme un contrôle trop strict. En regardant les fiches, c'en est un autre
+qui parle : `realisateur` y vaut `Coffret trilogie`, `L'Intégrale 8 films`,
+`Coffret anthologie 4 f`, `Vol. 2`, et les durées sont des totaux de boîtier,
+264 ou 362 minutes. C'est le piège du champ `realisateur` de dvdfr consigné au
+§6, et il fait ici office de **signal** : là où il porte du vocabulaire de
+coffret, la fiche en est un.
+
+`coffrets_leclerc.py` rejoué sur ces 668 refus neufs rend **65 coffrets validés
+et 149 liens**, à la somme des durées. 436 échecs et 167 à relire restent, et
+c'est le même plafond qu'au 4 août : sans durée par film, aucune des deux
+mesures concordantes n'est disponible.
 
 Relevé à nouveau le **4 août 2026** après les imports Leclerc et The Jokers,
 puis en fin de journée, les écritures Leclerc s'étant poursuivies entre les deux.
