@@ -14,7 +14,7 @@ pour le marché français. Anciennement *Boxology*, renommé en juillet 2026.
 | Dépôt | `github.com/rayan-adamczak/jaquette` (public) |
 | Éditeur | Rayan Adamczak, **entrepreneur individuel**, SIREN 852 258 680, SIRET 852 258 680 00028, RNE. Siège 32 D passage privé du Maupas, 58000 Nevers. Franchise en base, art. 293 B du CGI |
 | Contact | `contact@jaquette.app`, Cloudflare Email Routing, redirige vers rayan.adamczak@gmail.com. Réception seulement, pas d'envoi |
-| Compte Awin | `Jaquette.app` (3006883), **E.Leclerc accepté le 3 août 2026**. Fnac, Cultura et Zavvi en attente ; **Momox et Cdiscount demandés le 5 août**. L'espace publicitaire déclarait encore le prototype `boxology.figma.site` jusqu'au 5 août (§8) |
+| Compte Awin | `Jaquette.app` (3006883), **E.Leclerc accepté le 3 août 2026, Momox shop FR le 6**. Fnac, Cultura, Zavvi et Cdiscount en attente. L'espace publicitaire déclarait encore le prototype `boxology.figma.site` jusqu'au 5 août (§8) |
 
 **Le site est commercial depuis le 3 août 2026.** L'ambition du §1 d'origine est
 atteinte : le premier programme d'affiliation est accepté, 724 offres sont en
@@ -612,6 +612,30 @@ tous. Vérifié par un vrai `INSERT` anon, pas par un `PATCH` sur filtre vide :
 
     42501  permission denied for table offres
 
+**`etat` (text), ajoutée le 6 août 2026**, migration `20260806_offres_etat.sql`,
+contrainte sur un vocabulaire fermé, `neuf | tres_bon | bon | acceptable`, index
+partiel. 4 698 offres au 6 août, 3 014 E.Leclerc en neuf et 1 684 momox shop
+dont **1 618 d'occasion** ; 413 éditions portent les deux marchands.
+
+Elle existe parce que Momox vend de l'occasion : un « acceptable » à 3,49 € et un
+neuf à 19,99 € sont deux offres légitimes du même disque, et rien ne les
+distinguait. Les deux relevés viennent de la colonne `condition` du flux Awin,
+jamais devinés, `new` sur les 91 320 lignes Leclerc et quatre valeurs chez Momox.
+
+**`tres_bon` et non `comme_neuf`** : momox écrit « Très bon état », et traduire
+son barème inventerait une garantie qu'il ne donne pas.
+
+**Nullable, et le nul veut dire « le marchand ne le dit pas ».** Il ne veut pas
+dire « neuf » : le supposer ferait entrer des disques d'occasion dans une
+estimation de valeur sans que personne le voie. D'où un filtre **positif** dans
+`lib/valeur.ts`, `etat` renseigné **et** différent de `neuf` ; un `neq` seul
+laisserait passer les nuls.
+
+**Le vocabulaire est fermé par contrainte, et c'est le garde-fou qui compte** :
+un troisième marchand qui ferait entrer un cinquième mot rendrait tout filtre par
+état silencieusement incomplet. `offres_awin.py` sort d'ailleurs **en erreur** sur
+une valeur de `condition` inconnue plutôt que de retomber sur `null`.
+
 ### `editions_signalees`, posée le 3 août 2026
 
 Signalement d'un disque absent du catalogue : `user_id`, `ean`, `note`,
@@ -973,6 +997,11 @@ puis en fin de journée, les écritures Leclerc s'étant poursuivies entre les d
 | Éditions sans film | 1 897 | — |
 | Éditions avec visuel | 22 708 (98,6 %) | — |
 | **Offres marchandes** | **3 026** | **3 014** |
+
+**Les offres au 6 août 2026, après Momox** : 4 698 lignes, 3 014 E.Leclerc en
+neuf et 1 684 momox shop dont 1 618 d'occasion, sur **4 285 éditions**, dont 413
+qui portent les deux marchands. Le catalogue lui-même n'a pas bougé, cette passe
+n'important rien (§6).
 
 Les 13 codes de magasin sans valeur hors enseigne sont toujours dans le compte
 des codes-barres.
@@ -1925,6 +1954,89 @@ la bonne pour la visionneuse. C'est l'affichage qui demande ce dont il a besoin,
 même principe que `pleineResolution` pour TMDB, dans l'autre sens. `func=fit`
 est conservé, c'est lui qui garde le rapport au lieu de rogner. Les autres hôtes
 passent sans être touchés, leur grammaire n'étant pas celle-ci.
+
+### Momox shop FR par Awin, la première source de seconde main, 6 août 2026
+
+**C'est la source que le §8 attendait depuis le 2 août**, et elle ne sert à rien
+d'autre : la valeur d'une collection, deuxième fonction la plus demandée, était
+hors de portée tant que les huit sources vendaient du neuf. Momox shop revend de
+l'occasion, donc ses prix sont les seuls qui disent ce que vaut un disque déjà
+sorti du magasin.
+
+**Le compte expose sept flux Momox, et prendre le mauvais coûterait cher.** Ils
+se lisent dans la colonne `URL` de `feedList`, qui porte aussi le `fid` :
+
+| flux | fid | produits |
+|---|---|---|
+| all products part 1 | 19367 | 599 965 |
+| books 1 | 41113 | 499 985 |
+| all products part 2 | 111151 | 386 626 |
+| music | 41035 | 194 254 |
+| **movies** | **41111** | **154 887** |
+| books 2 | 41117 | 95 581 |
+| video games | 41109 | 25 159 |
+
+On prend **`movies` seul**. Les deux « all products » noieraient les disques
+dans un million de livres et de CD, exactement l'arbitrage déjà fait chez
+Leclerc en prenant `Culturel` plutôt que `Tous univers`.
+
+**`feedList` est la bonne porte, et pas Create-a-Feed.** L'URL est en tête de
+l'écran Create-a-Feed, porte la même clé API que `AWIN_FEED_LECLERC`, et rend un
+CSV de 921 lignes : un flux par annonceur inscrit, avec son volume, sa date
+d'import et **son URL de téléchargement complète**. Il n'y a donc rien à
+composer à la main, et le §6 pose déjà que l'URL se copie plutôt qu'elle ne se
+reconstruit.
+
+Couverture, mesurée sur les 154 887 lignes et non sur un échantillon :
+
+    nom, EAN, prix, image, lien, marque, stock, condition   100 %
+    description                                              98,7 %
+
+**L'EAN à 100 %, et surtout `condition` à 100 %** : c'est ce second champ qui
+distingue cette source de toutes les autres.
+
+    68 493   D'occasion - Très bon état
+    67 422   D'occasion - bon état
+    16 264   D'occasion - acceptable
+     2 708   NewItem
+
+**Une ligne par EAN, un état par ligne**, et un seul EAN porté par deux lignes
+sur les 154 874 : les trois éditions d'*Interview mit einem Vampir*, DVD, DVD
+Special Edition et Blu-ray, ont trois codes distincts. Il n'y a donc pas de
+variante à départager.
+
+**Recoupement : 1 684 éditions**, dont 1 618 d'occasion, médiane 15,73 €.
+Relecture de 18 appariements avant écriture, **18 justes sur 18** : l'EAN étant
+exact, un désaccord de titre aurait voulu dire un code faux d'un côté.
+
+**Quatre champs à connaître, tous mesurés :**
+
+- **`category_name` vaut `DVDs` sur les 154 887 lignes, et ce n'est pas le
+  format.** C'est le nom du rayon. Le format est dans le nom du produit,
+  `[Blu-ray]` quand il y en a un, **rien du tout pour un DVD** : 98 346 lignes
+  n'ont aucun marqueur. Sans objet ici, la passe d'offres rapprochant par EAN
+  exact, mais bloquant pour tout import ;
+- **`brand_name` est le réalisateur**, pas une marque : `Neil Jordan`,
+  `Steven Spielberg`, `Alfred Hitchcock`, et `unbekannt` sur 33 967 lignes.
+  C'est une mesure indépendante disponible le jour où on importerait ;
+- **`custom_2` est l'heure de génération du flux chez eux**, la même sur toutes
+  les lignes, `05.08.2026 15:52:02`. Le téléchargement a suivi de 17 h, donc
+  `releve_le`, pris sur le nom de fichier, majore la fraîcheur d'autant. Sous les
+  48 h que `offres_awin.py` surveille, mais c'est la colonne à préférer si un
+  jour l'écart compte ;
+- **`delivery_cost` vaut 1,99 € sur 84 % des lignes.** Il n'entre pas dans le
+  prix : une estimation de valeur n'achète rien, donc ne paie pas de port.
+
+**Leur propre donnée porte du mojibake**, `The Walking Dead-L'int‚grale`, trois
+caractères de remplacement sur 154 887 au décodage UTF-8. C'est momox qui l'a
+servi ainsi ; aucun champ textuel n'étant conservé, ça ne nous atteint pas.
+
+**Ce n'est pas une source de catalogue.** 38 009 de ses EAN nous sont inconnus,
+et 17 des 19 absents du banc d'essai du 2 août y figurent — mais en éditions
+allemandes, britanniques et italiennes, `Armageddon - Das jüngste Gericht`,
+`[UK Import]`, `[IT Import]`. Un import ferait entrer des disques d'un autre
+marché, sans format déclaré, ce qui est le cumul des défauts de Zavvi et de
+Leclerc. **Ne pas rouvrir sans mesurer ce que ces 38 009 codes sont vraiment.**
 
 ### thejokers-shop.com, 29 éditions, 4 août 2026
 
@@ -2958,6 +3070,29 @@ délisté ; garder son offre afficherait un prix mort et un lien qui ne rapporte
 plus. La suppression ne porte que sur ce marchand et sur les lignes dont
 `releve_le` précède le début de la passe.
 
+**Paramétrée par marchand depuis le 6 août 2026.** `MARCHANDS`, en tête
+d'`offres_awin.py`, est la seule source de ce qui les distingue : le libellé
+affiché, qui sert aussi de clé de purge, et la correspondance `condition` vers
+`offres.etat`. Montage de `metaluna/collectes.py` et de `boutiques/boutiques.py`.
+
+    python3 telecharger_awin.py momox
+    python3 sonde_awin.py momox                    # un nom, plus un chemin
+    python3 offres_awin.py --marchand momox --apply
+
+**Le flux se cherche par préfixe de marchand, jamais « le dernier brut ».** Le
+défaut d'origine prenait `brut/*.csv.gz` trié, juste tant qu'un seul marchand
+existait. Avec deux, une passe Leclerc lancée après un téléchargement Momox
+aurait lu le flux Momox, trouvé peu d'appariements sous le libellé `E.Leclerc`,
+et **purgé les offres Leclerc qu'elle n'aurait pas revues**. `CHUTE_MAX`
+l'aurait arrêtée, mais compter sur elle pour rattraper une erreur de fichier
+serait la traiter comme un filet plutôt qu'un garde-fou. `sonde_awin.py` avait
+le même défaut et accepte désormais un nom de marchand.
+
+**`maj-awin.yml` boucle sur les deux, séquentiellement**, et ce n'est pas de la
+prudence mal placée : `CHUTE_MAX` compare le décompte d'avant à ce que la passe a
+trouvé, donc deux passes qui lisent `offres` en même temps se mesureraient l'une
+l'autre. Le verrou `ecriture-base` protège d'un autre workflow, pas de soi-même.
+
 **Rien ne planifie encore cette passe**, et c'est le manque à combler en
 premier : les 724 prix sont un instantané du 3 août 2026. Un prix affiché est
 une information commerciale, il se périme, et le site le date au survol sans
@@ -3463,6 +3598,28 @@ signalerait une page servie pendant la fenêtre de propagation, et se relance.
 
 Bonus non anticipé : les **fiches de marchand** valident aussi, ce qui est un
 second type de résultat enrichi obtenu sans rien écrire de plus.
+
+**`itemCondition` est écrit depuis le 6 août 2026, et il n'est pas décoratif.**
+Un `Offer` sans lui est lu **comme du neuf par défaut** : servir un prix
+d'occasion sans le dire ferait annoncer un disque neuf à 3,49 € dans les
+résultats de Google, ce qui est la pratique commerciale trompeuse que le §10
+s'emploie à éviter. C'est le raisonnement qui refuse `hasMerchantReturnPolicy`,
+pris dans l'autre sens : ici la donnée existe, donc elle s'écrit.
+
+    neuf                       -> schema.org/NewCondition
+    tres_bon, bon, acceptable  -> schema.org/UsedCondition
+    nul                        -> clé absente, on n'affirme rien
+
+Le barème ne se traduit pas plus finement, schema.org n'ayant que quatre valeurs
+dont `RefurbishedCondition` et `DamagedCondition`, qui disent autre chose. Le
+détail reste à l'écran, lisible par un humain.
+
+**C'est aussi la première fois qu'un nœud porte deux offres**, ce que le §7
+annonçait depuis le 3 août sans pouvoir l'éprouver. Mesuré sous `wrangler` sur
+*Ad Astra*, dont deux éditions portent les deux marchands :
+
+    edition-51636   10.50 EUR E.Leclerc NewCondition | 8.49 EUR momox UsedCondition
+    edition-51637   14.00 EUR E.Leclerc NewCondition | 12.69 EUR momox UsedCondition
 
 Couverture des nœuds, mesurée sur les 724 : **zéro sans EAN**, zéro sans titre,
 onze sans image. `gtin13` est donc sur tous, et c'est ce qui nous distingue, ni
@@ -4590,6 +4747,7 @@ Windows. **Aucun service web français, moderne et gratuit.**
 | calendrier des sorties et alertes | `date_parution`, incomplet |
 | **sauvegarde et export** | **fait le 3 août 2026**, CSV depuis `/account` |
 | **signaler une édition manquante** | **fait le 3 août 2026**, `/report` |
+| **valeur de la collection** | **fait le 6 août 2026**, `/account`, sur l'occasion |
 
 **La granularité par édition est l'avantage, et il est structurel.** My Movies
 compte un coffret comme un seul film ; la revue de Movie Collector juge sa
@@ -4616,16 +4774,58 @@ disque.
   **Le flux Leclerc est la première source à pouvoir la relever**, avec 100 %
   d'EAN sur ses 7 090 disques, dont 6 393 inconnus de nous. C'est le meilleur
   argument d'un import, et le seul obstacle est le format non déclaré.
-- **La valeur de la collection, deuxième plus demandée. Le premier étage est
-  posé**, `public.offres` portant 724 prix marchands réels et datés au 3 août
-  2026.
+- ~~**La valeur de la collection, deuxième plus demandée.**~~ **Faite le 6 août
+  2026**, dans `/account`, sur les prix d'occasion de Momox shop.
 
-  **Ce n'est toujours pas une cote.** Un prix marchand du jour dit ce que le
-  disque coûte neuf en rayon, pas ce que vaut un steelbook épuisé, et il ne
-  couvre que 3,5 % du catalogue. Additionner ces 724 prix donnerait un total
-  qui se lit comme une valeur de collection et n'en est pas une. Ce qui
-  manquerait pour l'écrire honnêtement : une couverture large, et une source
-  de **seconde main**, qu'aucune des six sources ne donne.
+  **Ce qui manquait n'était pas le calcul, c'était la source.** Le §8 écrivait
+  qu'additionner les 724 prix Leclerc « donnerait un total qui se lit comme une
+  valeur de collection et n'en est pas une », et c'était juste : un prix neuf en
+  rayon dit ce que coûte un disque aujourd'hui, pas ce que vaut un steelbook
+  épuisé. Momox shop, accepté le même jour, est la première source de seconde
+  main du catalogue (§5), et c'est elle qui rend le total défendable.
+
+  **Ce que le nombre veut dire, exactement** : ce qu'il coûterait de racheter ces
+  disques d'occasion aujourd'hui, au moins cher des exemplaires en vente. Rien de
+  plus, et `lib/valeur.ts` porte les trois limites en tête de fichier :
+
+      ce n'est pas ce qu'on en tirerait   un revendeur achète bien moins
+                                          cher qu'il ne vend, c'est son métier
+      ce n'est pas une cote               un prix de vente d'un jour n'est pas
+                                          une valeur établie sur des ventes
+      c'est un plancher                   au moins cher, sur les seules
+                                          éditions couvertes
+
+  **Le dénominateur est collé au total, jamais dans une note plus bas.** 1 618
+  éditions portent un prix d'occasion sur 23 803, donc un montant seul laisserait
+  croire à une couverture qu'on n'a pas. L'écran écrit « sur N éditions estimées,
+  vous en possédez M », et nomme les marchands avec **la date du relevé le plus
+  ancien** du lot, pas la plus fraîche : c'est elle qui dit ce que vaut
+  l'estimation (§10).
+
+  **Sur `/account` et nulle part ailleurs, en particulier pas sur `/u/…`.** Le
+  profil public montre ce qu'on possède, ce qui est déjà un changement de posture
+  assumé (§10) ; ce qu'une collection vaut est autre chose. Publier l'inventaire
+  chiffré de biens qui dorment chez quelqu'un, sous un identifiant qu'un moteur
+  indexe, n'est pas une fonction qu'on ajoute sans qu'elle ait été demandée.
+
+  **Rien n'est calculé avant qu'on le demande**, un bouton et non un chiffre posé
+  au chargement : un compte de mille éditions coûte cinq requêtes, et l'immense
+  majorité des visites à `/account` viennent chercher autre chose. C'est la règle
+  du §8 vue de l'autre bout, ce qui se décide au premier rendu doit se décider
+  sans réseau, donc ce qui demande le réseau ne se décide pas au premier rendu.
+
+  **Reste non vérifié, et c'est le même trou que partout ailleurs** : le chemin
+  connecté. La section a été montée sous une session forgée dans le stockage, ce
+  qui valide sa place dans la page et sa dégradation — le jeton étant invalide,
+  la lecture de `collections` est refusée et l'écran affiche « Le calcul a
+  échoué » sans casser la page. **La branche à chiffres n'a jamais été rendue** :
+  l'unique compte réel a deux éditions possédées et aucune ne porte de prix
+  d'occasion. Ce qui a été vérifié à sa place est la requête, exercée à la clé
+  anon sur deux éditions portant les deux marchands (elle rend les deux occasions
+  et écarte les deux neufs), et son équivalent SQL sur le compte réel, `2
+  possédées, 0 estimées`. Pour éprouver la branche à chiffres il faut une vraie
+  session Google, donc soit le site en production, soit réajouter l'adresse
+  locale dans Supabase, ce que le §3 a délibérément retirée le 4 août.
 
 #### Abonnement envisagé en v2, deux à trois euros par mois
 
@@ -4836,6 +5036,15 @@ branché sur l'enrichissement dvdfr par code-barres, et les flux marchands.
   payer, c'est le mur surgi en cours de route : gager l'export ou la sauvegarde
   retournerait l'argument de confiance. Il est placé juste avant la suppression
   du compte, les deux répondant à « et si je veux partir ».
+
+  **La FAQ répondait encore « ni import ni export » jusqu'au 6 août 2026**, trois
+  jours après la mise en ligne. `/about` est servi par le middleware depuis
+  `lib/faq.ts`, donc la contradiction était publiée en toutes lettres à côté d'un
+  bouton qui marche, sur une fonction qui tient une obligation du RGPD (art. 20).
+  Corrigé. Ce qui reste vrai est l'**import**, qui n'existe pas : la réponse le
+  dit maintenant séparément. **Une fonction livrée sans relire ce que la FAQ en
+  dit laisse une promesse fausse derrière elle**, et c'est l'inverse du défaut
+  habituel, ici le site faisait plus que ce qu'il annonçait.
 
   Quatre choix de format, aucun évident : **point-virgule** et non virgule,
   Excel en locale française mettant sinon toute la ligne dans une cellule ;
@@ -5616,9 +5825,13 @@ clic.
 
 ### Awin
 
-**E.Leclerc accepté le 3 août 2026**, premier programme validé. Fnac, Cultura et
-Zavvi restent en attente, **tous avec flux produits** (EAN, images, prix), et
-**Momox et Cdiscount ont été demandés le 5 août 2026**, voir plus bas.
+**E.Leclerc accepté le 3 août 2026**, premier programme validé, **Momox shop FR
+le 6 août**, second. Fnac, Cultura, Zavvi et Cdiscount restent en attente, **tous
+avec flux produits** (EAN, images, prix).
+
+**Momox a confirmé ce que le §8 attendait de lui et rien de plus** : c'est une
+source de **prix d'occasion**, pas une source de catalogue (§5). Elle débloque la
+valeur de collection, elle ne comble pas le creux 2000-2014.
 
 Create-a-Feed s'est ouvert le jour de l'acceptation : il rendait « Feed not
 found » tant qu'aucun programme n'avait validé, et c'était bien la cause, pas un
@@ -5630,8 +5843,8 @@ défaut de configuration. Flux retenu, mesure et chaîne au §5 et §6.
 |---|---|
 | offres réelles sur les éditions du catalogue | **fait**, 724 offres en ligne |
 | nœud JSON-LD `Product` avec `offers` | à faire, condition levée (§7) |
-| élargissement du catalogue par les 6 393 EAN neufs | suspendu au format (§8) |
-| valeur de collection | premier étage seulement, ce n'est pas une cote (§8) |
+| élargissement du catalogue par les 6 393 EAN neufs | soldé le 4 août (§5) |
+| valeur de collection | **faite le 6 août**, par Momox et non par Leclerc (§8) |
 
 **Chaque programme accepté demandera sa propre mesure.** Les six sources déjà
 mesurées n'ont pas deux fois le même défaut, et Leclerc en apporte un inédit,
@@ -5644,12 +5857,15 @@ Export du répertoire filtré sur France et flux produit : **600 annonceurs**,
 dont 478 français. Deux seulement valaient une candidature, et elles sont
 parties le 5 août 2026.
 
-**Momox, la seule source de seconde main du répertoire.** « Spécialiste en
-achat/vente de livres, CD, DVD et jeux vidéo », et c'est le point : le §8 pose
-que la valeur de collection, deuxième fonction la plus demandée, est impossible
-sans un marchand d'occasion, et qu'aucune de nos huit sources ne l'est. Ses
-conditions sont aussi les meilleures du lot, 5 à 15 % de commission, 94,6 % de
-validation, cookie de 60 jours, statut de paiement vert.
+**Momox, la seule source de seconde main du répertoire. Accepté le 6 août 2026**,
+lendemain de la demande. « Spécialiste en achat/vente de livres, CD, DVD et jeux
+vidéo », et c'est le point : le §8 posait que la valeur de collection, deuxième
+fonction la plus demandée, était impossible sans un marchand d'occasion, et
+qu'aucune de nos huit sources ne l'était. Ses conditions sont aussi les
+meilleures du lot, 5 à 15 % de commission, 94,6 % de validation, cookie de
+60 jours, statut de paiement vert. Mesure du flux au §5, et le programme s'appelle
+« Momox shop FR (revente/outbound) » : c'est bien la boutique qui **vend** de
+l'occasion, pas le service de rachat, donc ses prix sont des prix de vente.
 
 **Cdiscount, pour le creux 2000-2014.** 3 à 8 %, 93,7 % de validation, et
 surtout `productReporting: yes`, que seuls trois programmes portent avec Fnac
@@ -6443,6 +6659,28 @@ Documentés parce qu'ils se reproduiront.
   zéro par les deux, et les confronter à la mesure inemployée en a démenti
   **11,1 %**. Le niveau de confiance d'une passe dit ce qu'elle a vérifié, pas
   ce qui est vrai.
+- **Le `select` de `postgrest-js` doit être une chaîne littérale, jamais une
+  concaténation.** La bibliothèque infère le type de la réponse depuis le
+  **texte** du `select` ; une expression le lui rend opaque, et l'erreur ne
+  tombe pas sur la ligne fautive mais dix plus bas, sur le `map` :
+
+      error TS2339: Property 'edition_films' does not exist on type
+                    '{ error: true; } & String'
+
+  Rencontré le 6 août 2026 en ajoutant `etat` à `getEditionsForFilm`, en coupant
+  la chaîne sur deux lignes pour tenir la largeur. Le message ne dit rien de la
+  cause, et le réflexe est d'aller chercher un champ manquant dans le schéma.
+- **Le corps injecté contient des `</div>` imbriqués**, donc une sonde
+  `<div id="root">(.*?)</div>` rend zéro et se lit comme un corps vide. Trois
+  pages annoncées à « 0 signe » ce jour-là, alors que `grep` sur le brut
+  trouvait le texte attendu. Variante du §9 dans son propre terrain, et le
+  contrôle qui tranche est le même : passer le motif sur quelque chose dont on
+  sait qu'il contient la réponse.
+- **Une boucle d'attente sur `pgrep -f <motif>` se reconnaît elle-même**, déjà
+  consigné plus haut ; le même piège existe pour les captures d'écran après un
+  défilement programmé (§8), et il a de nouveau coûté deux captures blanches le
+  6 août 2026. Ce qui marche : redimensionner l'onglet assez haut pour que la
+  cible soit dans la page, puis recharger.
 - **`npm run build` lance `tsc --noEmit` d'abord.** Sans lui, rien ne relisait le
   code : esbuild ne vérifie pas les types, et un identifiant JSX dont l'import a
   été retiré devient une référence globale résolue à l'exécution. Un `Search`
@@ -6748,10 +6986,25 @@ Ce qui a évité le plus d'erreurs :
   devient un mensonge le jour où le lien existe, et c'est le manquement que
   sanctionne l'article L. 121-1 du code de la consommation.
 
-  Trois endroits, tous au présent et nommant Awin et le marchand : une section
+  Trois endroits, tous au présent et nommant Awin et les marchands : une section
   dédiée dans `/legal`, une dans `/privacy`, une question dans `/about`, plus
   une ligne sous la liste des éditions **quand une offre y figure**, jamais
-  ailleurs. Une mention posée sur toutes les fiches parlerait de liens absents
+  ailleurs.
+
+  **Les marchands sont nommés un par un, jamais résumés en « nos partenaires ».**
+  L'article L. 121-1 demande que la nature commerciale du lien soit
+  identifiable, et savoir chez qui l'on part en fait partie. Les cinq endroits
+  ont été repris le 6 août 2026 pour nommer **E.Leclerc en neuf et momox shop en
+  occasion**, corps injecté de `/legal` compris : `/legal`, `/privacy` deux fois,
+  `/about`, et `functions/_middleware.ts`. Une liste de marchands qu'on oublie de
+  tenir est une mention fausse, pas une mention incomplète.
+
+  **Et l'occasion se dit à la ligne du prix**, par `LIBELLE_ETAT` : « occasion,
+  très bon état ». Un montant très inférieur au neuf a une raison, et
+  `offreAAfficher` retenant le **moins cher** des deux marchands, ne pas l'écrire
+  ferait passer un disque d'occasion pour une bonne affaire sur du neuf. Le
+  classement par prix et le libellé d'état sont les deux moitiés d'un même
+  contrat : l'un sans l'autre est trompeur. Une mention posée sur toutes les fiches parlerait de liens absents
   de 96 % du catalogue, ce qui est l'inverse d'informer.
 
   Côté technique, `rel="sponsored noopener noreferrer"` : un lien affilié non

@@ -221,9 +221,10 @@ export function MentionsLegalesPage() {
         <p>
           Ces liens sont gérés par la plateforme{" "}
           <a href="https://www.awin.com" target="_blank" rel="noreferrer noopener"
-            style={{ color: "var(--reel-accent)" }}>Awin</a>. Marchand partenaire à ce jour :{" "}
-          <strong style={{ color: "var(--reel-text)" }}>E.Leclerc</strong>. Cette liste sera tenue
-          à jour ici.
+            style={{ color: "var(--reel-accent)" }}>Awin</a>. Marchands partenaires à ce jour :{" "}
+          <strong style={{ color: "var(--reel-text)" }}>E.Leclerc</strong> (disques neufs) et{" "}
+          <strong style={{ color: "var(--reel-text)" }}>momox shop</strong> (disques d’occasion).
+          Cette liste est tenue à jour ici.
         </p>
         <Encadre>
           La rémunération n’influence ni le contenu du catalogue, ni l’ordre d’affichage des

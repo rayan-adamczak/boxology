@@ -105,10 +105,16 @@ export interface Edition {
   /**
    * Offres marchandes de cette édition, jointes depuis `offres`.
    *
-   * Vide sur l'immense majorité du catalogue : 724 éditions seulement en
-   * portent une au 3 août 2026, celles dont l'EAN tombe dans le flux Awin
-   * d'E.Leclerc. Une édition sans offre n'est pas une édition introuvable,
-   * c'est une édition dont aucun de nos partenaires ne publie de prix.
+   * Vide sur l'immense majorité du catalogue : 4 285 éditions en portent une au
+   * 6 août 2026, celles dont l'EAN tombe dans un des deux flux Awin, E.Leclerc
+   * en neuf et momox shop en occasion. Une édition sans offre n'est pas une
+   * édition introuvable, c'est une édition dont aucun de nos partenaires ne
+   * publie de prix.
+   *
+   * **Une édition peut en porter plusieurs**, et 413 le font : c'est le cas
+   * prévu depuis le premier jour par l'unicité `(edition_id, marchand,
+   * reference)`, et ce qui oblige l'affichage à choisir plutôt qu'à prendre la
+   * première venue (cf. `offreAAfficher`).
    */
   offres?: Offre[] | null;
 }
@@ -129,7 +135,75 @@ export interface Offre {
   /** Lien de tracking Awin. Jamais l'URL marchande nue, sans quoi la visite
       n'est pas attribuée et la commission n'existe pas. */
   url: string;
+  /**
+   * État du disque déclaré par le marchand, vocabulaire fermé de
+   * `offres.etat` : `neuf`, `tres_bon`, `bon`, `acceptable`.
+   *
+   * **Nul veut dire « le marchand ne le dit pas », pas « neuf ».** Momox shop
+   * vend de l'occasion depuis le 6 août 2026 : un prix affiché sans son état
+   * laisserait croire qu'un disque à 3,49 € est neuf.
+   */
+  etat: EtatOffre | null;
   releve_le: string;
+}
+
+export type EtatOffre = "neuf" | "tres_bon" | "bon" | "acceptable";
+
+/**
+ * Ce qu'on écrit à l'écran pour chaque état.
+ *
+ * Le neuf ne porte pas de mention : c'est le cas attendu quand on regarde un
+ * prix marchand, et l'écrire sur les 3 014 offres Leclerc ajouterait un mot par
+ * ligne sans rien apprendre. C'est l'occasion qui doit se dire, et les trois
+ * paliers reprennent le libellé du marchand plutôt qu'un barème à nous.
+ */
+export const LIBELLE_ETAT: Record<EtatOffre, string | null> = {
+  neuf: null,
+  tres_bon: "occasion, très bon état",
+  bon: "occasion, bon état",
+  acceptable: "occasion, état acceptable",
+};
+
+/** Vrai pour une offre de seconde main. Un état inconnu n'est pas une
+ *  occasion : on ne devine pas dans ce sens-là non plus. */
+export function estOccasion(offre: Offre): boolean {
+  return offre.etat !== null && offre.etat !== "neuf";
+}
+
+/**
+ * L'offre à montrer sur une ligne d'édition, quand il y en a plusieurs.
+ *
+ * **La moins chère, et son état est écrit à côté.** Le choix d'origine était
+ * « la première qui porte un prix », ce qui était juste tant qu'un seul
+ * programme existait. Avec deux marchands dont l'un vend de l'occasion, cet
+ * ordre est celui que PostgREST a rendu, c'est-à-dire un hasard : la même
+ * édition aurait pu afficher 3,49 € ou 19,99 € sans que rien ne le décide.
+ *
+ * La moins chère est ce qu'on vient chercher, à condition de dire ce qu'elle
+ * est : un occasion « état acceptable » à 3,49 € n'est pas une bonne affaire
+ * sur un neuf, c'est un autre produit. C'est `LIBELLE_ETAT` qui porte cette
+ * moitié du contrat, et sans elle ce classement serait trompeur.
+ *
+ * **On ne compare que des montants dans la même monnaie.** `lib/prix.ts` pose
+ * déjà qu'additionner des livres à des euros donne un nombre qui ne veut rien
+ * dire, et le classer n'est pas mieux. Les deux flux sont en euros aujourd'hui,
+ * donc ce repli ne sert rien ; il empêche qu'un troisième programme, une
+ * boutique britannique par exemple, fasse passer 8,99 £ pour moins cher que
+ * 9,99 €.
+ */
+export function offreAAfficher(offres: Offre[] | null | undefined): Offre | null {
+  const exploitables = (offres ?? []).filter(
+    (o) => typeof o.prix === "number" && Number.isFinite(o.prix) && o.prix > 0,
+  );
+  if (exploitables.length === 0) return null;
+
+  const euros = exploitables.filter((o) => (o.devise || "EUR") === "EUR");
+  const comparables = euros.length > 0 ? euros : null;
+  // Aucune offre en euros : on n'a rien à départager honnêtement, on garde la
+  // première plutôt que d'inventer un taux de change.
+  if (!comparables) return exploitables[0];
+
+  return comparables.reduce((a, b) => ((b.prix as number) < (a.prix as number) ? b : a));
 }
 
 export interface PisteAudio {
@@ -466,7 +540,11 @@ export async function getEditionsForFilm(filmId: number): Promise<Edition[]> {
     // `offres(...)` est une jointure à gauche : une édition sans offre revient
     // avec un tableau vide, elle ne disparaît pas de la liste. C'est le cas
     // de 96 % du catalogue, donc ce n'est pas un détail.
-    .select("*, edition_films!inner(film_id), offres(marchand,prix,devise,disponible,url,releve_le)")
+    // Une seule chaîne littérale, jamais une concaténation : `postgrest-js`
+    // infère le type de la réponse depuis le texte du `select`, et une
+    // expression le lui rend opaque. Le symptôme est un `tsc` qui parle de
+    // `{ error: true } & String` sur la ligne du `map`, dix lignes plus bas.
+    .select("*, edition_films!inner(film_id), offres(marchand,prix,devise,disponible,url,releve_le,etat)")
     .eq("edition_films.film_id", filmId)
     .order("id", { ascending: true });
   if (error) throw new Error(`Erreur lors du chargement des éditions du film ${filmId}: ${error.message}`);

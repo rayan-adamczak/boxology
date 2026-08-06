@@ -92,6 +92,10 @@ interface OffreSeo {
   prix: string | number | null;
   devise: string;
   disponible: boolean | null;
+  /** `neuf | tres_bon | bon | acceptable`, ou nul si le marchand ne le dit pas.
+   *  Momox shop vend de l'occasion : sans ce champ, `Offer` annoncerait un
+   *  disque d'occasion aux mêmes conditions qu'un neuf. */
+  etat: string | null;
   releve_le: string;
 }
 
@@ -166,7 +170,7 @@ async function lireFilm(id: number): Promise<FilmSeo | null> {
     "prix_fnac_extrait,region,pays,date_sortie,source,codec,resolution,hdr,ratio," +
     "ratio_origine,pistes_audio,sous_titres,disques,packaging,editeur,date_parution," +
     "collection_editeur,numero_collection,distributeur," +
-    "offres(marchand,prix,devise,disponible,url,releve_le)";
+    "offres(marchand,prix,devise,disponible,url,releve_le,etat)";
 
   const url =
     `https://${PROJET}.supabase.co/rest/v1/films` +
@@ -404,6 +408,32 @@ function descriptionEdition(film: FilmSeo, ed: EditionSeo): string | null {
   return morceaux.length >= 3 ? `${morceaux.join(" — ")}.` : null;
 }
 
+/**
+ * `offres.etat` vers `schema.org/OfferItemCondition`.
+ *
+ * **Obligatoire depuis Momox, pas décoratif.** Un `Offer` sans `itemCondition`
+ * est lu comme du neuf par défaut : servir un prix d'occasion sans le dire
+ * ferait annoncer un disque neuf à 3,49 € dans les résultats de Google, ce qui
+ * est la pratique commerciale trompeuse que le §10 s'emploie à éviter. C'est
+ * exactement le raisonnement qui refuse `hasMerchantReturnPolicy`, dans l'autre
+ * sens : ici la donnée existe, donc elle s'écrit.
+ *
+ * Le barème du marchand ne se traduit pas plus finement. schema.org n'a que
+ * quatre valeurs, et `tres_bon` comme `acceptable` sont deux occasions : les
+ * distinguer demanderait `RefurbishedCondition` ou `DamagedCondition`, qui
+ * disent tous deux autre chose. Le détail reste à l'écran, où il est lisible
+ * par un humain.
+ *
+ * Un état nul rend `null`, donc la clé disparaît par `compacter` : on n'affirme
+ * pas « neuf » sur un silence.
+ */
+function conditionSchema(etat: string | null): string | null {
+  if (!etat) return null;
+  return etat === "neuf"
+    ? "https://schema.org/NewCondition"
+    : "https://schema.org/UsedCondition";
+}
+
 function produits(film: FilmSeo, canonical: string): Record<string, unknown>[] {
   const noeuds: Record<string, unknown>[] = [];
 
@@ -439,6 +469,7 @@ function produits(film: FilmSeo, canonical: string): Record<string, unknown>[] {
              machine n'a pas à la faire passer par une redirection de tracking. */
           url: canonical,
           seller: { "@type": "Organization", name: o.marchand },
+          itemCondition: conditionSchema(o.etat),
         });
       })
       .filter(Boolean);
@@ -1220,7 +1251,7 @@ const PAGES_LEGALES: Record<
     sections: [
       ["Éditeur du site", "Rayan Adamczak, entrepreneur individuel, SIREN 852 258 680, SIRET 852 258 680 00028, inscrit au Registre national des entreprises. TVA non applicable, article 293 B du code général des impôts. Coordonnées complètes sur la page."],
       ["Directeur de la publication", "Rayan Adamczak."],
-      ["Liens affiliés", "Certains liens vers les marchands sont des liens affiliés : une commande passée après un clic peut donner lieu à une commission, sans surcoût. Programme Awin, marchand partenaire à ce jour E.Leclerc. Ces liens sont déclarés comme tels dans la page."],
+      ["Liens affiliés", "Certains liens vers les marchands sont des liens affiliés : une commande passée après un clic peut donner lieu à une commission, sans surcoût. Programme Awin, marchands partenaires à ce jour E.Leclerc pour les disques neufs et momox shop pour l’occasion. Ces liens sont déclarés comme tels dans la page."],
       ["Nature du service", "Catalogue informatif. Le site ne vend rien, n'encaisse rien et n'est pas intermédiaire de vente : toute commande se conclut chez le marchand, dont les conditions et le prix affiché au moment de la commande font seuls foi."],
       ["Hébergement", "Cloudflare Pages pour le site, Supabase pour la base, hébergée dans l'Union européenne."],
       ["Propriété intellectuelle", "Les visuels de jaquettes appartiennent à leurs éditeurs, les métadonnées de films viennent de TMDB."],
