@@ -191,8 +191,21 @@ export function ApercuRecherche({
                   onSurvol={() => onSurvol(index)}
                   onChoisir={onChoisir}
                 >
+                  {/*
+                    56 × 84 et non 30 × 44 : c'est la jaquette qu'on cherche du
+                    regard, pas le titre, et à 30 px de large elle ne montrait
+                    ni le visage ni la typographie qui font reconnaître une
+                    édition. C'est la taille employée par la liste d'éditions
+                    d'une fiche film, donc une valeur déjà éprouvée du site.
+
+                    **La hauteur du panneau ne bouge pas** : le plafond reste
+                    calculé comme avant, ce sont les rangées qui grossissent,
+                    donc il en tient moins à l'écran et la liste défile. C'est
+                    l'arbitrage voulu, quatre résultats qu'on reconnaît valent
+                    mieux que huit qu'on déchiffre.
+                  */}
                   <span
-                    className="h-11 w-[30px] shrink-0 overflow-hidden rounded-[4px]"
+                    className="h-[84px] w-[56px] shrink-0 overflow-hidden rounded-[6px]"
                     style={{ backgroundColor: "var(--reel-surface-2)" }}
                   >
                     <ImageWithFallback
@@ -242,18 +255,19 @@ export function ApercuRecherche({
  *
  * Une pastille de trois lettres avait été essayée d'abord, « Édi », « For » :
  * illisible, et surtout redondante avec l'intitulé écrit juste à côté. Un
- * carré de 30 × 44 px comme les affiches garde l'alignement des deux rubriques,
- * sans quoi les puces et les films n'ont pas la même gouttière de texte.
+ * rectangle **de la taille des affiches** garde l'alignement des deux
+ * rubriques, sans quoi les puces et les films n'ont pas la même gouttière de
+ * texte. Il suit donc les jaquettes quand elles changent de taille.
  */
 function IconeAxe({ axe }: { axe: NomAxe }) {
   const Icone = { publishers: Building2, formats: Disc3, genres: Tag, collections: Layers }[axe];
   return (
     <span
       aria-hidden
-      className="flex h-11 w-[30px] shrink-0 items-center justify-center rounded-[4px]"
+      className="flex h-[84px] w-[56px] shrink-0 items-center justify-center rounded-[6px]"
       style={{ backgroundColor: "var(--reel-surface-2)" }}
     >
-      <Icone size={15} color="var(--reel-muted)" />
+      <Icone size={20} color="var(--reel-muted)" />
     </span>
   );
 }
