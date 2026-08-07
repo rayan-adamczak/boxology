@@ -6,7 +6,7 @@ import { PersonModal } from "../components/PersonModal";
 import { UserAvatar } from "../components/UserAvatar";
 import { RailHorizontal } from "../components/RailHorizontal";
 import { AttentePleine } from "../components/AttenteRecherche";
-import { promotionActive } from "../lib/promotions";
+import { etatPromotion, promotionActive, quand } from "../lib/promotions";
 import { Lanterne, pleineResolution } from "../components/Lanterne";
 import { toast } from "sonner";
 import {
@@ -1488,7 +1488,8 @@ export function FilmDetailPage() {
                   }}
                 >
                   <span style={{ color: "var(--reel-text)", fontWeight: 600 }}>
-                    {promo.resume} chez {promo.marchand} aujourd’hui
+                    {promo.resume} chez {promo.marchand}{" "}
+                    {quand(promo, etatPromotion(promo))}
                   </span>
                   {" avec le code "}
                   <span

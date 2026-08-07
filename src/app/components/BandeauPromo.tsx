@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight, X } from "lucide-react";
-import { promotionsActives, type Promotion } from "../lib/promotions";
+import {
+  promotionsAAfficher,
+  quand,
+  type EtatPromotion,
+  type Promotion,
+} from "../lib/promotions";
 
 /**
  * Le bandeau d'une promotion marchande en cours.
@@ -35,13 +40,21 @@ import { promotionsActives, type Promotion } from "../lib/promotions";
  * dans ce cas le bandeau paraît, ce qui est le bon sens de la panne. Ne pas
  * pouvoir se souvenir d'un refus vaut mieux que ne pas afficher l'information.
  */
-function cle(promo: Promotion) {
-  return `jaquette.promo.${promo.code}`;
+/**
+ * La clé porte l'état autant que le code.
+ *
+ * Fermer l'annonce ne doit pas fermer la promotion elle-même : ce sont deux
+ * informations différentes, « c'est dimanche » et « c'est maintenant », et la
+ * seconde est celle qui sert. Une clé sur le seul code aurait fait taire le
+ * jour J chez quiconque a balayé l'annonce l'avant-veille.
+ */
+function cle(promo: Promotion, etat: EtatPromotion) {
+  return `jaquette.promo.${promo.code}.${etat}`;
 }
 
-function dejaFerme(promo: Promotion) {
+function dejaFerme(promo: Promotion, etat: EtatPromotion) {
   try {
-    return localStorage.getItem(cle(promo)) === "1";
+    return localStorage.getItem(cle(promo, etat)) === "1";
   } catch {
     return false;
   }
@@ -58,23 +71,23 @@ export function BandeauPromo() {
     Ici la lecture du stockage est synchrone, donc l'effet tourne avant la
     première peinture visible et le bandeau n'apparaît jamais pour disparaître.
   */
-  const [promo, setPromo] = useState<Promotion | null>(null);
+  const [courant, setCourant] = useState<{ promo: Promotion; etat: EtatPromotion } | null>(null);
 
   useEffect(() => {
-    const active = promotionsActives().find((p) => !dejaFerme(p)) ?? null;
-    setPromo(active);
+    setCourant(promotionsAAfficher().find((x) => !dejaFerme(x.promo, x.etat)) ?? null);
   }, []);
 
-  if (!promo) return null;
+  if (!courant) return null;
+  const { promo, etat } = courant;
 
   const fermer = () => {
     try {
-      localStorage.setItem(cle(promo), "1");
+      localStorage.setItem(cle(promo, etat), "1");
     } catch {
       /* Rien à faire : on ferme quand même, la fermeture ne survivra pas au
          rechargement et c'est tout ce qu'on perd. */
     }
-    setPromo(null);
+    setCourant(null);
   };
 
   return (
@@ -173,7 +186,9 @@ export function BandeauPromo() {
           <p className="text-[12px] leading-[17px] sm:text-[13px] sm:leading-[19px]" style={{ color: "var(--reel-text)" }}>
             <span style={{ fontWeight: 600 }}>{promo.marchand}</span>
             <span style={{ color: "var(--reel-muted)" }}>{" · "}</span>
-            <span style={{ fontWeight: 600 }}>{promo.resumeCourt} aujourd’hui</span>
+            <span style={{ fontWeight: 600 }}>
+              {promo.resumeCourt} {quand(promo, etat)}
+            </span>
             <span style={{ color: "var(--reel-muted)" }}>{" · code "}</span>
             {/* Chasse fixe, comme un code-barres : c'est une valeur qu'on
                 recopie signe à signe, et `I` contre `l` s'y joue. */}

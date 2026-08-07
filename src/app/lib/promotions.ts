@@ -93,9 +93,38 @@ export interface Promotion {
   conditionsCourtes: string;
   /** Lien de tracking Awin de la campagne, **jamais** l'URL marchande nue. */
   url: string;
+  /**
+   * Le jour de la promotion en toutes lettres, pour l'annoncer avant qu'elle
+   * n'ouvre : « dimanche 9 août ».
+   *
+   * Écrit à la main plutôt que calculé de `debut` : `toLocaleDateString` rendrait
+   * la date dans le fuseau du visiteur, donc « samedi 8 août » à Los Angeles pour
+   * un instant qui est bien le 9 à Paris. Le jour est une donnée du marchand, pas
+   * une conversion.
+   */
+  libelleJour: string;
   /** Bornes absolues, décalage compris. */
   debut: string;
   fin: string;
+}
+
+/**
+ * Où en est une promotion.
+ *
+ *   - `annonce` : elle n'a pas commencé, on la dit **au futur**. C'est ce qui
+ *     permet d'afficher le bandeau avant le jour J sans mentir : « le code
+ *     marche dimanche » est vrai, « le code marche aujourd'hui » ne l'est pas,
+ *     et le §10 traite le second comme un prix périmé affiché comme actuel ;
+ *   - `active` : elle court, on la dit au présent ;
+ *   - `passee` : plus rien, jamais.
+ */
+export type EtatPromotion = "annonce" | "active" | "passee";
+
+export function etatPromotion(promo: Promotion, maintenant = new Date()): EtatPromotion {
+  const t = maintenant.getTime();
+  if (t < Date.parse(promo.debut)) return "annonce";
+  if (t <= Date.parse(promo.fin)) return "active";
+  return "passee";
 }
 
 /**
@@ -130,6 +159,7 @@ export const PROMOTIONS: Promotion[] = [
        marchant toujours mais ne rapportant plus rien. Ne pas le recomposer, ne
        pas le couper, ne pas y ajouter de paramètre. */
     url: "https://www.awin1.com/cread.php?awinmid=7481&awinaffid=3006883&campaign=&ued=https%3A%2F%2Fwww.momox-shop.fr%2Fete%2F",
+    libelleJour: "dimanche 9 août",
     debut: "2026-08-09T00:00:00+02:00",
     fin: "2026-08-09T23:59:59+02:00",
   },
@@ -143,19 +173,34 @@ export const PROMOTIONS: Promotion[] = [
  * après, et une fonction qu'on ne peut pas éprouver est un passif (§7).
  */
 export function promotionActive(marchand: string, maintenant = new Date()): Promotion | null {
-  const t = maintenant.getTime();
   return (
     PROMOTIONS.find(
-      (p) =>
-        p.marchand === marchand &&
-        t >= Date.parse(p.debut) &&
-        t <= Date.parse(p.fin),
+      (p) => p.marchand === marchand && etatPromotion(p, maintenant) !== "passee",
     ) ?? null
   );
 }
 
-/** Toutes les promotions en cours, tous marchands confondus. */
-export function promotionsActives(maintenant = new Date()): Promotion[] {
-  const t = maintenant.getTime();
-  return PROMOTIONS.filter((p) => t >= Date.parse(p.debut) && t <= Date.parse(p.fin));
+/**
+ * Les promotions à montrer, annoncées ou en cours, avec leur état.
+ *
+ * Une promotion passée n'y figure jamais : c'est la seule règle que ce module
+ * ne négocie pas.
+ */
+export function promotionsAAfficher(
+  maintenant = new Date(),
+): { promo: Promotion; etat: Exclude<EtatPromotion, "passee"> }[] {
+  return PROMOTIONS.map((promo) => ({ promo, etat: etatPromotion(promo, maintenant) }))
+    .filter((x): x is { promo: Promotion; etat: "annonce" | "active" } => x.etat !== "passee");
+}
+
+/**
+ * Le moment de la promotion, tel qu'on l'écrit dans une phrase.
+ *
+ * « aujourd'hui » ou « dimanche 9 août ». C'est le seul endroit qui décide du
+ * temps employé, pour que le bandeau et l'encart de fiche ne puissent pas
+ * diverger : le §7 garde la trace de ce qui arrive quand deux textes disent la
+ * même chose à deux endroits.
+ */
+export function quand(promo: Promotion, etat: EtatPromotion): string {
+  return etat === "active" ? "aujourd’hui" : promo.libelleJour;
 }
