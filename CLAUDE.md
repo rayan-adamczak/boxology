@@ -5125,6 +5125,24 @@ disque.
   dvdfr avait qualifiés en août dormaient dans le cache, écartés par le seul
   périmètre. Deux disques sur cinq se scannent désormais.
 
+  **Puis 48,0 % dans la nuit du 7 août 2026**, 14 255 codes pour 29 701
+  éditions, après l'import du gisement français haute définition de Momox :
+  2 947 éditions écrites, 1 426 films créés, qualifiées une à une par dvdfr sur
+  4 766 codes crawlés en deux créneaux locaux, **zéro erreur**. Presque un disque
+  sur deux se scanne.
+
+  **C'est la démonstration que le rattrapage était la mauvaise question.** Les
+  quatre voies sondées le 6 août sont toutes mortes, mesurées plus bas ; ce qui
+  fait monter le taux, c'est de faire entrer des éditions qui **portent** un
+  code. Deux mouvements en deux jours, le DVD puis Momox, 26,5 → 48,0 %, et
+  aucun des deux n'a rattrapé une seule ligne existante.
+
+  **Le pré-filtre de format s'est vérifié à l'échelle** : 13 fiches écartées
+  comme DVD sur 3 614 qualifiées, soit 0,25 %. Le marqueur `[Blu-ray]` de Momox
+  dit vrai, là où Leclerc obligeait à interroger 6 393 codes dont 52 %
+  finissaient en DVD. Un marqueur lisible déplace le tri **avant** le crawl, et
+  c'est la différence entre cinq heures de machine et quarante.
+
   **Ce n'est toujours pas assez pour poser la caméra sans le dire.** Un scan qui
   échoue trois fois sur cinq reste un scan qui déçoit, et la réponse au cas
   manquant existe déjà, `/report` branché sur l'enrichissement dvdfr par
@@ -5159,12 +5177,28 @@ disque.
       c'est un plancher                   au moins cher, sur les seules
                                           éditions couvertes
 
-  **Le dénominateur est collé au total, jamais dans une note plus bas.** 1 618
-  éditions portent un prix d'occasion sur 23 803, donc un montant seul laisserait
-  croire à une couverture qu'on n'a pas. L'écran écrit « sur N éditions estimées,
-  vous en possédez M », et nomme les marchands avec **la date du relevé le plus
-  ancien** du lot, pas la plus fraîche : c'est elle qui dit ce que vaut
-  l'estimation (§10).
+  **Le dénominateur est collé au total, jamais dans une note plus bas.** 5 506
+  éditions portent un prix d'occasion sur 29 701, soit 18,5 %, donc un montant
+  seul laisserait croire à une couverture qu'on n'a pas. L'écran écrit « sur N
+  éditions estimées, vous en possédez M », et nomme les marchands avec **la date
+  du relevé le plus ancien** du lot, pas la plus fraîche : c'est elle qui dit ce
+  que vaut l'estimation (§10).
+
+  **La couverture a triplé dans la nuit du 7 août 2026**, de 1 618 à 5 506
+  éditions, et par un chemin qui vaut d'être retenu : **ce n'est pas la source de
+  prix qui a changé, c'est le catalogue.** Les 2 947 éditions Momox importées
+  portent des EAN de son propre flux, donc elles apparient ses offres dès qu'elles
+  existent. La même passe `offres_awin.py --marchand momox` est repassée sans une
+  ligne de code neuve et a écrit 5 697 offres au lieu de 1 684.
+
+  La boucle complète se lit donc : Momox **désigne** les disques par ses
+  code-barres, dvdfr les **qualifie** fiche à fiche, Momox les **date** par son
+  prix. Trois rôles, deux sources, et c'est le premier cas du dépôt où un
+  marchand sert à la fois d'annuaire et d'horloge.
+
+  Somme des prix d'occasion les moins chers sur tout le catalogue au 7 août 2026 :
+  93 847 €, médiane 12,47 €, et par état 13,49 € en très bon, 8,79 € en bon,
+  4,99 € en acceptable.
 
   **Elle vit dans la colonne de l'accueil connecté**, `TableauDeBordPage`, sous
   les deux compteurs. Elle avait d'abord été posée dans `/account` : c'est
