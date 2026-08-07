@@ -36,6 +36,7 @@ import {
   type FilmApparie,
   type FormatVoulu,
   type LigneImport,
+  type Sort,
 } from "../lib/appariement";
 
 /**
@@ -62,16 +63,20 @@ export function ImportPage() {
       description="Reprenez votre collection depuis Letterboxd ou SensCritique, en une fois."
       noindex
     >
+      {/*
+        **Le texte a été coupé de moitié après le premier import réel.** Il
+        disait vrai mais il disait tout, et sur un écran où l'on vient déposer un
+        fichier, chaque paragraphe repousse plus bas la seule chose à faire. Ce
+        qui reste est ce qui engage : rien n'est écrit sans qu'on l'ait vu, rien
+        n'est retiré. Le reste, couverture du catalogue et sort des absents, se
+        dit **au moment où ça se voit**, c'est-à-dire dans le compte rendu, et la
+        FAQ en garde la version longue.
+      */}
       <Section titre="Ce que ça fait">
         <p>
-          Vous avez déjà listé vos disques ailleurs : on lit cette liste, on cherche chaque titre au
-          catalogue, et <strong>on vous montre le résultat avant d’écrire quoi que ce soit</strong>.
-          Rien n’est jamais retiré de vos listes, l’import ne peut qu’ajouter.
-        </p>
-        <p>
-          Attendez-vous à ce qu’une partie manque : le catalogue couvre environ trois quarts d’une
-          collection française ordinaire, et les absents sont surtout les éditions de studio des
-          années 2000-2014. Ils vous seront listés, avec de quoi les signaler.
+          On lit votre liste, on cherche chaque titre au catalogue, et{" "}
+          <strong>on vous montre tout avant d’écrire quoi que ce soit</strong>. Rien n’est jamais
+          retiré : un import ne peut qu’ajouter.
         </p>
       </Section>
 
@@ -81,10 +86,7 @@ export function ImportPage() {
 
       {session === null && (
         <Section titre="Un compte est nécessaire">
-          <p>
-            L’import écrit dans vos listes, il faut donc qu’elles appartiennent à quelqu’un. La
-            lecture de votre liste, elle, se fait dans votre navigateur.
-          </p>
+          <p>Vos listes doivent appartenir à quelqu’un. La lecture, elle, se fait chez vous.</p>
           <div className="pt-1">
             <Bouton onClick={() => { void connexionGoogle("/import"); }}>
               Se connecter avec Google
@@ -176,9 +178,8 @@ function FichierDepose({
   return (
     <Section titre="Depuis un fichier">
       <p>
-        Letterboxd : <em>Settings → Data → Export your data</em>. Déposez le ZIP tel quel, sans
-        l’ouvrir. Un CSV isolé fonctionne aussi, quelle que soit son origine, du moment qu’il porte
-        une colonne de titre.
+        Letterboxd : <em>Settings → Data → Export your data</em>, puis déposez le ZIP sans l’ouvrir.
+        N’importe quel CSV portant une colonne de titre marche aussi.
       </p>
 
       <label
@@ -331,9 +332,8 @@ function SensCritique({
   return (
     <Section titre="Depuis SensCritique">
       <p>
-        Votre pseudo suffit, ou l’adresse d’une de vos listes. La lecture se fait{" "}
-        <strong>dans votre navigateur</strong>, directement chez eux : rien ne passe par nos
-        serveurs, et nous ne conservons que ce que vous choisissez d’importer.
+        Votre pseudo, ou l’adresse d’une de vos listes. La lecture se fait{" "}
+        <strong>dans votre navigateur</strong>, rien ne passe par nos serveurs.
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -374,7 +374,7 @@ function SensCritique({
       {compte && (
         <>
           <p style={{ color: "var(--reel-text)" }}>
-            Compte <strong>{compte.pseudo}</strong>. Choisissez ce que vous voulez reprendre.
+            Compte <strong>{compte.pseudo}</strong>.
           </p>
 
           <LigneSource
@@ -499,6 +499,8 @@ function Appariement({
   const [format, setFormat] = useState<FormatVoulu | null>(null);
   const [statut, setStatut] = useState<StatutValue>("possede");
   const [choix, setChoix] = useState<Record<number, number>>({});
+  /** Le film retenu quand plusieurs homonymes se disputaient la ligne. */
+  const [filmChoisi, setFilmChoisi] = useState<Record<number, number>>({});
   const [ecrit, setEcrit] = useState<{ ecrites: number; precisees: number } | null>(null);
   const [ecriture, setEcriture] = useState(false);
 
@@ -518,20 +520,67 @@ function Appariement({
     [candidats, entrees, format],
   );
 
-  // Les choix faits à la main priment sur le classement automatique.
+  /*
+    Les choix faits à la main priment sur le classement automatique.
+
+    Deux niveaux, et l'ordre compte : on tranche d'abord **quel film**, ce qui
+    débloque une ligne homonyme, puis **quelle édition** de ce film. Un homonyme
+    tranché retombe alors dans le cas ordinaire, édition unique ou pas, et
+    traverse `choisirEdition` comme les autres au lieu d'être traité à part.
+  */
   const finales = useMemo<LigneImport[]>(
     () =>
       lignes.map((l, i) => {
+        let ligne = l;
+
+        const filmId = filmChoisi[i];
+        if (filmId !== undefined) {
+          const film = l.candidats.find((c) => c.filmId === filmId);
+          if (film) {
+            const { edition, precisee } = choisirEdition(film, l.entree.note, format);
+            ligne = edition
+              ? { ...l, film, edition, precisee, sort: precisee ? "sur" : "aPreciser" }
+              : l;
+          }
+        }
+
         const editionId = choix[i];
-        if (editionId === undefined) return l;
-        const film = l.film ?? l.candidats.find((c) => c.editions.some((e) => e.id === editionId));
+        if (editionId === undefined) return ligne;
+        const film =
+          ligne.film ?? ligne.candidats.find((c) => c.editions.some((e) => e.id === editionId));
         const edition = film?.editions.find((e) => e.id === editionId) ?? null;
-        return edition ? { ...l, film: film ?? null, edition, precisee: true, sort: "sur" } : l;
+        return edition ? { ...ligne, film: film ?? null, edition, precisee: true, sort: "sur" } : ligne;
       }),
-    [lignes, choix],
+    [lignes, choix, filmChoisi, format],
   );
 
   const bilan = useMemo(() => bilanDe(finales), [finales]);
+
+  const RANG: Record<Sort, number> = { homonyme: 0, aPreciser: 1, sur: 2, absent: 3 };
+
+  /*
+    **L'ordre se calcule sur le classement automatique, jamais sur l'état
+    courant**, et ce détail s'est vu dès le premier essai : trié sur `finales`,
+    une ligne qu'on venait de préciser changeait de rang et sautait en bas du
+    tableau, sous le curseur. On corrige une ligne, elle disparaît, on cherche
+    où elle est passée.
+
+    `lignes` porte le classement d'origine, avant tout choix à la main : les
+    rangs sont donc figés tant qu'on ne change pas de source ni de format, et le
+    tableau reste sous les doigts pendant qu'on le corrige.
+  */
+  const rangees = useMemo(
+    () =>
+      lignes
+        .map((l, i) => ({ i, rang: RANG[l.sort] }))
+        .filter(({ rang }) => rang !== RANG.absent)
+        .sort((a, b) => a.rang - b.rang || a.i - b.i)
+        .map(({ i }) => i),
+    // `RANG` est une constante littérale, elle ne peut pas changer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lignes],
+  );
+
   const aEcrire = finales.filter((l) => l.edition !== null);
 
   async function ecrire() {
@@ -591,6 +640,17 @@ function Appariement({
     );
   }
 
+  /*
+    Les lignes appariées, celles qui ont une correspondance à montrer.
+
+    **L'ordre met devant ce qui demande quelque chose.** Un homonyme bloque
+    l'import de sa ligne, une édition non précisée est écrite mais affirme moins
+    que les autres, et une ligne sûre n'appelle aucun geste. Trier autrement,
+    par ordre du fichier par exemple, noierait les trois cas qui comptent au
+    milieu de trois cents qui vont bien.
+  */
+  const absents = finales.filter((l) => l.sort === "absent");
+
   return (
     <>
       <Section titre={`« ${nom} », ${entrees.length} titres`}>
@@ -604,169 +664,229 @@ function Appariement({
           <Compteur valeur={bilan.absent} libelle={pluriel(bilan.absent, "absent", "absents")} />
         </div>
 
-        <label className="flex flex-wrap items-center gap-2 pt-1">
-          <span>Ranger dans</span>
-          <select
-            value={statut}
-            onChange={(e) => setStatut(e.target.value as StatutValue)}
-            className="rounded-[8px] px-2 py-1.5 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
-            style={{
-              backgroundColor: "var(--reel-surface)",
-              border: "1px solid var(--reel-border)",
-              color: "var(--reel-text)",
-              fontSize: "14px",
-            }}
-          >
-            <option value="possede">ma collection</option>
-            <option value="envie">mes envies</option>
-          </select>
-        </label>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1">
+          <label className="flex items-center gap-2">
+            <span>Ranger dans</span>
+            <Menu value={statut} onChange={(v) => setStatut(v as StatutValue)}>
+              <option value="possede">ma collection</option>
+              <option value="envie">mes envies</option>
+            </Menu>
+          </label>
 
-        <label className="flex flex-wrap items-center gap-2">
-          <span>Je collectionne surtout en</span>
-          <select
-            value={format ?? ""}
-            onChange={(e) => setFormat((e.target.value || null) as FormatVoulu | null)}
-            className="rounded-[8px] px-2 py-1.5 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
-            style={{
-              backgroundColor: "var(--reel-surface)",
-              border: "1px solid var(--reel-border)",
-              color: "var(--reel-text)",
-              fontSize: "14px",
-            }}
-          >
-            <option value="">tous formats</option>
-            {FORMATS.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
-        </label>
-
-        <p style={{ fontSize: "13px" }}>
-          Un film populaire a souvent dix éditions, et personne ne se souvient de laquelle il a.
-          Celles qu’on n’a pas su trancher sont importées <strong>sans affirmer le pressage</strong> :
-          le film et le format sont justes, et vous pourrez préciser plus tard.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3 pt-1">
-          <Bouton onClick={() => { void ecrire(); }} disabled={ecriture || aEcrire.length === 0}>
-            {ecriture
-              ? "Écriture…"
-              : `Importer ${aEcrire.length} édition${aEcrire.length > 1 ? "s" : ""}`}
-          </Bouton>
-          <BoutonTexte onClick={onRecommencer}>Changer de source</BoutonTexte>
+          <label className="flex items-center gap-2">
+            <span>Surtout en</span>
+            <Menu value={format ?? ""} onChange={(v) => setFormat((v || null) as FormatVoulu | null)}>
+              <option value="">tous formats</option>
+              {FORMATS.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </Menu>
+          </label>
         </div>
       </Section>
 
-      {bilan.homonyme > 0 && (
-        <Section titre={`${bilan.homonyme} ${pluriel(bilan.homonyme, "titre", "titres")} à trancher`}>
-          <p>
-            Plusieurs films portent ce titre à un an près. Tant que vous n’avez pas choisi, rien
-            n’est importé pour eux : un lien faux se lit comme une vérité, une absence se corrige.
+      {rangees.length > 0 && (
+        <Section titre="Ce qui sera importé">
+          <p style={{ fontSize: "13px" }}>
+            Un film à gauche, l’édition à droite. Celles qu’on n’a pas su trancher sont marquées :
+            elles s’importent quand même, sans affirmer le pressage.
           </p>
-          {finales.map((l, i) =>
-            l.sort !== "homonyme" ? null : (
-              <ChoixHomonyme
+
+          <div
+            className="overflow-hidden rounded-[10px]"
+            style={{ border: "1px solid var(--reel-border)" }}
+          >
+            {rangees.map((i, n) => (
+              <Correspondance
                 key={i}
-                ligne={l}
-                onChoisir={(editionId) => setChoix((c) => ({ ...c, [i]: editionId }))}
+                ligne={finales[i]}
+                premiere={n === 0}
+                onFilm={(filmId) => setFilmChoisi((c) => ({ ...c, [i]: filmId }))}
+                onEdition={(editionId) =>
+                  setChoix((c) => {
+                    const suite = { ...c };
+                    if (editionId === null) delete suite[i];
+                    else suite[i] = editionId;
+                    return suite;
+                  })
+                }
               />
-            ),
-          )}
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <Bouton onClick={() => { void ecrire(); }} disabled={ecriture || aEcrire.length === 0}>
+              {ecriture
+                ? "Écriture…"
+                : `Importer ${aEcrire.length} édition${aEcrire.length > 1 ? "s" : ""}`}
+            </Bouton>
+            <BoutonTexte onClick={onRecommencer}>Changer de source</BoutonTexte>
+          </div>
         </Section>
       )}
 
-      {bilan.absent > 0 && (
+      {absents.length > 0 && (
         <Section
           titre={`${bilan.absent} ${pluriel(bilan.absent, "titre absent", "titres absents")} du catalogue`}
         >
-          <p>
-            Aucun disque de nos sources ne porte ces œuvres. Ce n’est pas un défaut de recherche :
-            le catalogue est construit à partir des éditions réellement en vente, et il lui manque
-            surtout le fonds de studio des années 2000-2014.
-          </p>
-          <Encadre>
-            {finales
-              .filter((l) => l.sort === "absent")
-              .slice(0, 40)
-              .map((l) => l.entree.titre)
-              .join(" · ")}
-            {bilan.absent > 40 && ` … et ${bilan.absent - 40} autres`}
-          </Encadre>
-          <p>
-            Si vous avez le boîtier en main,{" "}
+          <p style={{ fontSize: "13px" }}>
+            Aucun disque de nos sources ne les porte. Le boîtier en main,{" "}
             <Link to="/report" style={{ color: "var(--reel-accent-clair)" }}>
               son code-barres suffit à le faire entrer
             </Link>
             .
           </p>
+          <Encadre>
+            {absents.slice(0, 60).map((l) => l.entree.titre).join(" · ")}
+            {absents.length > 60 && ` … et ${absents.length - 60} autres`}
+          </Encadre>
         </Section>
       )}
     </>
   );
 }
 
-function ChoixHomonyme({
+/**
+ * Une ligne de la table de correspondance : le film à gauche, son édition à
+ * droite.
+ *
+ * **C'est l'écran que le premier import réel réclamait.** Le compte rendu
+ * d'origine donnait quatre compteurs et un levier de format, donc on savait
+ * *combien* de lignes restaient imprécises sans jamais pouvoir en corriger une
+ * seule. Ici chaque ligne se répare là où elle se lit.
+ *
+ * Sur un homonyme, la cellule de gauche devient un menu : le film se choisit
+ * d'abord, l'édition ensuite, parce qu'il n'y a pas d'édition tant qu'on ne sait
+ * pas de quelle œuvre on parle.
+ */
+function Correspondance({
   ligne,
-  onChoisir,
+  premiere,
+  onFilm,
+  onEdition,
 }: {
   ligne: LigneImport;
-  onChoisir: (editionId: number) => void;
+  premiere: boolean;
+  onFilm: (filmId: number) => void;
+  onEdition: (editionId: number | null) => void;
 }) {
+  const film = ligne.film;
+  const visuel = film
+    ? (ligne.edition ? vignette(ligne.edition.image_url, 120) : null) ?? film.afficheUrl
+    : null;
+
   return (
     <div
-      className="rounded-[10px] px-4 py-3"
-      style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
+      className="flex flex-wrap items-center gap-3 px-3 py-2.5 sm:flex-nowrap"
+      style={{
+        backgroundColor: "var(--reel-surface)",
+        borderTop: premiere ? undefined : "1px solid var(--reel-border)",
+      }}
     >
-      <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--reel-text)" }}>
-        {ligne.entree.titre}
-        {ligne.entree.annee ? ` (${ligne.entree.annee})` : ""}
+      {/* Gauche : le film. */}
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        {visuel ? (
+          <img
+            src={visuel}
+            alt=""
+            className="h-[42px] w-[28px] shrink-0 rounded-[3px] object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <span
+            className="h-[42px] w-[28px] shrink-0 rounded-[3px]"
+            style={{ backgroundColor: "var(--reel-surface-2)" }}
+          />
+        )}
+
+        {film ? (
+          <span className="min-w-0">
+            <span
+              className="block truncate"
+              style={{ fontSize: "14px", color: "var(--reel-text)" }}
+            >
+              {film.titre}
+              {film.annee ? ` (${film.annee})` : ""}
+            </span>
+            {/* Le titre du fichier n'est rappelé que s'il diffère : sur une liste
+                française il est identique une fois sur deux, et le répéter
+                doublerait la hauteur de la table pour rien. */}
+            {ligne.entree.titre !== film.titre && (
+              <span className="block truncate" style={{ fontSize: "12px", color: "var(--reel-muted)" }}>
+                {ligne.entree.titre}
+              </span>
+            )}
+          </span>
+        ) : (
+          <span className="min-w-0 flex-1">
+            <Menu
+              value=""
+              onChange={(v) => v && onFilm(Number(v))}
+              pleineLargeur
+              alerte
+            >
+              <option value="">{ligne.entree.titre} — quel film ?</option>
+              {ligne.candidats.map((c) => (
+                <option key={c.filmId} value={c.filmId}>
+                  {c.titre}
+                  {c.annee ? ` (${c.annee})` : ""}
+                  {c.realisateur ? ` — ${c.realisateur}` : ""}
+                </option>
+              ))}
+            </Menu>
+          </span>
+        )}
       </div>
-      <div className="flex flex-col gap-1.5 pt-2">
-        {ligne.candidats.map((c) => {
-          // On propose le film, pas le pressage : le choix d'édition se fait
-          // ensuite par le même chemin que les autres lignes, format compris.
-          const { edition } = choisirEdition(c, ligne.entree.note, null);
-          if (!edition) return null;
-          const lien = lienFilm({ id: c.filmId, slug: c.slug });
-          const visuel = vignette(edition.image_url, 120) ?? c.afficheUrl;
-          return (
-            <div key={c.filmId} className="flex items-center gap-2">
-              {visuel && (
-                <img src={visuel} alt="" className="h-[48px] w-[32px] rounded-[4px] object-cover" loading="lazy" />
-              )}
-              <button
-                type="button"
-                onClick={() => onChoisir(edition.id)}
-                className="flex-1 rounded-[8px] px-3 py-1.5 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
-                style={{
-                  backgroundColor: "var(--reel-surface-2)",
-                  color: "var(--reel-text)",
-                  fontSize: "13px",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {c.titre} {c.annee ? `(${c.annee})` : ""}
-                {c.realisateur && (
-                  <span style={{ color: "var(--reel-muted)" }}> — {c.realisateur}</span>
-                )}
-              </button>
-              {lien && (
-                <Link
-                  to={lien}
-                  className="shrink-0"
-                  style={{ fontSize: "12px", color: "var(--reel-accent-clair)" }}
-                >
-                  fiche
-                </Link>
-              )}
-            </div>
-          );
-        })}
+
+      {/* Droite : l'édition. */}
+      <div className="flex w-full items-center gap-2 sm:w-[300px] sm:shrink-0">
+        {film ? (
+          <>
+            <Menu
+              value={ligne.precisee && ligne.edition ? String(ligne.edition.id) : ""}
+              onChange={(v) => onEdition(v ? Number(v) : null)}
+              pleineLargeur
+              alerte={!ligne.precisee}
+            >
+              <option value="">
+                {ligne.edition ? `Non précisée — ${resume(ligne.edition)}` : "Non précisée"}
+              </option>
+              {film.editions.map((e) => (
+                <option key={e.id} value={e.id}>{resume(e)}</option>
+              ))}
+            </Menu>
+            <span
+              className="shrink-0"
+              style={{ fontSize: "12px", color: "var(--reel-muted)", width: "34px" }}
+            >
+              {film.editions.length > 1 ? `${film.editions.length} éd.` : ""}
+            </span>
+          </>
+        ) : (
+          <span style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+            choisissez le film d’abord
+          </span>
+        )}
       </div>
     </div>
   );
+}
+
+/**
+ * Ce qui distingue une édition d'une autre, en une ligne.
+ *
+ * Les formats d'abord, c'est ce qu'on cherche ; l'éditeur ensuite ; l'année de
+ * parution en dernier. Le `titre` de l'édition n'y est pas : il répète le nom du
+ * film une fois sur deux, et un menu déroulant n'a pas la place.
+ */
+function resume(e: EditionCandidate): string {
+  const bouts = [
+    (e.formats ?? []).join(" · "),
+    e.editeur,
+    e.date_parution?.slice(0, 4),
+  ].filter(Boolean);
+  const texte = bouts.join(" — ");
+  return (e.nb_films ?? 1) > 1 ? `Coffret ${e.nb_films} films — ${texte}` : texte || "Édition";
 }
 
 /* ------------------------------------------------------------- petits --- */
@@ -781,6 +901,50 @@ function ChoixHomonyme({
  */
 function pluriel(n: number, singulier: string, plurielForme: string): string {
   return n > 1 ? plurielForme : singulier;
+}
+
+/**
+ * Menu déroulant, seule forme de choix de la page.
+ *
+ * Un `select` natif et non une liste maison : sur téléphone il ouvre le
+ * sélecteur du système, qui sait déjà afficher trente éditions dans une feuille
+ * défilante, et c'est exactement ce dont la table a besoin.
+ *
+ * `alerte` teinte le bord quand la ligne demande quelque chose. C'est la seule
+ * signalisation de la table, il n'y a pas de colonne d'état : la couleur du
+ * champ dit où cliquer, et une colonne de plus ne tiendrait pas à 375 px.
+ */
+function Menu({
+  value,
+  onChange,
+  children,
+  pleineLargeur,
+  alerte,
+}: {
+  value: string;
+  onChange: (valeur: string) => void;
+  children: React.ReactNode;
+  pleineLargeur?: boolean;
+  alerte?: boolean;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={
+        (pleineLargeur ? "w-full min-w-0 " : "") +
+        "truncate rounded-[8px] px-2 py-1.5 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
+      }
+      style={{
+        backgroundColor: "var(--reel-surface-2)",
+        border: `1px solid ${alerte ? "var(--reel-accent-clair)" : "var(--reel-border)"}`,
+        color: "var(--reel-text)",
+        fontSize: "13px",
+      }}
+    >
+      {children}
+    </select>
+  );
 }
 
 function Compteur({

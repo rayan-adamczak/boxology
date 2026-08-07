@@ -28,6 +28,8 @@ export interface EditionCandidate {
   image_url: string | null;
   url_source: string | null;
   date_parution: string | null;
+  /** Nombre de films portés par le disque. Au-delà de 1, c'est un coffret. */
+  nb_films: number;
 }
 
 /** Un film candidat pour une entrée du fichier. */
@@ -154,18 +156,30 @@ function porteFormat(edition: EditionCandidate, format: FormatVoulu): boolean {
 /**
  * L'édition représentative d'un film, quand personne n'a tranché.
  *
- * **La règle doit être déterministe**, sinon réimporter le même fichier
- * écrirait une seconde ligne pour le même film et la collection doublerait. On
- * classe donc sur des données stables, jamais sur un hasard ni sur une date du
- * jour : d'abord la fiche la plus complète, code-barres et visuel étant ce qui
- * fait qu'une carte s'affiche correctement, puis la parution la plus récente,
- * puis l'identifiant.
+ * **Une édition simple avant un coffret, et cette règle passe avant tout le
+ * reste.** Le premier import réel l'a imposée : sur 23 lignes non précisées,
+ * **4 pointaient un coffret**, les quatre *Alien* ayant tous reçu « Alien 1-6 –
+ * Intégrale 6 Films ». La cause est mécanique, le classement se faisait sur la
+ * complétude de la fiche, et c'est exactement ce qu'un coffret a de mieux
+ * renseigné.
+ *
+ * Ce n'est pas une imprécision de plus, c'est une affirmation fausse d'un autre
+ * ordre : « je ne sais pas quel pressage d'*Alien* vous avez » est vrai,
+ * « vous possédez l'intégrale six films » ne l'est pas, et écrit cinq disques
+ * que personne n'a mentionnés.
+ *
+ * **La règle doit rester déterministe**, sinon réimporter le même fichier
+ * écrirait une seconde ligne et la collection doublerait. On classe donc sur des
+ * données stables, jamais sur un hasard ni sur une date du jour.
  */
 function representative(editions: EditionCandidate[]): EditionCandidate | null {
   if (editions.length === 0) return null;
   const score = (e: EditionCandidate) =>
     (e.ean ? 4 : 0) + (e.image_url ? 2 : 0) + (e.date_parution ? 1 : 0);
   return [...editions].sort((a, b) => {
+    // Un coffret ne gagne que s'il n'y a rien d'autre.
+    const coffret = Number((a.nb_films ?? 1) > 1) - Number((b.nb_films ?? 1) > 1);
+    if (coffret !== 0) return coffret;
     const d = score(b) - score(a);
     if (d !== 0) return d;
     const da = a.date_parution ?? "";
