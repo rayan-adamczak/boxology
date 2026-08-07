@@ -1230,10 +1230,27 @@ export function FilmDetailPage() {
                               disabled={visuels.length === 0}
                               onClick={() => setLanterne({ images: visuels, index: 0, titre: nom })}
                               aria-label={visuels.length ? `Agrandir les visuels de ${nom}` : undefined}
-                              className="group shrink-0 overflow-hidden rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] disabled:cursor-default"
-                              style={{ width: 56, height: 84, backgroundColor: "var(--reel-bg)" }}
+                              /*
+                                96 × 144 et non 56 × 84. La jaquette est ce que
+                                cette liste sert à comparer — c'est elle qui
+                                distingue deux éditions du même film, bien avant
+                                le libellé — et à 56 px de large on ne
+                                distinguait ni un steelbook de son édition
+                                simple, ni la tranche d'un digibook.
+
+                                **72 sous `sm`, et c'est mesuré.** À 390 px la
+                                rangée fait 348, dont il faut retrancher le
+                                rembourrage, la gouttière et les deux boutons :
+                                à 96, il ne restait que 124 px au titre, soit
+                                « Eyes Wide S… » là où l'édition s'appelle
+                                « Eyes Wide Shut – Édition boîtier SteelBook ».
+                                Une jaquette plus grande ne vaut pas un libellé
+                                qu'on ne peut plus lire.
+                              */
+                              className="group h-[108px] w-[72px] shrink-0 overflow-hidden rounded-[8px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)] disabled:cursor-default sm:h-[144px] sm:w-[96px]"
+                              style={{ backgroundColor: "var(--reel-bg)" }}
                             >
-                              {/* 200 px pour un cadre de 56 : de quoi rester net
+                              {/* 200 px pour un cadre de 96 : de quoi rester net
                                   sur un écran à densité double, sans payer les
                                   928 Ko de l'original Leclerc (cf. `vignette`). */}
                               <ImageWithFallback
