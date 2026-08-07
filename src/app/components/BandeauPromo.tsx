@@ -237,22 +237,39 @@ export function BandeauPromo() {
             cette suite de lettres. « CODE PROMO » entier coûtait en revanche
             75 px sur les 375, et poussait la phrase à quatre lignes.
           */}
+          {/*
+            Même corps que le code, donc **même hauteur de capitale** : les deux
+            sont en capitales, et à corps égal une capitale fait la même hauteur
+            quelle que soit la fonte. Le libellé était deux fois plus petit et
+            l'étiquette se lisait comme une légende suivie d'une valeur, pas
+            comme une seule chose.
+
+            Ce qui distingue encore les deux n'est plus la taille mais la
+            couleur et la fonte : le libellé reste en gris et en proportionnelle,
+            le code en accent clair et en chasse fixe. Et l'interlettrage retombe
+            de 0,08 à 0,02 em, un espacement calculé pour du très petit texte
+            écartèle « CODE PROMO » à ce corps-là.
+          */}
           <span
-            className="text-[10px] sm:text-[11px]"
+            className="text-[14px] sm:text-[16px] lg:text-[18px]"
             style={{
               fontWeight: 600,
-              letterSpacing: "0.08em",
+              lineHeight: "20px",
+              letterSpacing: "0.02em",
               textTransform: "uppercase",
               color: "var(--reel-muted)",
             }}
           >
-            <span className="sm:hidden">Code</span>
-            <span className="hidden sm:inline">Code promo</span>
+            {/* Le seuil est `lg` et non `sm` : à taille égale au code, « CODE
+                PROMO » mesure 127 px, l'étiquette 215, et la phrase repassait à
+                deux lignes dès 820 px de fenêtre. */}
+            <span className="lg:hidden">Code</span>
+            <span className="hidden lg:inline">Code promo</span>
           </span>
           {/* Chasse fixe, comme un code-barres : c'est une valeur qu'on recopie
               signe à signe, et `I` contre `l` s'y joue. */}
           <span
-            className="tabular-nums text-[16px] sm:text-[18px]"
+            className="tabular-nums text-[14px] sm:text-[16px] lg:text-[18px]"
             style={{
               fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
               fontWeight: 700,
@@ -280,14 +297,14 @@ export function BandeauPromo() {
             valeurs qui se juxtaposent sans se lier, et c'est le cas ici :
             le marchand, la remise, le code.
           */}
-          <p className="text-[13px] leading-[18px] sm:text-[15px] sm:leading-[21px]" style={{ color: "var(--reel-text)" }}>
+          <p className="text-[12px] leading-[17px] sm:text-[15px] sm:leading-[21px]" style={{ color: "var(--reel-text)" }}>
             <span style={{ fontWeight: 600 }}>{promo.marchand}</span>
             <span style={{ color: "var(--reel-muted)" }}>{" · "}</span>
             <span style={{ fontWeight: 600 }}>
               {promo.resumeCourt} {quand(promo, etat)}
             </span>
           </p>
-          <p className="text-[12px] leading-[17px] sm:text-[13px] sm:leading-[19px]" style={{ color: "var(--reel-muted)" }}>
+          <p className="text-[11px] leading-[16px] sm:text-[13px] sm:leading-[19px]" style={{ color: "var(--reel-muted)" }}>
             {promo.conditionsCourtes}
           </p>
         </div>
