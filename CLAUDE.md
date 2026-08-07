@@ -457,6 +457,93 @@ Deux raisons, et la seconde est la vraie : `anon` ne peut pas lire
 `auth.users`, et surtout personne ne doit être obligé de publier son état civil
 pour avoir une page. Il est recopié de Google à la création, puis modifiable.
 
+**La photo de Google non plus n'est pas reprise**, pour la même raison : elle
+existe dans `user_metadata`, et l'afficher publierait un portrait que personne
+n'a choisi de publier ici. `avatar_url` est vide tant qu'on ne dépose rien, et
+`UserAvatar` retombe sur les initiales.
+
+#### `profils.avatar_url` et le seau `avatars`, le 7 août 2026
+
+Migration `20260807_avatars.sql`. Une colonne nullable, un seau Supabase
+Storage public en lecture, et quatre policies sur `storage.objects`.
+
+**Storage plutôt que R2, et ce n'est pas un revirement du §2.** Les 36 000
+visuels du catalogue restent sur R2 : ce seau-là est écrit par des scripts
+Python qui portent les clés `R2_*`, et **un navigateur ne peut pas y déposer**
+sans qu'une Pages Function signe une URL, donc sans une liaison R2 et un secret
+de plus. Le Storage accepte le dépôt sous le jeton de session déjà en main, et
+ses règles s'écrivent dans le même langage que le reste du schéma.
+
+**Le chemin porte toute la règle**, `<user_id>/<jeton>.webp` :
+`(storage.foldername(name))[1] = auth.uid()::text` sur l'insertion, la mise à
+jour et l'effacement. Personne ne dépose ni n'efface sous le dossier d'un autre.
+
+**Le second segment est tiré au hasard à chaque dépôt.** Un nom fixe obligerait
+à purger le cache de périphérie à chaque changement, et le §8 garde la trace de
+ce piège : une entrée déjà en cache garde les en-têtes qu'elle avait à sa
+création, et l'ancienne image resterait servie des heures. Une URL neuve n'a
+rien à purger.
+
+**`avatar_url` est contrainte par un `check` sur le préfixe.** Sans lui, un
+compte pourrait écrire n'importe quelle adresse dans sa propre ligne, et la
+page de profil ferait charger une image chez un tiers qui relèverait l'IP de
+chaque visiteur. La CSP refuserait l'hôte, mais compter sur elle serait faire
+d'un filet la seule serrure.
+
+**Le navigateur réencode avant d'envoyer**, 512 px en WebP à 0,85, jamais le
+fichier choisi. Mesuré sur une image bruitée de 12 Mpx, proche d'une photo, un
+dégradé plat se compressant de façon irréaliste :
+
+    entree   6,53 Mo   12 Mpx (4000 x 3000)
+    sortie   10,8 Ko   512 x 512, image/webp
+    facteur  619x
+
+Effet de bord voulu, les métadonnées EXIF disparaissent, **et avec elles les
+coordonnées GPS** que les appareils y écrivent : publier une photo est une
+chose, publier l'endroit où elle a été prise en est une autre.
+
+#### Trois plafonds, et ils ne mesurent pas la même chose
+
+    accept       amabilite    filtre la fenetre du systeme, se contourne d'un clic
+    type MIME    10 Mo        JPEG, PNG, WebP, AVIF, GIF, verifie en JS
+    pixels       50 Mpx       verifie **au decodage**, pas au choix du fichier
+    seau         2 Mio        image/webp seulement, cote serveur
+
+**Le plafond en pixels est le seul qui compte vraiment, et le poids ne le
+remplace pas.** Mesuré : un PNG de **1 Mo** peut faire 8 000 × 7 000, soit
+56 Mpx et 224 Mo une fois décompressé en mémoire. C'est comme ça qu'on fait
+tomber un onglet, et une page qui meurt en silence est pire qu'un refus qui
+s'explique. Il se pose **à l'`onload` de l'image**, les dimensions n'étant
+connues qu'une fois l'en-tête lu.
+
+**`verifierFichier` rend une phrase et non un booléen**, comme
+`etat_identifiant` en base : « trop lourd » et « pas une image » ne se corrigent
+pas de la même façon.
+
+**Le type produit par le canevas est vérifié.** Un navigateur qui ne sait pas
+encoder en WebP ne lève pas d'erreur, il rend un PNG sous le même appel, et le
+seau opposerait un refus de stockage incompréhensible à quelqu'un qui vient de
+recadrer. L'encodage redescend aussi en qualité si le résultat dépasse 2 Mio,
+ce qui ne se produira sans doute jamais à 512 px : le plafond est côté serveur,
+et l'envoi est le pire endroit pour le découvrir.
+
+**Le compte disparaît, la photo avec**, par un déclencheur `after delete on
+profils` en `security definer` : `storage.objects` n'a aucune clé étrangère
+vers `auth.users`, donc sans lui la photo de quelqu'un qui a effacé son compte
+resterait servie publiquement (§10, article 17).
+
+Mesuré à l'application, le 7 août 2026 :
+
+    depot anon                          400 / RLS  new row violates policy
+    effacement anon                     400        objet invisible pour lui
+    lecture publique sans jeton         200        6 566 o, image/webp
+    profil_public                       rend avatar_url
+    retrait depuis /account             storage.objects vide, colonne nulle
+
+**Piège de vérification à connaître** : juste après l'effacement, l'URL publique
+répond encore **200**. C'est le CDN, pas un échec — `storage.objects` est déjà
+vide, et la même URL avec un paramètre rend 400. Lire la table, pas l'URL.
+
 **`anon` ne reçoit aucun privilège, ni sur `profils` ni sur `collections`.** La
 lecture publique passe par deux fonctions `security definer` :
 
@@ -768,12 +855,14 @@ que le navigateur n'exécute pas. Éprouvé sous `wrangler pages dev dist`, seul
 façon de servir `_headers` et `functions/` ensemble : fiche film, accueil et
 `/about` rendus sans une violation en console, morceau `lazy()` chargé en 200.
 
-**`img-src` en porte quatre depuis le 4 août 2026**, et la directive est un
+**`img-src` en porte six depuis le 7 août 2026**, et la directive est un
 **instantané** : chaque source qui apporte ses propres visuels ajoute un hôte,
 et l'oubli ne casse rien de bruyant. `cdn.shopify.com` est entré le 3 août,
 provisoire le temps de miroiter les visuels Metaluna ; `media.e.leclerc` le 4,
 et celui-là est définitif, le §5 posant qu'E.Leclerc est la seule source dont
-les visuels sont **licenciés pour l'usage affilié**.
+les visuels sont **licenciés pour l'usage affilié**. Le sixième est le projet
+Supabase lui-même, qui sert les photos de profil, et **`blob:` est arrivé avec**
+pour que la fenêtre de recadrage affiche le fichier choisi avant tout réseau.
 
 **La signature d'un blocage CSP est à connaître, elle ne ressemble à rien
 d'autre** : les 2 312 éditions Leclerc rendaient un cadre gris alors que la
@@ -785,6 +874,20 @@ colonne était remplie et que le fichier répondait.
 
 Zéro octet **et** zéro statut, c'est la CSP. La console, elle, ne dit rien
 d'exploitable.
+
+**Correction du 7 août 2026 : cette signature a un faux positif, et il est
+courant.** Une image **d'un autre domaine** qui ne renvoie pas d'en-tête
+`Timing-Allow-Origin` rend elle aussi `transferSize 0` et `responseStatus 0`,
+alors qu'elle a parfaitement chargé — c'est le cas de toutes celles du Storage
+Supabase. Relevé en éprouvant les photos de profil sous `wrangler` : la mesure
+annonçait un blocage, `naturalWidth` valait 512.
+
+    naturalWidth > 0   ->  l'image a chargé, quoi que dise le Resource Timing
+    naturalWidth === 0 ->  là seulement, chercher du côté de la CSP
+
+**Trancher sur `naturalWidth`, pas sur le Resource Timing**, dès que l'hôte
+n'est pas le nôtre. Le tableau ci-dessus ne vaut que pour les images de même
+origine, ou pour celles dont l'hôte pose `Timing-Allow-Origin`.
 
 **HSTS activé le 2 août 2026**, et **« Toujours utiliser HTTPS » avec lui**.
 Les deux se règlent dans Cloudflare, SSL/TLS puis Certificats de périphérie, et
@@ -3424,6 +3527,65 @@ neuves, la distribution et le studio. Détail de la règle et de son
 différents ; les mêler rendrait l'une inannulable sans l'autre. Le §3 pose la
 règle, la source d'un lien dit **comment** il a été obtenu.
 
+### Séries par le rang de saison (`series/`, 2026-08-07)
+
+    set -a; . ~/.config/boxology.env; set +a
+    python3 resoudre_series.py --echantillon 30    # mesurer d'abord
+    python3 resoudre_series.py                     # lecture seule
+    python3 ecrire_series.py --apply
+
+**59 liens posés, 25 séries créées**, sur des œuvres que TMDB connaissait
+toutes : Peaky Blinders, Game of Thrones, Fallout, Hercule Poirot, Twin Peaks,
+Babylon 5. Ce qui bloquait n'était pas la source mais le bruit du titre, qui
+empile le nom, le rang de saison écrit deux fois, le format et le pays :
+
+    Agatha Christie: Poirot Season 12 Blu-ray (Saison 12) (France)
+    Bakuman. Box 1/2 Season 1 Blu-ray (Coffret 1/2 Saison 1) (France)
+
+**On rattache la série, jamais la saison.** Les huit coffrets de Game of Thrones
+pointent la même œuvre : le rang n'est pas une donnée à retrouver, c'est du
+bruit à retirer. Et la recherche se fait en `search/tv` **seul**, le §9 gardant
+la trace de `Peaky Blinders: Series 4` rattaché à un film nommé « Series 4 ».
+
+**Le plafond est un plafond, jamais un filtre.** L'année d'un coffret « saison
+4 » est postérieure à la première diffusion, de plusieurs années : on vérifie
+que la série a commencé **avant** le disque. Passer `first_air_date_year` à TMDB
+éliminerait la bonne réponse.
+
+**Sans date de parution, ce qui tranche est l'unicité**, et c'est une nuance de
+la règle des deux mesures. Le §9 les exige pour **départager** des candidats ;
+quand un seul titre exact existe chez TMDB, il n'y a rien à départager. Le lot
+le prouve : les 14 rattachements à candidat unique sont tous justes, et le seul
+faux — `Wacky Races` renvoyé au reboot de 2017 plutôt qu'à la série de 1968 —
+est parmi les 5 à candidats multiples, que la popularité départage et qui
+favorise mécaniquement le remake. Ces 5 restent en relecture.
+
+**Trois mesures ont été cherchées avant l'unicité, et deux sont mortes à la
+mesure** : le bandeau blu-ray.com, seul contrôle indépendant du dépôt, ne couvre
+que 2 des 19 cas, quatorze venant de Metaluna ; le nombre de saisons annoncé
+dans la fiche n'en couvre qu'un, Babylon 5 et ses « 5 seasons 110 episodes ».
+`date_sortie`, `pays` et `disques` sont vides sur tout le lot, qui est du Warner
+Archive.
+
+**Le risque résiduel n'est pas l'homonyme, c'est l'absence.** `Eclipse Series
+47: Abbas Kiarostami (17 films)` est une collection Criterion de coffrets, pas
+une série, et TMDB porte une série « Eclipse » : le titre exact suffit à
+produire un faux, sous le plafond compris. Aucune mesure ne dit qu'un disque
+n'est pas une série ; celui-là s'écarte par `FAUSSES_SERIES`, sur son nom.
+
+Quatre défauts trouvés en écrivant, le taux passant de 7/30 à 45/99 :
+
+- **`\m` et `\M` sont des ancres PostgreSQL**, pas Python, reprises telles
+  quelles des requêtes de mesure ;
+- **le rang de coffret part avant la coupe**, sinon la barre de `Box 1/2` sert
+  de séparateur et `Bakuman` se réduit à « Bakuman. Box 1 ». C'est la règle du
+  §9 pour les doubles programmes, appliquée ici ;
+- **le possessif anglais fait échouer un titre exact** : TMDB écrit `Agatha
+  Christie's Poirot`, les disques `Agatha Christie: Poirot`, et un `s` isolé
+  suffit ;
+- **blu-ray.com écrit « The Complete Eight Season »** là où l'anglais demande
+  « Eighth » : les cardinaux comptent autant que les ordinaux.
+
 ### Étiquetage des formats (`formats.py`, `etiqueter_formats.py`, 2026-08-06)
 
     python3 etiqueter_formats.py                 # simulation
@@ -5116,6 +5278,24 @@ disque.
   dvdfr avait qualifiés en août dormaient dans le cache, écartés par le seul
   périmètre. Deux disques sur cinq se scannent désormais.
 
+  **Puis 48,0 % dans la nuit du 7 août 2026**, 14 255 codes pour 29 701
+  éditions, après l'import du gisement français haute définition de Momox :
+  2 947 éditions écrites, 1 426 films créés, qualifiées une à une par dvdfr sur
+  4 766 codes crawlés en deux créneaux locaux, **zéro erreur**. Presque un disque
+  sur deux se scanne.
+
+  **C'est la démonstration que le rattrapage était la mauvaise question.** Les
+  quatre voies sondées le 6 août sont toutes mortes, mesurées plus bas ; ce qui
+  fait monter le taux, c'est de faire entrer des éditions qui **portent** un
+  code. Deux mouvements en deux jours, le DVD puis Momox, 26,5 → 48,0 %, et
+  aucun des deux n'a rattrapé une seule ligne existante.
+
+  **Le pré-filtre de format s'est vérifié à l'échelle** : 13 fiches écartées
+  comme DVD sur 3 614 qualifiées, soit 0,25 %. Le marqueur `[Blu-ray]` de Momox
+  dit vrai, là où Leclerc obligeait à interroger 6 393 codes dont 52 %
+  finissaient en DVD. Un marqueur lisible déplace le tri **avant** le crawl, et
+  c'est la différence entre cinq heures de machine et quarante.
+
   **Ce n'est toujours pas assez pour poser la caméra sans le dire.** Un scan qui
   échoue trois fois sur cinq reste un scan qui déçoit, et la réponse au cas
   manquant existe déjà, `/report` branché sur l'enrichissement dvdfr par
@@ -5150,12 +5330,28 @@ disque.
       c'est un plancher                   au moins cher, sur les seules
                                           éditions couvertes
 
-  **Le dénominateur est collé au total, jamais dans une note plus bas.** 1 618
-  éditions portent un prix d'occasion sur 23 803, donc un montant seul laisserait
-  croire à une couverture qu'on n'a pas. L'écran écrit « sur N éditions estimées,
-  vous en possédez M », et nomme les marchands avec **la date du relevé le plus
-  ancien** du lot, pas la plus fraîche : c'est elle qui dit ce que vaut
-  l'estimation (§10).
+  **Le dénominateur est collé au total, jamais dans une note plus bas.** 5 506
+  éditions portent un prix d'occasion sur 29 701, soit 18,5 %, donc un montant
+  seul laisserait croire à une couverture qu'on n'a pas. L'écran écrit « sur N
+  éditions estimées, vous en possédez M », et nomme les marchands avec **la date
+  du relevé le plus ancien** du lot, pas la plus fraîche : c'est elle qui dit ce
+  que vaut l'estimation (§10).
+
+  **La couverture a triplé dans la nuit du 7 août 2026**, de 1 618 à 5 506
+  éditions, et par un chemin qui vaut d'être retenu : **ce n'est pas la source de
+  prix qui a changé, c'est le catalogue.** Les 2 947 éditions Momox importées
+  portent des EAN de son propre flux, donc elles apparient ses offres dès qu'elles
+  existent. La même passe `offres_awin.py --marchand momox` est repassée sans une
+  ligne de code neuve et a écrit 5 697 offres au lieu de 1 684.
+
+  La boucle complète se lit donc : Momox **désigne** les disques par ses
+  code-barres, dvdfr les **qualifie** fiche à fiche, Momox les **date** par son
+  prix. Trois rôles, deux sources, et c'est le premier cas du dépôt où un
+  marchand sert à la fois d'annuaire et d'horloge.
+
+  Somme des prix d'occasion les moins chers sur tout le catalogue au 7 août 2026 :
+  93 847 €, médiane 12,47 €, et par état 13,49 € en très bon, 8,79 € en bon,
+  4,99 € en acceptable.
 
   **Elle vit dans la colonne de l'accueil connecté**, `TableauDeBordPage`, sous
   les deux compteurs. Elle avait d'abord été posée dans `/account` : c'est
@@ -5956,6 +6152,44 @@ changement de largeur. L'atmosphère passe par l'opacité et deux dégradés, co
 sur la fiche film. Le titre reprend l'échelle de `/welcome`,
 `clamp(38px, 6vw, 68px)` : deux pages qui ouvrent le site ne peuvent pas
 annoncer deux tailles.
+
+### Menus de sélection dessinés, le 7 août 2026
+
+`src/app/components/Selecteur.tsx`, employé par les six filtres du catalogue et
+par le tri du profil. Bulle ancrée sous la capsule au-dessus de 640 px,
+**feuille par le bas en dessous**.
+
+**Ce qui l'a déclenché est visible à l'œil** : le tri du profil était un
+`<select>` sans `appearance-none`, donc il gardait la flèche du navigateur au
+milieu d'une capsule dessinée. Un `<select>` natif est peint par le système, il
+n'a ni la police, ni le rayon, ni les couleurs du site, et sa flèche change de
+forme d'une machine à l'autre.
+
+**Le commentaire qui défendait le natif avait raison, et c'est lui le cahier
+des charges.** Il listait trois choses qu'un menu maison rate presque toujours,
+et les trois sont reprises, sans quoi le remplacement aurait été une
+régression :
+
+    clavier          flèches, Origine, Fin, Entrée, Échap, focus rendu au bouton
+    frappe au vol    « sci » saute à Science-Fiction, tampon vidé après 1 s
+    geste du système la roue devient une feuille par le bas
+
+**La frappe au vol replie les accents**, sinon « ed » ne trouverait pas
+« Éditeur ». Et le surlignage repart de la valeur courante à chaque ouverture :
+ouvrir sur la première ligne quand on a déjà choisi la dixième oblige à refaire
+tout le chemin.
+
+**Pas de champ de recherche dans la liste**, même sur `Éditeur` et ses 142
+entrées : dans une feuille, il ouvrirait le clavier logiciel par-dessus la liste
+qu'il filtre. La frappe au vol suffit.
+
+**Le clic extérieur passe par un voile transparent**, pas par un écouteur de
+document : il attrape le clic sans qu'aucun composant n'ait à se demander si la
+cible est dedans ou dehors.
+
+Éprouvé à 1 440 et 390 px : Origine, deux flèches, Fin, frappe « hor », Entrée,
+puis Échap qui ferme **sans changer la valeur**. La feuille mesure 607 px sur
+844, ancrée en bas, voile plein écran à 0,7.
 
 ### Gouttière, arrêtée le 1er août 2026
 

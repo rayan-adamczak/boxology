@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import {
   AtSign,
+  Camera,
   ChevronDown,
   Download,
   ExternalLink,
@@ -15,6 +16,8 @@ import {
 } from "lucide-react";
 import { Banniere } from "../components/VueProfil";
 import { UserAvatar } from "../components/UserAvatar";
+import { RecadrageAvatar } from "../components/RecadrageAvatar";
+import { ACCEPT, supprimerAvatar, televerserAvatar, verifierFichier } from "../lib/avatar";
 import { AttentePleine } from "../components/AttenteRecherche";
 import { connexionGoogle, deconnexion, nomAffiche, supprimerCompte, useSession } from "../lib/auth";
 import {
@@ -142,7 +145,13 @@ function Connecte({ nom, email }: { nom: string; email: string }) {
 
   return (
     <Coquille>
-      <EnTete nom={profil?.nom || nom} email={email} identifiant={profil?.identifiant ?? null} visible={profil?.visible ?? false} />
+      <EnTete
+        nom={profil?.nom || nom}
+        email={email}
+        identifiant={profil?.identifiant ?? null}
+        visible={profil?.visible ?? false}
+        avatarUrl={profil?.avatarUrl ?? null}
+      />
 
       {etat.statut === "attente" ? (
         <AttentePleine hauteur={200} />
@@ -182,16 +191,18 @@ function EnTete({
   email,
   identifiant,
   visible,
+  avatarUrl,
 }: {
   nom: string;
   email: string;
   identifiant: string | null;
   visible: boolean;
+  avatarUrl: string | null;
 }) {
   return (
     <header className="-mt-12 flex flex-wrap items-end gap-3">
       <span className="rounded-full p-1" style={{ backgroundColor: "var(--reel-bg)" }}>
-        <UserAvatar name={nom} size={96} />
+        <UserAvatar name={nom} src={avatarUrl} size={96} />
       </span>
 
       <div className="min-w-0 pb-1">
@@ -248,7 +259,11 @@ function EnTete({
  * reprendre par quelqu'un d'autre ferait mener un lien partagé vers la
  * collection d'un tiers, ce qui est bien pire qu'un 404.
  */
-function ReglagesProfil({ profil }: { profil: { identifiant: string; nom: string; visible: boolean } }) {
+function ReglagesProfil({
+  profil,
+}: {
+  profil: { identifiant: string; nom: string; visible: boolean; avatarUrl: string | null };
+}) {
   const [ouverte, setOuverte] = useState<"identifiant" | "nom" | null>(null);
   const [identifiant, setIdentifiant] = useState(profil.identifiant);
   const [nom, setNom] = useState(profil.nom);
@@ -319,6 +334,8 @@ function ReglagesProfil({ profil }: { profil: { identifiant: string; nom: string
       <Titre>Ma page publique</Titre>
 
       <Carte>
+        <LignePhoto profil={profil} />
+
         <Ligne
           icone={AtSign}
           libelle="Identifiant"
@@ -411,6 +428,126 @@ function ReglagesProfil({ profil }: { profil: { identifiant: string; nom: string
         />
       </Carte>
     </section>
+  );
+}
+
+/**
+ * La photo de profil : la choisir, la recadrer, la retirer.
+ *
+ * **Elle est dans « Ma page publique » et pas ailleurs**, parce que c'est là
+ * qu'elle se voit. Une photo de profil n'est pas un réglage de compte, c'est
+ * une des trois choses qu'un visiteur lit sur `/u/<@>`, avec le nom et
+ * l'identifiant : les quatre lignes décrivent donc une seule chose, ce que
+ * voit quelqu'un qui ouvre votre lien.
+ *
+ * **Le recadrage n'est pas facultatif.** Une photo déposée telle quelle est
+ * rognée par le CSS au centre, ce qui coupe la moitié des portraits pris en
+ * paysage. La fenêtre s'ouvre donc systématiquement, et elle montre exactement
+ * ce que le rond gardera.
+ *
+ * Le contrôle de poids est **avant** la lecture du fichier : décoder vingt
+ * mégaoctets pour annoncer ensuite qu'ils sont de trop ferait tomber l'onglet
+ * sur un téléphone, et une page qui meurt en silence est pire qu'un refus qui
+ * s'explique.
+ */
+function LignePhoto({ profil }: { profil: { nom: string; avatarUrl: string | null } }) {
+  const champ = useRef<HTMLInputElement>(null);
+  const [fichier, setFichier] = useState<File | null>(null);
+  const [enCours, setEnCours] = useState(false);
+
+  async function deposer(blob: Blob) {
+    setEnCours(true);
+    try {
+      await televerserAvatar(blob, profil.avatarUrl);
+      setFichier(null);
+      toast.success("Photo mise à jour.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Envoi impossible.");
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  async function retirer() {
+    setEnCours(true);
+    try {
+      await supprimerAvatar(profil.avatarUrl);
+      toast.success("Photo retirée.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Suppression impossible.");
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 px-4 py-3.5">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <UserAvatar name={profil.nom} src={profil.avatarUrl} size={44} />
+        <div className="min-w-0">
+          <p style={{ fontSize: "15px", fontWeight: 500, color: "var(--reel-text)" }}>Photo</p>
+          <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+            {profil.avatarUrl
+              ? "Elle paraît sur votre page publique."
+              : "Sans photo, vos initiales font l’affaire."}
+          </p>
+        </div>
+      </div>
+
+      {/*
+        Le champ de fichier est masqué mais bien dans le document : un `display:
+        none` empêche certains navigateurs de l'ouvrir par programme, et le
+        remplacer par une zone de dépôt retirerait le seul chemin clavier.
+      */}
+      <input
+        ref={champ}
+        type="file"
+        accept={ACCEPT}
+        className="sr-only"
+        aria-label="Choisir une photo de profil"
+        onChange={(e) => {
+          const choisi = e.target.files?.[0] ?? null;
+          // La valeur est vidée tout de suite : sans ça, rechoisir le même
+          // fichier après avoir annulé ne déclenche aucun `change`.
+          e.target.value = "";
+          if (!choisi) return;
+          /* `accept` ne filtre que la fenêtre du système, et « Tous les
+             fichiers » le contourne d'un clic : le contrôle réel est ici, et
+             le seau en a un troisième. */
+          const refus = verifierFichier(choisi);
+          if (refus) {
+            toast.error(refus);
+            return;
+          }
+          setFichier(choisi);
+        }}
+      />
+
+      {/*
+        Sous `sm`, les commandes passent à la ligne **entière** au lieu de
+        partager la largeur avec le texte : à 390 px, deux boutons et une
+        vignette laissaient six mots par ligne à la description, qui se lisait
+        alors comme une colonne de journal.
+      */}
+      <span className="flex w-full flex-wrap justify-end gap-2 sm:ml-auto sm:w-auto">
+        {profil.avatarUrl && (
+          <Bouton disabled={enCours} onClick={() => { void retirer(); }}>Retirer</Bouton>
+        )}
+        <Bouton disabled={enCours} onClick={() => champ.current?.click()}>
+          <Camera size={15} />
+          {profil.avatarUrl ? "Changer" : "Ajouter"}
+        </Bouton>
+      </span>
+
+      {fichier && (
+        <RecadrageAvatar
+          fichier={fichier}
+          enCours={enCours}
+          onAnnuler={() => setFichier(null)}
+          onValider={(blob) => { void deposer(blob); }}
+        />
+      )}
+    </div>
   );
 }
 
@@ -600,7 +737,15 @@ function Carte({ children }: { children: ReactNode }) {
       className="overflow-hidden rounded-[12px]"
       style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
     >
-      <div className="[&>*+*]:border-t" style={{ borderColor: "var(--reel-border)" }}>
+      {/*
+        **La couleur du filet est posée sur les enfants, pas sur ce parent.**
+        `border-color` ne s'hérite pas : un `style` ici ne descendait nulle part,
+        et le trait retombait sur `currentColor`. Les lignes qui fixaient leur
+        propre couleur en avaient un, les autres — la bascule de page publique —
+        en portaient un invisible. Une règle qui marche sur trois éléments sur
+        quatre se repère moins vite qu'une règle qui ne marche pas du tout.
+      */}
+      <div className="[&>*+*]:border-t [&>*+*]:border-[color:var(--reel-border)]">
         {children}
       </div>
     </div>
@@ -635,7 +780,7 @@ function Ligne({
   const teinte = destructif ? "#ef6b6b" : "var(--reel-text)";
 
   return (
-    <div style={{ borderColor: "var(--reel-border)" }}>
+    <div>
       <button
         type="button"
         onClick={onToggle}

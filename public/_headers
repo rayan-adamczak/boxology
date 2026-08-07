@@ -33,14 +33,23 @@
 #               **Cinquième hôte le 6 août 2026, `images2.medimops.eu`**, celui
 #               de momox shop, même statut que Leclerc : flux Awin, visuels
 #               licenciés pour l'usage affilié. Il porte les 154 887 lignes du
-#               flux, à 100 %, et il est **posé avant tout import** plutôt
+#               flux, à 100 %, et il a été **posé avant tout import** plutôt
 #               qu'après : la directive est un instantané, et l'oubli ne casse
 #               rien de bruyant, il rend des cadres gris qu'on met des jours à
 #               relier à la CSP. C'est la leçon des 2 312 éditions Leclerc.
 #
-#               Rien n'en dépend encore, aucune édition momox n'étant écrite au
-#               6 août ; ouvrir un hôte qui ne sert pas est sans risque, il
-#               n'autorise qu'à afficher des images venues de lui.
+#               **Sixième hôte le 7 août 2026, le projet Supabase lui-même.**
+#               Les photos de profil sont dans son Storage et non sur R2 : un
+#               navigateur ne peut pas déposer dans le seau R2, qui n'est écrit
+#               que par des scripts portant les clés `R2_*`
+#               (`20260807_avatars.sql`). L'hôte figurait déjà en `connect-src`
+#               pour l'API ; il fallait l'ajouter en `img-src`, et l'oubli
+#               n'aurait rien dit de bruyant — c'est la signature du §3,
+#               `transferSize 0` **et** `status 0`, la requête ne partant pas.
+#
+#               `blob:` est arrivé avec, et pour la même fonction : la fenêtre
+#               de recadrage affiche le fichier choisi par `createObjectURL`,
+#               donc avant tout réseau. Sans lui, on recadre à l'aveugle.
 #
 #               Symptôme à reconnaître, il n'a rien d'évident : la carte rend
 #               un cadre gris, la console ne dit rien d'utile, et la requête
@@ -115,7 +124,7 @@
 # Certificates, et l'engagement est difficile à défaire une fois le max-age
 # servi.
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.tmdb.org https://img.jaquette.app https://cdn.shopify.com https://media.e.leclerc https://images2.medimops.eu; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co https://apollo.senscritique.com
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://image.tmdb.org https://img.jaquette.app https://cdn.shopify.com https://media.e.leclerc https://images2.medimops.eu https://rndyusuyfkrojpazjsll.supabase.co; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co https://apollo.senscritique.com
   X-Frame-Options: DENY
   Permissions-Policy: geolocation=(), microphone=(), camera=(self), payment=(), usb=()
   X-Content-Type-Options: nosniff

@@ -1,5 +1,9 @@
+import { useEffect, useState } from "react";
+
 interface UserAvatarProps {
   name: string;
+  /** Photo de profil. Absente, on retombe sur les initiales. */
+  src?: string | null;
   size?: number;
   className?: string;
 }
@@ -17,12 +21,32 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function UserAvatar({ name, size = 32, className = "" }: UserAvatarProps) {
+/**
+ * L'avatar d'un compte : sa photo, ou ses initiales sur une teinte stable.
+ *
+ * **Les initiales ne sont pas un pis-aller, c'est le cas courant.** Personne
+ * n'est obligé de déposer une photo, et la teinte tirée du nom suffit à
+ * distinguer deux comptes dans une liste. La photo ne fait que remplacer le
+ * fond, jamais la place ni la forme : tout ce qui appelle ce composant continue
+ * de réserver un rond de `size` pixels.
+ *
+ * **Un 404 retombe sur les initiales, sans rien signaler.** Une photo effacée
+ * d'un côté et encore référencée de l'autre est un état transitoire normal ; y
+ * répondre par un cadre brisé serait le défaut que le §5 refuse ailleurs, où
+ * une carte sans visuel est jugée préférable à un visuel cassé.
+ */
+export function UserAvatar({ name, src, size = 32, className = "" }: UserAvatarProps) {
   const tint = TINTS[name.charCodeAt(0) % TINTS.length];
+  const [casse, setCasse] = useState(false);
+
+  // Une URL neuve efface le souvenir de l'échec précédent, sinon changer de
+  // photo après un 404 laisserait les initiales pour toute la visite.
+  useEffect(() => setCasse(false), [src]);
+
   return (
     <span
       aria-hidden="true"
-      className={`inline-flex shrink-0 items-center justify-center rounded-full ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${className}`}
       style={{
         width: size,
         height: size,
@@ -32,7 +56,20 @@ export function UserAvatar({ name, size = 32, className = "" }: UserAvatarProps)
         fontWeight: 600,
       }}
     >
-      {initials(name)}
+      {src && !casse ? (
+        /* `object-cover` et non `contain` : la photo est déjà carrée, mais un
+           avatar recadré ailleurs, ou servi depuis une ancienne version, ne doit
+           pas se déformer pour tenir. */
+        <img
+          src={src}
+          alt=""
+          draggable={false}
+          onError={() => setCasse(true)}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        initials(name)
+      )}
     </span>
   );
 }
