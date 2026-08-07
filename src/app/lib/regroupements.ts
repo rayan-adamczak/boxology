@@ -25,9 +25,9 @@ export interface Regroupement {
 export const FORMATS: Regroupement[] = [
   { slug: "blu-ray", libelle: "Blu-ray", compte: 20109 },
   { slug: "dvd", libelle: "DVD", compte: 6219 },
-  { slug: "blu-ray-4k", libelle: "Blu-ray 4K", compte: 5892 },
+  { slug: "blu-ray-4k", libelle: "Blu-ray 4K", compte: 5890 },
   { slug: "steelbook", libelle: "Steelbook", compte: 2570 },
-  { slug: "coffret", libelle: "Coffret", compte: 2415 },
+  { slug: "coffret", libelle: "Coffret", compte: 2413 },
   { slug: "slipcover", libelle: "Slipcover", compte: 1070 },
   { slug: "digibook", libelle: "Digibook", compte: 843 },
   { slug: "digipack", libelle: "Digipack", compte: 706 },
@@ -240,8 +240,8 @@ export const EDITEURS: Regroupement[] = [
 
 /** `genres` des films, source TMDB. */
 export const GENRES: Regroupement[] = [
-  { slug: "drame", libelle: "Drame", compte: 6786 },
-  { slug: "comedie", libelle: "Comédie", compte: 3777 },
+  { slug: "drame", libelle: "Drame", compte: 6787 },
+  { slug: "comedie", libelle: "Comédie", compte: 3783 },
   { slug: "thriller", libelle: "Thriller", compte: 3107 },
   { slug: "action", libelle: "Action", compte: 2690 },
   { slug: "crime", libelle: "Crime", compte: 2324 },
@@ -251,18 +251,18 @@ export const GENRES: Regroupement[] = [
   { slug: "science-fiction", libelle: "Science-Fiction", compte: 1411 },
   { slug: "mystere", libelle: "Mystère", compte: 1234 },
   { slug: "fantastique", libelle: "Fantastique", compte: 1129 },
-  { slug: "animation", libelle: "Animation", compte: 1111 },
-  { slug: "familial", libelle: "Familial", compte: 822 },
+  { slug: "animation", libelle: "Animation", compte: 1118 },
+  { slug: "familial", libelle: "Familial", compte: 824 },
   { slug: "histoire", libelle: "Histoire", compte: 715 },
   { slug: "documentaire", libelle: "Documentaire", compte: 660 },
   { slug: "guerre", libelle: "Guerre", compte: 582 },
   { slug: "musique", libelle: "Musique", compte: 480 },
-  { slug: "western", libelle: "Western", compte: 460 },
-  { slug: "science-fiction-fantastique", libelle: "Science-Fiction & Fantastique", compte: 361 },
-  { slug: "action-adventure", libelle: "Action & Adventure", compte: 329 },
+  { slug: "western", libelle: "Western", compte: 461 },
+  { slug: "science-fiction-fantastique", libelle: "Science-Fiction & Fantastique", compte: 363 },
+  { slug: "action-adventure", libelle: "Action & Adventure", compte: 330 },
   { slug: "telefilm", libelle: "Téléfilm", compte: 196 },
   { slug: "war-politics", libelle: "War & Politics", compte: 57 },
-  { slug: "kids", libelle: "Kids", compte: 15 },
+  { slug: "kids", libelle: "Kids", compte: 17 },
 ];
 
 /**
