@@ -186,7 +186,7 @@ export const FAQ: SectionFaq[] = [
         question: "À quoi sert le code-barres affiché sur une édition ?",
         reponse: [
           "À identifier le disque sans ambiguïté, en boutique ou en occasion. Deux éditions au titre presque identique se distinguent par leur EAN.",
-          "Plus de 5 400 éditions en portent un. C’est une donnée que ni TMDB ni les sites de critique ne publient.",
+          "Plus de 14 000 éditions en portent un, soit près d’une sur deux. C’est une donnée que ni TMDB ni les sites de critique ne publient, et c’est elle qui rend le scan possible.",
         ],
       },
       {
@@ -253,8 +253,36 @@ export const FAQ: SectionFaq[] = [
         ancre: "import-and-export",
         question: "Puis-je exporter ou importer mes listes ?",
         reponse: [
-          "L’export existe depuis août 2026, dans les réglages du compte : un fichier CSV de votre collection et de vos envies, une ligne par édition, avec le film, l’éditeur, le code-barres et le lien vers la fiche. Il est gratuit et le restera.",
-          "L’import depuis un autre service n’existe pas encore. C’est une lacune connue.",
+          "Les deux, depuis les réglages du compte, et gratuitement. L’export produit un fichier CSV de votre collection et de vos envies, une ligne par édition, avec le film, l’éditeur, le code-barres et le lien vers la fiche.",
+          "L’import lit un export Letterboxd, l’archive telle qu’elle est téléchargée, ou n’importe quel fichier CSV portant une colonne de titre. Il lit aussi directement une collection ou une liste SensCritique à partir de votre pseudo.",
+          "Rien n’est écrit avant que vous ayez vu le résultat, et rien n’est jamais retiré de vos listes : un import ne peut qu’ajouter, et le refaire deux fois ne crée pas de doublon.",
+        ],
+      },
+      {
+        ancre: "import-senscritique",
+        question: "Comment fonctionne l’import depuis SensCritique ?",
+        reponse: [
+          "Votre pseudo suffit, ou l’adresse d’une de vos listes. Nous vous montrons vos envies et vos listes, vous choisissez ce que vous voulez reprendre.",
+          "La lecture se fait dans votre navigateur, directement chez eux, via leur interface publique. Nos serveurs n’adressent aucune requête à SensCritique, et nous ne conservons que les éditions que vous décidez d’importer.",
+          "Pour Letterboxd, il n’existe pas d’équivalent : leur site interdit les robots, mais ils proposent un export officiel dans Settings, Data, Export your data. C’est cette archive qu’on lit.",
+        ],
+      },
+      {
+        ancre: "import-which-edition",
+        question: "L’import sait-il quelle édition je possède ?",
+        reponse: [
+          "Pas toujours, et il le dit plutôt que de choisir à votre place. Un fichier importé donne un titre et une année, donc un film ; or un film populaire a souvent dix éditions, et personne ne se souvient duquel des pressages il a.",
+          "Quand une seule édition existe, ou une seule dans le format que vous déclarez, elle est écrite telle quelle. Sinon la ligne est importée sans affirmer le pressage : le film et le format sont justes, et vous pourrez préciser plus tard.",
+          "Quand deux films portent le même titre à un an près, rien n’est importé tant que vous n’avez pas tranché. Un rattachement faux se lit comme une vérité, une absence se corrige.",
+        ],
+      },
+      {
+        ancre: "barcode-scan",
+        question: "Puis-je scanner le code-barres d’un boîtier ?",
+        reponse: [
+          "Oui, depuis un téléphone, sur jaquette.app/scan. Visez le code au dos du boîtier : la fiche du disque s’ouvre et vous l’ajoutez à votre collection ou à vos envies d’un geste.",
+          "Le code désigne le disque exact, pas seulement le film : c’est le seul moyen de marquer le bon pressage sans avoir à le reconnaître dans une liste.",
+          "Environ un disque sur deux du catalogue porte son code-barres. Quand le vôtre n’y est pas, l’écran propose de le signaler, et il entre à la passe suivante.",
         ],
       },
       {

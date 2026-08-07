@@ -14,7 +14,12 @@
     {
       "name": "jaquette-pages",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["wrangler", "pages", "dev", "dist", "--port", "8788"],
+      "pourquoi_compatibility_date": "Sans date explicite, wrangler prend celle du jour, que son binaire ne supporte pas toujours encore : « This Worker requires compatibility date 2026-08-07, but the newest date supported by this server binary is 2026-08-06 ». La prévisualisation ne démarre alors pas du tout, et le message ne ressemble pas à un problème de version d'outil. À avancer quand on met wrangler à jour.",
+      "runtimeArgs": [
+        "wrangler", "pages", "dev", "dist",
+        "--port", "8788",
+        "--compatibility-date=2026-08-06"
+      ],
       "port": 8788
     }
   ]

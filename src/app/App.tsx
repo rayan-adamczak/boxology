@@ -74,6 +74,13 @@ const ComptePage = lazy(() =>
 // rend un écran vide sans seconde chance.
 const SignalerPage = lazy(() =>
   import("./pages/SignalerPage").then((m) => ({ default: m.SignalerPage })));
+// Même statut que `/report` : `noindex`, compte requis, aucune arrivée depuis un
+// moteur. Et surtout, le mégaoctet de WebAssembly du lecteur de code-barres n'a
+// rien à faire dans le bundle initial, que paie chaque visiteur d'une fiche.
+const ScanPage = lazy(() =>
+  import("./pages/ScanPage").then((m) => ({ default: m.ScanPage })));
+const ImportPage = lazy(() =>
+  import("./pages/ImportPage").then((m) => ({ default: m.ImportPage })));
 const ProfilPage = lazy(() =>
   import("./pages/ProfilPage").then((m) => ({ default: m.ProfilPage })));
 // Annonce d'une fonctionnalité à venir, en `noindex` : personne n'y arrive par
@@ -262,6 +269,8 @@ export default function App() {
           <Route path="/profile" element={<ProfilPage />} />
           <Route path="/account" element={<ComptePage />} />
           <Route path="/report" element={<SignalerPage />} />
+          <Route path="/scan" element={<ScanPage />} />
+          <Route path="/import" element={<ImportPage />} />
 
           {/* Le profil public. L'identifiant est la seule partie qui compte,
               il n'y a pas d'id derrière comme sur une fiche film : c'est lui

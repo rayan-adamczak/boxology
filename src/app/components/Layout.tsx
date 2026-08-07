@@ -9,7 +9,7 @@ import { AttentePleine } from "./AttenteRecherche";
 import { useSession } from "../lib/auth";
 import { useProfil } from "../lib/profils";
 
-type MobileTab = "home" | "collection" | "wishlist" | "profile";
+type MobileTab = "home" | "collection" | "scan" | "wishlist" | "profile";
 
 /** Attente pendant le téléchargement d'un fragment de page. */
 function AttentePage() {
@@ -49,6 +49,7 @@ export function Layout() {
     // et l'onglet s'intitule « Catalogue ».
     home: "/catalogue",
     collection: "/profile",
+    scan: "/scan",
     wishlist: "/profile?liste=envies",
     profile: "/profile",
   };
@@ -60,7 +61,9 @@ export function Layout() {
 
   // L'onglet actif se déduit de l'URL : arriver sur /profil par un lien du menu
   // doit allumer le bon onglet, pas celui du dernier appui.
-  const activeTab: MobileTab = location.pathname.startsWith("/profile")
+  const activeTab: MobileTab = location.pathname.startsWith("/scan")
+    ? "scan"
+    : location.pathname.startsWith("/profile")
     ? location.search.includes("liste=envies")
       ? "wishlist"
       : mobileTab === "collection" || mobileTab === "profile"
