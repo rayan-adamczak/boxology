@@ -150,11 +150,8 @@ export function BandeauPromo() {
          n'existe pas, la mesure rend 0 et le bandeau descend au ras. */
       className="fixed inset-x-0 z-30"
       /*
-        **Il ne suit pas la gouttière, et c'est voulu.** `.reel-gouttiere` cadre
-        le corps du site, 877 px à 1 512 : s'y aligner faisait lire le bandeau
-        comme une section de la page. Une barre qui annonce autre chose que le
-        catalogue doit se détacher de lui, donc elle va d'un bord à l'autre et
-        garde son propre rembourrage.
+        **Le fond va d'un bord à l'autre, et c'est lui qui détache la barre du
+        corps.** Le contenu, lui, suit la gouttière du site, voir plus bas.
 
         Le fond n'est pas `--reel-surface` non plus, qui est celui des cartes
         d'édition juste au-dessus : un mélange d'accent l'en écarte, et le filet
@@ -172,26 +169,46 @@ export function BandeauPromo() {
         borderTop: "1px solid color-mix(in srgb, var(--reel-accent-clair) 40%, transparent)",
       }}
     >
-      <div className="flex items-center gap-3 px-5 py-2.5 sm:px-8 lg:px-12">
+      {/*
+        Le fond va d'un bord à l'autre, le contenu suit la gouttière du site.
+
+        Trois états successifs, et le dernier est le bon. Collé aux bords, le
+        contenu laissait à 1 512 px l'étiquette contre le bord gauche et la
+        pilule contre le droit, à sept cents pixels l'une de l'autre. Un
+        rembourrage par paliers a corrigé ça sans le régler, 96 px de chaque
+        côté laissant encore 1 320 px de contenu.
+
+        `.reel-gouttiere` le ramène à 877 px, **et surtout le pose sur les mêmes
+        verticales que la page**. Ce qui détache le bandeau du corps, c'est la
+        bande colorée et pleine largeur, pas un contenu désaligné : le premier
+        commentaire de ce fichier disait le contraire, il visait le fond et
+        s'appliquait au contenu par erreur.
+
+        Sous `lg` la gouttière retombe sur un rembourrage en pixels, 20 puis 32,
+        donc rien ne change sur téléphone.
+      */}
+      <div className="reel-gouttiere flex items-center gap-3 py-2.5">
         {/*
-          Une étiquette de rayon, et non une pastille ronde.
+          L'étiquette porte le **code**, et non plus le taux.
 
-          Le disque de 44 px a été essayé et retiré : il rendait le chiffre
-          petit pour tenir dans un rond, et rien dans le site ne parle en
-          disques. Trois bandeaux marchands relevés sur Mobbin, Seed, adidas et
-          The New Yorker, ne posent d'ailleurs aucun badge circulaire : la
-          couleur de la bande ou l'emphase typographique porte la remise, et
-          l'action passe par une pilule pleine à droite.
+          Elle a d'abord montré « −12 % », qui redisait le début de la phrase à
+          côté. Le code, lui, n'est écrit nulle part ailleurs et c'est la seule
+          chose que le lecteur doit **emporter** : il se recopie dans un panier,
+          chez le marchand, plusieurs minutes plus tard. Le mettre dans la
+          plus grosse graisse du bandeau, c'est le mettre là où on le retrouve.
 
-          Ce qui est repris ici est l'emphase typographique, dans le vocabulaire
-          du site : un cadre rectangulaire arrondi comme les capsules du §8, avec
-          le seul taux. Ça se lit comme une étiquette posée sur un boîtier, ce
-          que le site montre par ailleurs.
+          Trois bandeaux marchands relevés sur Mobbin, Seed, adidas et The New
+          Yorker, ne posent aucun badge circulaire : la couleur de la bande ou
+          l'emphase typographique porte la promotion, et l'action passe par une
+          pilule pleine à droite. Le disque de 44 px essayé au début rendait de
+          toute façon son contenu illisible, et rien dans le site ne parle en
+          disques.
 
-          **Le taux est seul, sans mot dessous.** Un « OCCASION » en petites
-          capitales a tenu quelques heures : il redisait ce que la phrase à côté
-          écrit déjà, « 12 % sur l'occasion », et il faisait de l'étiquette un
-          bloc à deux étages là où une étiquette de prix n'en a qu'un.
+          **Pas d'`aria-hidden` ici, contrairement à la première version.** Tant
+          que l'étiquette portait le taux, la phrase le redisait et la masquer
+          ne coûtait rien ; maintenant qu'elle porte le code, la masquer le
+          rendrait introuvable à un lecteur d'écran. Le deux-points de « Code
+          promo : » est dans le texte pour que l'annonce se lise d'un trait.
 
           Les couleurs sont celles du site et non celles de momox : le §8 pose
           qu'un logo ne suit pas la palette du site, la réciproque vaut, le site
@@ -202,24 +219,67 @@ export function BandeauPromo() {
           ne mène nulle part. C'est la pilule à droite qui se clique.
         */}
         <span
-          aria-hidden
-          className="flex shrink-0 items-center justify-center rounded-[8px] px-2.5 py-1 sm:px-3"
+          /* Sur une ligne, `baseline` et non `center` : le libellé est en
+             petites capitales et le code en chasse fixe, deux hauteurs d'œil
+             différentes, et un centrage vertical les fait flotter l'un par
+             rapport à l'autre. Alignés sur la ligne de pied, ils se lisent comme
+             une seule étiquette. */
+          className="flex shrink-0 items-baseline gap-1.5 rounded-[8px] px-2.5 py-1.5 sm:px-3"
           style={{
             backgroundColor: "color-mix(in srgb, var(--reel-accent) 18%, transparent)",
             border: "1px solid color-mix(in srgb, var(--reel-accent-clair) 45%, transparent)",
           }}
         >
+          {/*
+            Le libellé raccourcit sous `sm`, il ne disparaît pas.
+
+            Le masquer laissait un « ETE12 » nu, or le mot « code » a justement
+            quitté la phrase pour venir ici : personne ne devinerait ce qu'est
+            cette suite de lettres. « CODE PROMO » entier coûtait en revanche
+            75 px sur les 375, et poussait la phrase à quatre lignes.
+          */}
+          {/*
+            Même corps que le code, donc **même hauteur de capitale** : les deux
+            sont en capitales, et à corps égal une capitale fait la même hauteur
+            quelle que soit la fonte. Le libellé était deux fois plus petit et
+            l'étiquette se lisait comme une légende suivie d'une valeur, pas
+            comme une seule chose.
+
+            Ce qui distingue encore les deux n'est plus la taille mais la
+            couleur et la fonte : le libellé reste en gris et en proportionnelle,
+            le code en accent clair et en chasse fixe. Et l'interlettrage retombe
+            de 0,08 à 0,02 em, un espacement calculé pour du très petit texte
+            écartèle « CODE PROMO » à ce corps-là.
+          */}
           <span
-            className="tabular-nums text-[15px] sm:text-[17px]"
+            className="text-[14px] sm:text-[16px] lg:text-[18px]"
             style={{
-              fontFamily: "var(--reel-font-titre)",
-              fontWeight: 800,
+              fontWeight: 600,
               lineHeight: "20px",
-              letterSpacing: "-0.02em",
+              letterSpacing: "0.02em",
+              textTransform: "uppercase",
+              color: "var(--reel-muted)",
+            }}
+          >
+            {/* Le seuil est `lg` et non `sm` : à taille égale au code, « CODE
+                PROMO » mesure 127 px, l'étiquette 215, et la phrase repassait à
+                deux lignes dès 820 px de fenêtre. */}
+            <span className="lg:hidden">Code</span>
+            <span className="hidden lg:inline">Code promo</span>
+          </span>
+          {/* Chasse fixe, comme un code-barres : c'est une valeur qu'on recopie
+              signe à signe, et `I` contre `l` s'y joue. */}
+          <span
+            className="tabular-nums text-[14px] sm:text-[16px] lg:text-[18px]"
+            style={{
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontWeight: 700,
+              lineHeight: "20px",
+              letterSpacing: "0.02em",
               color: "var(--reel-accent-clair)",
             }}
           >
-            {promo.badge}
+            {promo.code}
           </span>
         </span>
 
@@ -238,40 +298,38 @@ export function BandeauPromo() {
             valeurs qui se juxtaposent sans se lier, et c'est le cas ici :
             le marchand, la remise, le code.
           */}
-          <p className="text-[12px] leading-[17px] sm:text-[13px] sm:leading-[19px]" style={{ color: "var(--reel-text)" }}>
+          <p className="text-[12px] leading-[17px] sm:text-[15px] sm:leading-[21px]" style={{ color: "var(--reel-text)" }}>
             <span style={{ fontWeight: 600 }}>{promo.marchand}</span>
             <span style={{ color: "var(--reel-muted)" }}>{" · "}</span>
             <span style={{ fontWeight: 600 }}>
               {promo.resumeCourt} {quand(promo, etat)}
             </span>
-            <span style={{ color: "var(--reel-muted)" }}>{" · code "}</span>
-            {/* Chasse fixe, comme un code-barres : c'est une valeur qu'on
-                recopie signe à signe, et `I` contre `l` s'y joue. */}
-            <span
-              className="tabular-nums"
-              style={{
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                fontWeight: 600,
-              }}
-            >
-              {promo.code}
-            </span>
           </p>
-          {/*
-            La mention d'affiliation ne paraît qu'à partir de `md`, et ce n'est
-            pas une commodité de place : c'est là que la pilule apparaît, donc
-            là qu'il y a un lien rémunéré à déclarer (§10). En dessous, le
-            bandeau ne porte aucun lien, il informe et rien de plus, et la
-            phrase prenait une ligne entière sur les quatre d'un écran de 375.
-
-            La fiche film, elle, garde la mention en toutes lettres sous sa
-            liste d'éditions, où les prix sont des liens affiliés.
-          */}
-          <p className="text-[11px] leading-[16px] sm:text-[12px] sm:leading-[18px]" style={{ color: "var(--reel-muted)" }}>
+          <p className="text-[11px] leading-[16px] sm:text-[13px] sm:leading-[19px]" style={{ color: "var(--reel-muted)" }}>
             {promo.conditionsCourtes}
-            <span className="hidden md:inline"> Offre du marchand, relayée ici.</span>
           </p>
         </div>
+
+        {/*
+          Deux mots, et ils sont obligatoires.
+
+          « Offre du marchand, relayée ici. » est partie, elle prenait une ligne
+          entière. Mais la pilule qui suit **est** un lien rémunéré, et le §10
+          veut la transparence sur la nature commerciale d'un lien là où il
+          s'affiche : la retirer sans rien laisser aurait fait du bandeau le seul
+          endroit du site qui porte un lien affilié sans le dire.
+
+          Elle est collée à la pilule et paraît avec elle, à partir de `md` :
+          sous ce palier le bandeau ne porte aucun lien, donc il n'y a rien à
+          déclarer. La fiche film garde la mention en toutes lettres sous sa
+          liste d'éditions, où les prix sont des liens affiliés.
+        */}
+        <span
+          className="hidden shrink-0 md:inline"
+          style={{ fontSize: "12px", color: "var(--reel-muted)" }}
+        >
+          Lien affilié
+        </span>
 
         {/*
           L'action en pilule pleine, motif commun aux trois bandeaux relevés :
@@ -292,12 +350,12 @@ export function BandeauPromo() {
           style={{
             backgroundColor: "var(--reel-accent)",
             color: "#fff",
-            fontSize: "13px",
+            fontSize: "14px",
             fontWeight: 600,
           }}
         >
           En profiter
-          <ArrowUpRight size={15} />
+          <ArrowUpRight size={16} />
         </a>
 
         <button

@@ -855,7 +855,7 @@ que le navigateur n'exécute pas. Éprouvé sous `wrangler pages dev dist`, seul
 façon de servir `_headers` et `functions/` ensemble : fiche film, accueil et
 `/about` rendus sans une violation en console, morceau `lazy()` chargé en 200.
 
-**`img-src` en porte six depuis le 7 août 2026**, et la directive est un
+**`img-src` en porte sept depuis le 7 août 2026**, et la directive est un
 **instantané** : chaque source qui apporte ses propres visuels ajoute un hôte,
 et l'oubli ne casse rien de bruyant. `cdn.shopify.com` est entré le 3 août,
 provisoire le temps de miroiter les visuels Metaluna ; `media.e.leclerc` le 4,
@@ -863,6 +863,61 @@ et celui-là est définitif, le §5 posant qu'E.Leclerc est la seule source dont
 les visuels sont **licenciés pour l'usage affilié**. Le sixième est le projet
 Supabase lui-même, qui sert les photos de profil, et **`blob:` est arrivé avec**
 pour que la fenêtre de recadrage affiche le fichier choisi avant tout réseau.
+
+**Le septième est `fgellaobb.filerobot.com`, et c'est E.Leclerc une seconde
+fois.** Filerobot est le CDN qui sert `media.e.leclerc` ; la passe Awin du
+6 août a écrit 436 offres sous le nom d'hôte brut du CDN plutôt que sous le nom
+de marque, avec la même grammaire d'URL au caractère près,
+`/LEN/fp/<EAN>_1?vh=…&w=1000&h=1000&func=fit`. Vérifié avant d'ouvrir, et pas
+supposé : **436 lignes sur 436 portent `marchand = E.Leclerc`**, zéro chez
+momox, et le fichier répond 200 en `image/jpeg`. Même statut que le quatrième
+hôte, donc, flux Awin et visuels licenciés.
+
+**Ce qu'aucune des six entrées précédentes ne disait : un même marchand peut
+servir ses visuels sous deux noms d'hôte, sans que rien ne l'annonce.**
+Autoriser le nom de marque ne suffit donc pas, et la source de vérité n'est pas
+le nom du marchand mais la colonne `image_url`, à recompter après chaque passe
+de flux.
+
+    select split_part(split_part(image_url, '//', 2), '/', 1), count(*)
+    from offres group by 1 order by 2 desc
+
+**Le contrôle qui tranche est une sonde `Image()`, pas le Resource Timing**, et
+c'est la correction du 7 août poussée jusqu'au bout. Mesuré sur la fiche 15119
+en production : `transferSize 0, status 0` sur **les trois** hôtes de la page,
+`image.tmdb.org` et `img.jaquette.app` compris, alors que leurs images
+affichaient 1 280 et 1 000 pixels. La signature du §3 ne dit donc rien du tout
+dès qu'aucun hôte ne pose `Timing-Allow-Origin`. Ce qui tranche est de charger
+les deux hôtes depuis la page, sous la CSP qu'on soupçonne :
+
+    new Image().src = '…filerobot…'   -> onerror   bloque
+    new Image().src = '…e.leclerc…'   -> onload    naturalWidth 200
+
+**La taille est réglée dans la foulée**, `lib/visuels.ts` ne réécrivant `w` et
+`h` que pour `media.e.leclerc` : ces 436 offres tiraient l'original pour un
+cadre de 56 × 84. Mesuré sur dix lignes réelles, avant puis après :
+
+    forme requête   792 Ko à 1 013 Ko   ->  49 à 67 Ko    200 × 200
+    forme chemin     91 Ko à  228 Ko    ->  24 à 66 Ko    200 × 200
+
+**Ma crainte sur la forme sans point d'interrogation était fausse, et la mesure
+l'a dite.** J'avais écrit que `searchParams.set` accolerait un second jeu de `w`
+et `h` au premier ; il n'y a pas de premier jeu. Les paramètres écrits dans le
+chemin, `…/<EAN>_1&w=1000&h=1000&func=fit&org_if_sml=1`, sont **inertes** :
+remplacer `w=1000` par `w=200` dedans rend le même fichier à l'octet près,
+203 757 o en 600 × 813, le CDN lisant tout cela comme une partie du nom. Ce qui
+rétrécit est d'ajouter une vraie chaîne de requête par-dessus, ce que
+`searchParams.set` fait tout seul puisqu'il n'y en a aucune.
+
+**Le seul vrai piège de ces 128 est que `func` manque**, la requête n'existant
+pas. Il est donc posé quand il est absent et jamais écrasé : mesuré, `func=fit`
+est présent sur les 2 973 autres et absent sur ces 128 exactement. L'imposer
+partout écraserait un jour un `func` que la source aurait voulu autre.
+
+**Retenir la forme du raisonnement fautif** : « le paramètre est écrit dans
+l'URL, donc il compte ». Un CDN décide seul de ce qu'il lit, et deux URL qui se
+ressemblent ne se comportent pas forcément pareil. Une requête `curl` valait
+mieux qu'une lecture de la chaîne.
 
 **La signature d'un blocage CSP est à connaître, elle ne ressemble à rien
 d'autre** : les 2 312 éditions Leclerc rendaient un cadre gris alors que la
@@ -4985,11 +5040,20 @@ défilement est cassé :
 | `requestAnimationFrame` suspendu, l'onglet étant masqué | tout étranglement en `rAF` gèle après le montage |
 | `innerWidth` et `innerHeight` parfois à **0** | mise en page repliée en une colonne, sections de 12 000 px, mesures dénuées de sens |
 | `scrollTo` n'émet aucun événement `scroll` | les écouteurs ne se déclenchent jamais |
+| **`resize_window` n'émet aucun événement `resize`** | tout ce qui se recalcule au redimensionnement garde sa valeur d'avant |
 
 Ce qui marche : **redimensionner l'onglet explicitement**, puis émettre
 `dispatchEvent(new Event("scroll"))` à la main après chaque `scrollTo`. Et
 vérifier `innerWidth` avant de croire une mesure, un viewport à zéro invalide
 tout ce qui suit.
+
+**La ligne `resize` a été payée le 7 août 2026**, sur le bandeau promo : la
+mesure disait que le bandeau flottait à 63 px de la barre d'onglets, et j'ai
+soupçonné le code. Un `dispatchEvent(new Event("resize"))` émis à la main rendait
+aussitôt le bon `bottom: 64px`. **C'était l'instrument, pas la page**, et c'est
+le §9 mot pour mot appliqué à une sonde de mise en page. Recharger après avoir
+redimensionné, ou émettre l'événement, mais ne jamais conclure d'un
+redimensionnement seul.
 
 Les captures d'écran sont par ailleurs aléatoires après un défilement programmé,
 elles rendent souvent un écran vide alors que le DOM est correct. Naviguer
@@ -6802,6 +6866,11 @@ un visiteur à Tokyo le 9 à 3 h locale, soit le 8 à 20 h à Paris, ne la voit 
 et un visiteur à Los Angeles le 9 à 18 h, soit le 10 à 3 h à Paris, non plus.
 Ni l'un ni l'autre ne pourrait utiliser le code chez momox.
 
+**La borne de fin porte ses millisecondes**, `23:59:59.999` et non `23:59:59`.
+Sans elles la valeur vaut `.000`, et comme la comparaison est inclusive, la
+dernière seconde du 9 août n'affichait rien. Détail au §9, il vaut pour toute
+borne de fin.
+
 **`libelleJour` est écrit à la main et non calculé de `debut`** :
 `toLocaleDateString` rendrait la date dans le fuseau du visiteur, donc
 « samedi 8 août » à Los Angeles pour un instant qui est bien le 9 à Paris. Le
@@ -6847,37 +6916,66 @@ promo par la couleur de la bande, adidas met une pilule pleine à droite, The Ne
 Yorker joue l'emphase typographique.
 
 Ce qui est repris est l'emphase, dans le vocabulaire du site : une **étiquette
-de rayon**, cadre arrondi comme les capsules du §8, avec **le seul taux**. Fond
-en `color-mix` et non en aplat d'accent, sinon elle se lit comme un bouton alors
-qu'elle ne mène nulle part ; c'est la pilule qui se clique.
+de rayon**, cadre arrondi comme les capsules du §8. Fond en `color-mix` et non
+en aplat d'accent, sinon elle se lit comme un bouton alors qu'elle ne mène nulle
+part ; c'est la pilule qui se clique.
 
-Un « OCCASION » en petites capitales sous le taux a tenu quelques heures, puis
-il est parti : il redisait ce que la phrase à côté écrit déjà, « 12 % sur
-l'occasion », et il faisait de l'étiquette un bloc à deux étages là où une
-étiquette de prix n'en a qu'un.
+**Elle porte le code, et c'est un revirement.** Elle a d'abord montré « −12 % »,
+qui redisait le début de la phrase à côté, puis « −12 % / OCCASION », qui
+redisait la suite. Le code, lui, n'est écrit nulle part ailleurs et c'est la
+seule chose que le lecteur doit **emporter** : il se recopie dans un panier, chez
+le marchand, plusieurs minutes plus tard. Le mettre dans la plus grosse graisse
+du bandeau, c'est le mettre là où on le retrouve. Il quitte donc la première
+ligne, qui ne garde que le marchand, le taux et le jour.
+
+**Et l'étiquette perd son `aria-hidden` du même coup.** Tant qu'elle portait le
+taux, la phrase le redisait et la masquer ne coûtait rien ; portant le code, la
+masquer le rendrait introuvable à un lecteur d'écran.
 
 **Les couleurs sont celles du site, jamais celles du marchand.** Le §8 pose
 qu'un logo ne suit pas la palette du site ; la réciproque vaut, le site
 n'emprunte pas celle d'un marchand, et reprendre le disque rouge de leur
 courriel reviendrait à republier leur création.
 
-**Le bandeau ne suit pas la gouttière, et c'est le point qui le fait exister.**
-`.reel-gouttiere` cadre le corps du site, 877 px à 1 512 : s'y aligner le faisait
-lire comme une section de la page. Il va donc d'un bord à l'autre, avec son
-propre rembourrage, et son fond n'est pas `--reel-surface`, qui est celui des
-cartes d'édition juste au-dessus, mais un mélange d'accent, filet du haut
-compris. C'est le motif de Seed, où la couleur de la bande porte la promotion à
-elle seule.
+**Son fond n'est pas `--reel-surface`**, qui est celui des cartes d'édition
+juste au-dessus, mais un mélange d'accent, filet du haut compris, et il va d'un
+bord à l'autre. C'est le motif de Seed, où la couleur de la bande porte la
+promotion à elle seule, et **c'est lui seul qui détache la barre du corps**.
+
+**Le fond va d'un bord à l'autre, le contenu suit la gouttière.** Trois états
+successifs, et le troisième est le bon :
+
+    collé aux bords     etiquette et pilule a 700 px l'une de l'autre
+    paliers de padding  96 px de marge, 1 320 px de contenu, encore trop large
+    .reel-gouttiere     877 px, cale sur les verticales de la page
+
+Ce qui détache le bandeau du corps, **c'est la bande colorée et pleine largeur,
+pas un contenu désaligné**. Le raisonnement d'origine visait le fond et
+s'appliquait au contenu par erreur : aligner le contenu sur la gouttière le
+resserre et le pose sous le titre de la page, mesuré à 318 px des deux côtés.
+
+**La mention d'affiliation tient en deux mots, « Lien affilié », et elle est
+obligatoire.** « Offre du marchand, relayée ici. » prenait une ligne entière et
+elle est partie, mais la pilule **est** un lien rémunéré : la retirer sans rien
+laisser aurait fait du bandeau le seul endroit du site qui porte un lien affilié
+sans le dire (§10). Elle paraît avec la pilule, à partir de `md` ; en dessous le
+bandeau ne porte aucun lien, donc il n'y a rien à déclarer.
 
 **Aucun `backdrop-filter`**, quelle que soit l'envie : le §8 en garde la trace,
 un flou sur toute la largeur force une couche de composition et laisse peindre
 des tuiles périmées, page dédoublée et décalée d'une centaine de pixels. Un
 aplat opaque fait le même travail.
 
-    1280 px   1 ligne + 1, hauteur 58
-     375 px   2 lignes + 2, hauteur 88
+    1512 px   1 ligne + 1, hauteur 61, contenu 877 cale sur la page
+     375 px   2 lignes + 1, hauteur 71, colle a la barre d'onglets
 
 La pilule saute sous `md` : à 640 px elle poussait la phrase à trois lignes.
+
+**Sur téléphone il est collé à la barre d'onglets, et cette hauteur se mesure.**
+Un `bottom-[68px]` en dur laissait un jour visible : la barre fait 64 px et porte
+en plus `env(safe-area-inset-bottom)`, donc sa hauteur dépend de l'appareil, et
+elle a gagné un onglet « Scanner » entre-temps. Un nombre deviné se périme à la
+première retouche de ce qu'il devine. Détail du piège d'observation au §9.
 
 **L'étiquette est `aria-hidden`, donc le pourcentage reste dans la phrase.** Le
 déléguer au visuel le rendrait inaudible d'un lecteur d'écran.
@@ -7837,6 +7935,40 @@ Documentés parce qu'ils se reproduiront.
   les 12 pages abîmées du crawl de juillet. Remises dans la file le 30 juillet
   2026 en retirant leur ligne et leur `.gz`. **Vérifier le cache, pas le
   journal.**
+- **Une borne de fin écrite à la seconde ouvre un trou d'une seconde.**
+  `2026-08-09T23:59:59+02:00` vaut `.000` : avec une comparaison inclusive,
+  `t <= fin`, tout ce qui tombe entre `23:59:59.001` et `23:59:59.999` est déjà
+  dehors. Le bandeau promo du 9 août aurait donc disparu une seconde avant la
+  fin de la journée.
+
+  Une seconde ne se voit pas, et c'est précisément ce qui la rend coûteuse :
+  elle se recopie dans la borne suivante sans que personne ne la remarque. Deux
+  écritures justes, `…T23:59:59.999+02:00` pour une fin inclusive, ou la borne
+  du jour suivant à minuit avec une comparaison stricte, `t < fin`. La première
+  a été retenue ici, elle dit le jour qu'on veut plutôt que le lendemain.
+
+  **Trouvé en éprouvant le rendu, pas en relisant le code** : la relecture
+  voyait « 23 h 59 min 59 s », donc la fin de la journée. C'est le §9 sur les
+  scans appliqué au temps, une borne qui a l'air juste se mesure.
+- **`ResizeObserver` saute les éléments en `display: none`, il ne les rapporte
+  pas à zéro.** La spécification les exclut de l'observation, donc **aucun
+  rappel ne part** quand un élément se masque, et la dernière taille mesurée
+  reste posée pour toujours. Le bandeau promo calait sa position sur la hauteur
+  de la barre d'onglets mobile : au passage du téléphone au bureau, la barre
+  passait en `md:hidden`, l'observateur se taisait, et le bandeau flottait à
+  64 px du bas d'un écran de 1 280.
+
+  Le défaut est **muet** et il ne se voit que dans le sens masquage : à
+  l'apparition, l'observateur se réveille et corrige. D'où un écouteur de
+  redimensionnement en plus de l'observateur, qui lui se déclenche au
+  franchissement du palier. Et `offsetHeight` plutôt que
+  `getBoundingClientRect`, les deux rendant 0 sur un `display: none` mais le
+  premier le disant sans forcer de calcul de disposition.
+
+  Règle générale : **une hauteur d'élément fixé ne se met pas en dur.** Ici
+  `bottom-[68px]` a tenu quelques heures pour une barre qui fait 64 px, qui
+  porte en plus `env(safe-area-inset-bottom)` donc dépend de l'appareil, et qui
+  a gagné un onglet entre-temps.
 - **Tailwind 4 a changé son preflight** : les `<button>` reçoivent
   `cursor: default` là où Tailwind 3 posait `cursor: pointer`. Toute
   l'interface bâtie sur des boutons (onglets, capsules de format, cartes

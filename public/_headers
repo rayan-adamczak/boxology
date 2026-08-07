@@ -57,6 +57,23 @@
 #               statut, c'est une CSP, pas un 404. Un visuel absent en base
 #               n'aurait, lui, produit aucune requête du tout.
 #
+#               **Septième hôte le 7 août 2026, `fgellaobb.filerobot.com`**, et
+#               c'est E.Leclerc une seconde fois. Filerobot est le CDN qui sert
+#               `media.e.leclerc` ; le flux Awin du 6 août a écrit 436 offres
+#               avec le nom d'hôte brut du CDN au lieu du nom de marque, même
+#               grammaire d'URL au caractère près,
+#               `/LEN/fp/<EAN>_1?vh=…&w=1000&h=1000&func=fit`. Mesuré avant
+#               d'ouvrir : 436 lignes sur 436 portent `marchand = E.Leclerc`,
+#               zéro chez momox, et le fichier répond 200 en `image/jpeg`.
+#               Même statut que le quatrième hôte, donc : flux Awin, visuels
+#               licenciés pour l'usage affilié (§5), lien direct légitime.
+#
+#               Ce que ça apprend, et ce n'est pas dans les six entrées
+#               précédentes : **un même marchand peut servir ses visuels sous
+#               deux noms d'hôte**, sans que rien ne l'annonce. Autoriser le
+#               nom de marque ne suffit pas ; c'est la colonne `image_url` qui
+#               fait foi, et elle se recompte après chaque passe de flux.
+#
 #               La leçon vaut pour la suite : cette directive est écrite sur un
 #               **instantané** des hôtes présents en base. Toute source neuve en
 #               ajoute un, et l'oubli ne casse rien de bruyant. À vérifier à
@@ -124,7 +141,7 @@
 # Certificates, et l'engagement est difficile à défaire une fois le max-age
 # servi.
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://image.tmdb.org https://img.jaquette.app https://cdn.shopify.com https://media.e.leclerc https://images2.medimops.eu https://rndyusuyfkrojpazjsll.supabase.co; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co https://apollo.senscritique.com
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://image.tmdb.org https://img.jaquette.app https://cdn.shopify.com https://media.e.leclerc https://fgellaobb.filerobot.com https://images2.medimops.eu https://rndyusuyfkrojpazjsll.supabase.co; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co https://apollo.senscritique.com
   X-Frame-Options: DENY
   Permissions-Policy: geolocation=(), microphone=(), camera=(self), payment=(), usb=()
   X-Content-Type-Options: nosniff
