@@ -25,7 +25,8 @@ import {
  * pages statiques derrière le bandeau.
  *
  * En bas, rien à recalculer : la barre se pose au-dessus de la barre d'onglets
- * mobile, qui est le seul autre élément fixé de ce côté.
+ * mobile, qui est le seul autre élément fixé de ce côté, et **sa hauteur se
+ * mesure** plutôt qu'elle ne se devine, cf. `useHauteurBarreOnglets`.
  *
  * ## Fermable, et la fermeture se retient par code
  *
@@ -60,7 +61,56 @@ function dejaFerme(promo: Promotion, etat: EtatPromotion) {
   }
 }
 
+/**
+ * La hauteur de la barre d'onglets mobile, mesurée et non supposée.
+ *
+ * Un `bottom-[68px]` en dur a tenu quelques heures et laissait un jour entre le
+ * bandeau et la navigation : la barre porte `padding-bottom:
+ * env(safe-area-inset-bottom)`, donc sa hauteur dépend de l'appareil, et elle a
+ * gagné un onglet « Scanner » entre-temps. Un nombre deviné se périme à la
+ * première retouche de ce qu'il devine.
+ *
+ * `ResizeObserver` plutôt qu'une mesure au montage : l'insert de sécurité change
+ * quand la barre d'adresse du navigateur se replie, et la barre gagne des
+ * onglets au fil des versions.
+ *
+ * **Mais `ResizeObserver` ne suffit pas, et le défaut est muet.** La
+ * spécification lui fait *sauter* les éléments en `display: none`, elle ne les
+ * rapporte pas à zéro : la barre disparaissant à partir de `md`, le passage du
+ * téléphone au bureau ne déclenchait aucun rappel et la dernière hauteur
+ * mesurée restait posée. Le bandeau flottait alors à 64 px du bas d'un écran de
+ * 1 280, sans que rien ne le signale. D'où l'écouteur de redimensionnement en
+ * plus, qui lui se déclenche au franchissement du palier.
+ *
+ * `offsetHeight` et non `getBoundingClientRect` : les deux rendent 0 sur un
+ * `display: none`, mais le premier le dit sans forcer de calcul de disposition
+ * sur un élément qui n'en a pas.
+ *
+ * Rend 0 quand la barre n'est pas là : le bandeau descend alors au ras.
+ */
+function useHauteurBarreOnglets() {
+  const [hauteur, setHauteur] = useState(0);
+
+  useEffect(() => {
+    const nav = document.querySelector<HTMLElement>('nav[aria-label="Primary"]');
+    if (!nav) return;
+    const mesurer = () => setHauteur(nav.offsetHeight);
+    mesurer();
+    const observateur = new ResizeObserver(mesurer);
+    observateur.observe(nav);
+    window.addEventListener("resize", mesurer);
+    return () => {
+      observateur.disconnect();
+      window.removeEventListener("resize", mesurer);
+    };
+  }, []);
+
+  return hauteur;
+}
+
 export function BandeauPromo() {
+  const basBarre = useHauteurBarreOnglets();
+
   /*
     L'état part de `null` et non de la promotion : le premier rendu doit être
     le même côté serveur et côté client, et surtout il ne doit pas peindre un
@@ -94,10 +144,11 @@ export function BandeauPromo() {
     <div
       role="region"
       aria-label="Promotion en cours"
-      /* `bottom-[68px]` sous `md` : la barre d'onglets mobile occupe le bas de
-         l'écran, et se poser dessus masquerait la navigation. Au-dessus de `md`
-         elle n'existe pas, donc le bandeau descend au ras. */
-      className="fixed inset-x-0 bottom-[68px] z-30 md:bottom-0"
+      /* `bottom` vient de la mesure et non d'une classe : la barre d'onglets
+         mobile occupe le bas de l'écran et se poser dessus masquerait la
+         navigation, mais sa hauteur dépend de l'appareil. Au-dessus de `md` elle
+         n'existe pas, la mesure rend 0 et le bandeau descend au ras. */
+      className="fixed inset-x-0 z-30"
       /*
         **Il ne suit pas la gouttière, et c'est voulu.** `.reel-gouttiere` cadre
         le corps du site, 877 px à 1 512 : s'y aligner faisait lire le bandeau
@@ -116,6 +167,7 @@ export function BandeauPromo() {
         décalée d'une centaine de pixels. Un aplat opaque fait le même travail.
       */
       style={{
+        bottom: basBarre,
         backgroundColor: "color-mix(in srgb, var(--reel-accent) 14%, var(--reel-bg))",
         borderTop: "1px solid color-mix(in srgb, var(--reel-accent-clair) 40%, transparent)",
       }}
@@ -205,8 +257,19 @@ export function BandeauPromo() {
               {promo.code}
             </span>
           </p>
+          {/*
+            La mention d'affiliation ne paraît qu'à partir de `md`, et ce n'est
+            pas une commodité de place : c'est là que la pilule apparaît, donc
+            là qu'il y a un lien rémunéré à déclarer (§10). En dessous, le
+            bandeau ne porte aucun lien, il informe et rien de plus, et la
+            phrase prenait une ligne entière sur les quatre d'un écran de 375.
+
+            La fiche film, elle, garde la mention en toutes lettres sous sa
+            liste d'éditions, où les prix sont des liens affiliés.
+          */}
           <p className="text-[11px] leading-[16px] sm:text-[12px] sm:leading-[18px]" style={{ color: "var(--reel-muted)" }}>
-            {promo.conditionsCourtes} Offre du marchand, relayée ici.
+            {promo.conditionsCourtes}
+            <span className="hidden md:inline"> Offre du marchand, relayée ici.</span>
           </p>
         </div>
 
