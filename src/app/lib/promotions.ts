@@ -143,7 +143,11 @@ export const PROMOTIONS: Promotion[] = [
     url: "https://www.awin1.com/cread.php?awinmid=7481&awinaffid=3006883&campaign=&ued=https%3A%2F%2Fwww.momox-shop.fr%2Fete%2F",
     libelleJour: "dimanche 9 août",
     debut: "2026-08-09T00:00:00+02:00",
-    fin: "2026-08-09T23:59:59+02:00",
+    /* Millisecondes comprises : `23:59:59` sans elles vaut `.000`, et la
+       comparaison est inclusive, donc la dernière seconde du 9 août n'aurait
+       rien affiché. Une seconde ne se voit pas, mais c'est le genre de trou qui
+       se recopie dans la promotion suivante. */
+    fin: "2026-08-09T23:59:59.999+02:00",
   },
 ];
 
