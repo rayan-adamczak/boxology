@@ -6877,21 +6877,22 @@ qu'un logo ne suit pas la palette du site ; la réciproque vaut, le site
 n'emprunte pas celle d'un marchand, et reprendre le disque rouge de leur
 courriel reviendrait à republier leur création.
 
-**Le bandeau ne suit pas la gouttière, et c'est le point qui le fait exister.**
-`.reel-gouttiere` cadre le corps du site, 877 px à 1 512 : s'y aligner le faisait
-lire comme une section de la page. Il va donc d'un bord à l'autre, avec son
-propre rembourrage, et son fond n'est pas `--reel-surface`, qui est celui des
-cartes d'édition juste au-dessus, mais un mélange d'accent, filet du haut
-compris. C'est le motif de Seed, où la couleur de la bande porte la promotion à
-elle seule.
+**Son fond n'est pas `--reel-surface`**, qui est celui des cartes d'édition
+juste au-dessus, mais un mélange d'accent, filet du haut compris, et il va d'un
+bord à l'autre. C'est le motif de Seed, où la couleur de la bande porte la
+promotion à elle seule, et **c'est lui seul qui détache la barre du corps**.
 
-**Le fond va d'un bord à l'autre, le contenu non.** Collé aux bords, il laissait
-à 1 512 px l'étiquette contre le bord gauche et la pilule contre le droit, à
-sept cents pixels l'une de l'autre, ce qui se lit comme deux éléments sans
-rapport plutôt que comme une phrase. Le rembourrage monte donc par paliers,
-96 px de chaque côté à 1 512, et il reste bien plus étroit que les 21 % de la
-gouttière, sans quoi la barre reprendrait la largeur du corps dont elle doit se
-détacher.
+**Le fond va d'un bord à l'autre, le contenu suit la gouttière.** Trois états
+successifs, et le troisième est le bon :
+
+    collé aux bords     etiquette et pilule a 700 px l'une de l'autre
+    paliers de padding  96 px de marge, 1 320 px de contenu, encore trop large
+    .reel-gouttiere     877 px, cale sur les verticales de la page
+
+Ce qui détache le bandeau du corps, **c'est la bande colorée et pleine largeur,
+pas un contenu désaligné**. Le raisonnement d'origine visait le fond et
+s'appliquait au contenu par erreur : aligner le contenu sur la gouttière le
+resserre et le pose sous le titre de la page, mesuré à 318 px des deux côtés.
 
 **La mention d'affiliation tient en deux mots, « Lien affilié », et elle est
 obligatoire.** « Offre du marchand, relayée ici. » prenait une ligne entière et
@@ -6905,7 +6906,7 @@ un flou sur toute la largeur force une couche de composition et laisse peindre
 des tuiles périmées, page dédoublée et décalée d'une centaine de pixels. Un
 aplat opaque fait le même travail.
 
-    1512 px   1 ligne + 1, hauteur 58, marges 96 de chaque cote
+    1512 px   1 ligne + 1, hauteur 61, contenu 877 cale sur la page
      375 px   2 lignes + 1, hauteur 71, colle a la barre d'onglets
 
 La pilule saute sous `md` : à 640 px elle poussait la phrase à trois lignes.

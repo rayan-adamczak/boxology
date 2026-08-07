@@ -150,11 +150,8 @@ export function BandeauPromo() {
          n'existe pas, la mesure rend 0 et le bandeau descend au ras. */
       className="fixed inset-x-0 z-30"
       /*
-        **Il ne suit pas la gouttière, et c'est voulu.** `.reel-gouttiere` cadre
-        le corps du site, 877 px à 1 512 : s'y aligner faisait lire le bandeau
-        comme une section de la page. Une barre qui annonce autre chose que le
-        catalogue doit se détacher de lui, donc elle va d'un bord à l'autre et
-        garde son propre rembourrage.
+        **Le fond va d'un bord à l'autre, et c'est lui qui détache la barre du
+        corps.** Le contenu, lui, suit la gouttière du site, voir plus bas.
 
         Le fond n'est pas `--reel-surface` non plus, qui est celui des cartes
         d'édition juste au-dessus : un mélange d'accent l'en écarte, et le filet
@@ -173,20 +170,24 @@ export function BandeauPromo() {
       }}
     >
       {/*
-        Le fond va d'un bord à l'autre, le contenu non.
+        Le fond va d'un bord à l'autre, le contenu suit la gouttière du site.
 
-        Le rembourrage monte par paliers jusqu'à `2xl` : à 1 512 px la bande
-        collée aux bords laissait l'étiquette contre le bord gauche et la pilule
-        contre le droit, à sept cents pixels l'une de l'autre, ce qui se lit
-        comme deux éléments sans rapport plutôt que comme une phrase.
+        Trois états successifs, et le dernier est le bon. Collé aux bords, le
+        contenu laissait à 1 512 px l'étiquette contre le bord gauche et la
+        pilule contre le droit, à sept cents pixels l'une de l'autre. Un
+        rembourrage par paliers a corrigé ça sans le régler, 96 px de chaque
+        côté laissant encore 1 320 px de contenu.
 
-        Il ne reprend pas `.reel-gouttiere` pour autant : elle vaut 21 % de
-        chaque côté et ramènerait la barre à la largeur du corps, or c'est
-        justement de lui qu'elle doit se détacher. Ces valeurs sont plus
-        étroites, donc la bande reste plus large que la page tout en cessant de
-        toucher les bords.
+        `.reel-gouttiere` le ramène à 877 px, **et surtout le pose sur les mêmes
+        verticales que la page**. Ce qui détache le bandeau du corps, c'est la
+        bande colorée et pleine largeur, pas un contenu désaligné : le premier
+        commentaire de ce fichier disait le contraire, il visait le fond et
+        s'appliquait au contenu par erreur.
+
+        Sous `lg` la gouttière retombe sur un rembourrage en pixels, 20 puis 32,
+        donc rien ne change sur téléphone.
       */}
-      <div className="flex items-center gap-3 px-5 py-2.5 sm:px-8 lg:px-16 xl:px-24 2xl:px-32">
+      <div className="reel-gouttiere flex items-center gap-3 py-2.5">
         {/*
           L'étiquette porte le **code**, et non plus le taux.
 
