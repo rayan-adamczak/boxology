@@ -218,32 +218,45 @@ export function BandeauPromo() {
           ne mène nulle part. C'est la pilule à droite qui se clique.
         */}
         <span
-          className="flex shrink-0 flex-col justify-center rounded-[8px] px-2.5 py-1 sm:px-3"
+          /* Sur une ligne, `baseline` et non `center` : le libellé est en
+             petites capitales et le code en chasse fixe, deux hauteurs d'œil
+             différentes, et un centrage vertical les fait flotter l'un par
+             rapport à l'autre. Alignés sur la ligne de pied, ils se lisent comme
+             une seule étiquette. */
+          className="flex shrink-0 items-baseline gap-1.5 rounded-[8px] px-2.5 py-1.5 sm:px-3"
           style={{
             backgroundColor: "color-mix(in srgb, var(--reel-accent) 18%, transparent)",
             border: "1px solid color-mix(in srgb, var(--reel-accent-clair) 45%, transparent)",
           }}
         >
+          {/*
+            Le libellé raccourcit sous `sm`, il ne disparaît pas.
+
+            Le masquer laissait un « ETE12 » nu, or le mot « code » a justement
+            quitté la phrase pour venir ici : personne ne devinerait ce qu'est
+            cette suite de lettres. « CODE PROMO » entier coûtait en revanche
+            75 px sur les 375, et poussait la phrase à quatre lignes.
+          */}
           <span
+            className="text-[10px] sm:text-[11px]"
             style={{
-              fontSize: "9px",
               fontWeight: 600,
-              lineHeight: "11px",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
               color: "var(--reel-muted)",
             }}
           >
-            Code promo&nbsp;:
+            <span className="sm:hidden">Code</span>
+            <span className="hidden sm:inline">Code promo</span>
           </span>
           {/* Chasse fixe, comme un code-barres : c'est une valeur qu'on recopie
               signe à signe, et `I` contre `l` s'y joue. */}
           <span
-            className="tabular-nums text-[15px] sm:text-[16px]"
+            className="tabular-nums text-[16px] sm:text-[18px]"
             style={{
               fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
               fontWeight: 700,
-              lineHeight: "19px",
+              lineHeight: "20px",
               letterSpacing: "0.02em",
               color: "var(--reel-accent-clair)",
             }}
@@ -267,14 +280,14 @@ export function BandeauPromo() {
             valeurs qui se juxtaposent sans se lier, et c'est le cas ici :
             le marchand, la remise, le code.
           */}
-          <p className="text-[12px] leading-[17px] sm:text-[13px] sm:leading-[19px]" style={{ color: "var(--reel-text)" }}>
+          <p className="text-[13px] leading-[18px] sm:text-[15px] sm:leading-[21px]" style={{ color: "var(--reel-text)" }}>
             <span style={{ fontWeight: 600 }}>{promo.marchand}</span>
             <span style={{ color: "var(--reel-muted)" }}>{" · "}</span>
             <span style={{ fontWeight: 600 }}>
               {promo.resumeCourt} {quand(promo, etat)}
             </span>
           </p>
-          <p className="text-[11px] leading-[16px] sm:text-[12px] sm:leading-[18px]" style={{ color: "var(--reel-muted)" }}>
+          <p className="text-[12px] leading-[17px] sm:text-[13px] sm:leading-[19px]" style={{ color: "var(--reel-muted)" }}>
             {promo.conditionsCourtes}
           </p>
         </div>
@@ -295,7 +308,7 @@ export function BandeauPromo() {
         */}
         <span
           className="hidden shrink-0 md:inline"
-          style={{ fontSize: "11px", color: "var(--reel-muted)" }}
+          style={{ fontSize: "12px", color: "var(--reel-muted)" }}
         >
           Lien affilié
         </span>
@@ -319,12 +332,12 @@ export function BandeauPromo() {
           style={{
             backgroundColor: "var(--reel-accent)",
             color: "#fff",
-            fontSize: "13px",
+            fontSize: "14px",
             fontWeight: 600,
           }}
         >
           En profiter
-          <ArrowUpRight size={15} />
+          <ArrowUpRight size={16} />
         </a>
 
         <button
