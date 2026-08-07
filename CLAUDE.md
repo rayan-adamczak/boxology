@@ -5914,6 +5914,44 @@ sur la fiche film. Le titre reprend l'échelle de `/welcome`,
 `clamp(38px, 6vw, 68px)` : deux pages qui ouvrent le site ne peuvent pas
 annoncer deux tailles.
 
+### Menus de sélection dessinés, le 7 août 2026
+
+`src/app/components/Selecteur.tsx`, employé par les six filtres du catalogue et
+par le tri du profil. Bulle ancrée sous la capsule au-dessus de 640 px,
+**feuille par le bas en dessous**.
+
+**Ce qui l'a déclenché est visible à l'œil** : le tri du profil était un
+`<select>` sans `appearance-none`, donc il gardait la flèche du navigateur au
+milieu d'une capsule dessinée. Un `<select>` natif est peint par le système, il
+n'a ni la police, ni le rayon, ni les couleurs du site, et sa flèche change de
+forme d'une machine à l'autre.
+
+**Le commentaire qui défendait le natif avait raison, et c'est lui le cahier
+des charges.** Il listait trois choses qu'un menu maison rate presque toujours,
+et les trois sont reprises, sans quoi le remplacement aurait été une
+régression :
+
+    clavier          flèches, Origine, Fin, Entrée, Échap, focus rendu au bouton
+    frappe au vol    « sci » saute à Science-Fiction, tampon vidé après 1 s
+    geste du système la roue devient une feuille par le bas
+
+**La frappe au vol replie les accents**, sinon « ed » ne trouverait pas
+« Éditeur ». Et le surlignage repart de la valeur courante à chaque ouverture :
+ouvrir sur la première ligne quand on a déjà choisi la dixième oblige à refaire
+tout le chemin.
+
+**Pas de champ de recherche dans la liste**, même sur `Éditeur` et ses 142
+entrées : dans une feuille, il ouvrirait le clavier logiciel par-dessus la liste
+qu'il filtre. La frappe au vol suffit.
+
+**Le clic extérieur passe par un voile transparent**, pas par un écouteur de
+document : il attrape le clic sans qu'aucun composant n'ait à se demander si la
+cible est dedans ou dehors.
+
+Éprouvé à 1 440 et 390 px : Origine, deux flèches, Fin, frappe « hor », Entrée,
+puis Échap qui ferme **sans changer la valeur**. La feuille mesure 607 px sur
+844, ancrée en bas, voile plein écran à 0,7.
+
 ### Gouttière, arrêtée le 1er août 2026
 
 `.reel-gouttiere` dans `theme.css`, une classe pour tout le site.

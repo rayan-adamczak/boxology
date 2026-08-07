@@ -1,4 +1,5 @@
-import { X, ChevronDown } from "lucide-react";
+import { X } from "lucide-react";
+import { Selecteur } from "../components/Selecteur";
 import { ChampRecherche } from "../components/ChampRecherche";
 import { GrilleFilms, PucesRegroupement } from "../components/GrilleFilms";
 import { useRechercheFilms } from "../lib/recherche-films";
@@ -131,9 +132,11 @@ export function CataloguePage() {
 /**
  * La barre de filtres.
  *
- * Des `<select>` natifs et non des menus dessinés : ils portent la navigation
- * au clavier, la recherche à la frappe et, sur téléphone, la roue du système,
- * trois choses qu'un menu maison rate presque toujours.
+ * Six capsules `Filtre`, donc six `Selecteur` dessinés. Elles ont longtemps été
+ * des `<select>` natifs, pour trois raisons qui tenaient : la navigation au
+ * clavier, la recherche à la frappe et la roue du système sur téléphone. Le
+ * composant partagé les reprend une à une, et c'est ce qui a autorisé le
+ * remplacement le 7 août 2026.
  *
  * Les valeurs viennent de `regroupements.ts`, la table générée au build : les
  * mêmes libellés que les pages /formats, /publishers et /genres, sans une
@@ -154,16 +157,18 @@ function BarreFiltres({
     /*
       Grille de deux colonnes sur téléphone, flux libre au-delà.
 
-      **La largeur d'un `<select>` natif suit sa plus longue option**, et rien
-      d'autre : mesuré à 375 px, les six capsules faisaient 147, 261, 288, 130,
-      115 et 100 px, parce que « Éditeur » contient « France Télévisions
-      Distribution » et « Genre » « Science-Fiction & Fantastique ». Le flux
-      libre en tirait des rangées bancales, une capsule par ligne ici, trois
-      là.
+      Ce que la grille corrige est un défaut hérité du `<select>` natif, dont
+      **la largeur suivait sa plus longue option**, et rien d'autre : mesuré à
+      375 px, les six capsules faisaient 147, 261, 288, 130, 115 et 100 px,
+      parce que « Éditeur » contient « France Télévisions Distribution » et
+      « Genre » « Science-Fiction & Fantastique ». Le flux libre en tirait des
+      rangées bancales, une capsule par ligne ici, trois là.
 
-      Deux colonnes égales rangent ça sans rien tronquer d'utile : le libellé
-      fermé est court, ce sont les options ouvertes qui sont longues, et elles
-      s'affichent dans la roue du système, pas dans la capsule.
+      Le menu dessiné n'a plus ce travers, sa capsule tronque, mais la grille
+      reste : deux colonnes égales rangent six contrôles de même nature mieux
+      qu'un flux qui les dimensionne au contenu. Le libellé fermé est court, ce
+      sont les options ouvertes qui sont longues, et elles s'affichent
+      désormais dans la feuille par le bas, pas dans la capsule.
 
       Sur écran large, même principe : les six capsules se partagent la ligne à
       parts égales (`flex-1 basis-0`), plutôt que de prendre chacune la largeur
@@ -184,37 +189,37 @@ function BarreFiltres({
         ne peut plus dire ce qu'elle filtre ne filtre plus rien.
       */}
       <div className="contents sm:flex sm:w-full sm:gap-2">
-      <Selecteur
+      <Filtre
         libelle="Décennie"
         valeur={filtres.decennie ? String(filtres.decennie) : ""}
         onChange={(v) => setFiltre("decennie", v ? Number(v) : undefined)}
         options={DECENNIES.map((d) => ({ valeur: String(d), libelle: `Années ${d}` }))}
       />
-      <Selecteur
+      <Filtre
         libelle="Genre"
         valeur={filtres.genre ?? ""}
         onChange={(v) => setFiltre("genre", v || undefined)}
         options={GENRES.map((g) => ({ valeur: g.libelle, libelle: g.libelle }))}
       />
-      <Selecteur
+      <Filtre
         libelle="Éditeur"
         valeur={filtres.editeur ?? ""}
         onChange={(v) => setFiltre("editeur", v || undefined)}
         options={EDITEURS.map((e) => ({ valeur: e.libelle, libelle: e.libelle }))}
       />
-      <Selecteur
+      <Filtre
         libelle="Format"
         valeur={filtres.format ?? ""}
         onChange={(v) => setFiltre("format", v || undefined)}
         options={FORMATS.map((f) => ({ valeur: f.libelle, libelle: f.libelle }))}
       />
-      <Selecteur
+      <Filtre
         libelle="Note"
         valeur={filtres.noteMin ? String(filtres.noteMin) : ""}
         onChange={(v) => setFiltre("noteMin", v ? Number(v) : undefined)}
         options={NOTES.map((n) => ({ valeur: String(n), libelle: `${n} et plus` }))}
       />
-      <Selecteur
+      <Filtre
         libelle="Type"
         valeur={filtres.type ?? ""}
         onChange={(v) => setFiltre("type", (v || undefined) as Filtres["type"])}
@@ -245,7 +250,22 @@ function BarreFiltres({
   );
 }
 
-function Selecteur({
+/**
+ * Une capsule de la barre de filtres.
+ *
+ * Adaptateur au-dessus de `Selecteur` : il n'ajoute que l'option vide, qui
+ * porte le nom du filtre et vaut « tous ». Le menu lui-même, son clavier, sa
+ * frappe au vol et sa feuille par le bas sur téléphone vivent dans le
+ * composant partagé, où le tri du profil les prend aussi.
+ *
+ * **C'étaient des `<select>` natifs jusqu'au 7 août 2026**, et le commentaire
+ * qui les défendait avait raison sur le fond : clavier, frappe au vol et roue
+ * du système sont trois choses qu'un menu maison rate presque toujours. Elles
+ * sont reprises une à une dans `Selecteur`, et c'est ce qui autorisait le
+ * remplacement. Ce que le natif ne pouvait pas donner, lui, c'est la même
+ * capsule d'une machine à l'autre : sa flèche est dessinée par le système.
+ */
+function Filtre({
   libelle,
   valeur,
   onChange,
@@ -256,54 +276,13 @@ function Selecteur({
   onChange: (valeur: string) => void;
   options: { valeur: string; libelle: string }[];
 }) {
-  const actif = valeur !== "";
-
   return (
-    /* `w-full` sur téléphone pour remplir sa cellule de grille, part égale de
-       la ligne au-delà : c'est la capsule qui doit s'adapter à la rangée, pas
-       la rangée à la plus longue option d'un menu fermé. `min-w-0` est ce qui
-       autorise le rétrécissement, un élément de flex refusant par défaut de
-       passer sous la largeur de son contenu. */
-    <label className="relative flex w-full sm:min-w-0 sm:flex-1 sm:basis-0">
-      <span className="sr-only">{libelle}</span>
-      <select
-        value={valeur}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none truncate rounded-full py-2.5 pl-4 pr-10 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
-        style={{
-          fontSize: "14px",
-          fontWeight: actif ? 600 : 400,
-          color: actif ? "var(--reel-text)" : "var(--reel-muted)",
-          backgroundColor: actif ? "var(--reel-accent-soft)" : "var(--reel-surface)",
-          border: `1px solid ${actif ? "var(--reel-accent-clair)" : "var(--reel-border)"}`,
-        }}
-      >
-        <option value="">{libelle}</option>
-        {options.map((o) => (
-          <option key={o.valeur} value={o.valeur}>
-            {o.libelle}
-          </option>
-        ))}
-      </select>
-      {/*
-        Le chevron du système disparaît avec `appearance-none` : on le
-        redessine, sinon rien ne dit que la capsule s'ouvre.
-
-        **C'était un caractère « ▾ » en 10 px**, invisible et étranger au reste
-        de l'interface : ce glyphe est dessiné par la police du système, il
-        change donc de forme et d'épaisseur d'une machine à l'autre, là où tout
-        le reste du site emploie le même jeu d'icônes. Un `ChevronDown` à 16 px
-        s'aligne sur les icônes des cartes et des liens de panneau, et il suit
-        l'état du filtre : accent clair quand il porte une valeur, gris sinon,
-        comme le fait déjà la bordure de la capsule.
-      */}
-      <ChevronDown
-        aria-hidden
-        size={16}
-        strokeWidth={2.25}
-        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2"
-        color={actif ? "var(--reel-accent-clair)" : "var(--reel-muted)"}
-      />
-    </label>
+    <Selecteur
+      libelle={libelle}
+      valeur={valeur}
+      onChange={onChange}
+      options={[{ valeur: "", libelle }, ...options]}
+      accentSiChoisi
+    />
   );
 }
