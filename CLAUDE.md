@@ -491,14 +491,41 @@ chaque visiteur. La CSP refuserait l'hôte, mais compter sur elle serait faire
 d'un filet la seule serrure.
 
 **Le navigateur réencode avant d'envoyer**, 512 px en WebP à 0,85, jamais le
-fichier choisi. Mesuré : 1,25 Mo de PNG en entrée, **6,6 Ko** en sortie. Effet
-de bord voulu, les métadonnées EXIF disparaissent, **et avec elles les
+fichier choisi. Mesuré sur une image bruitée de 12 Mpx, proche d'une photo, un
+dégradé plat se compressant de façon irréaliste :
+
+    entree   6,53 Mo   12 Mpx (4000 x 3000)
+    sortie   10,8 Ko   512 x 512, image/webp
+    facteur  619x
+
+Effet de bord voulu, les métadonnées EXIF disparaissent, **et avec elles les
 coordonnées GPS** que les appareils y écrivent : publier une photo est une
 chose, publier l'endroit où elle a été prise en est une autre.
 
-**Le seau refuse aussi de son côté**, `image/webp` seulement et 2 Mio : le
-contrôle du navigateur est une amabilité, il se contourne avec un `curl` et le
-jeton de session.
+#### Trois plafonds, et ils ne mesurent pas la même chose
+
+    accept       amabilite    filtre la fenetre du systeme, se contourne d'un clic
+    type MIME    10 Mo        JPEG, PNG, WebP, AVIF, GIF, verifie en JS
+    pixels       50 Mpx       verifie **au decodage**, pas au choix du fichier
+    seau         2 Mio        image/webp seulement, cote serveur
+
+**Le plafond en pixels est le seul qui compte vraiment, et le poids ne le
+remplace pas.** Mesuré : un PNG de **1 Mo** peut faire 8 000 × 7 000, soit
+56 Mpx et 224 Mo une fois décompressé en mémoire. C'est comme ça qu'on fait
+tomber un onglet, et une page qui meurt en silence est pire qu'un refus qui
+s'explique. Il se pose **à l'`onload` de l'image**, les dimensions n'étant
+connues qu'une fois l'en-tête lu.
+
+**`verifierFichier` rend une phrase et non un booléen**, comme
+`etat_identifiant` en base : « trop lourd » et « pas une image » ne se corrigent
+pas de la même façon.
+
+**Le type produit par le canevas est vérifié.** Un navigateur qui ne sait pas
+encoder en WebP ne lève pas d'erreur, il rend un PNG sous le même appel, et le
+seau opposerait un refus de stockage incompréhensible à quelqu'un qui vient de
+recadrer. L'encodage redescend aussi en qualité si le résultat dépasse 2 Mio,
+ce qui ne se produira sans doute jamais à 512 px : le plafond est côté serveur,
+et l'envoi est le pire endroit pour le découvrir.
 
 **Le compte disparaît, la photo avec**, par un déclencheur `after delete on
 profils` en `security definer` : `storage.objects` n'a aucune clé étrangère
