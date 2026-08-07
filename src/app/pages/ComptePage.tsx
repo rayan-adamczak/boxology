@@ -16,7 +16,7 @@ import {
 import { Banniere } from "../components/VueProfil";
 import { UserAvatar } from "../components/UserAvatar";
 import { RecadrageAvatar } from "../components/RecadrageAvatar";
-import { POIDS_MAX, TYPES_ACCEPTES, supprimerAvatar, televerserAvatar } from "../lib/avatar";
+import { ACCEPT, supprimerAvatar, televerserAvatar, verifierFichier } from "../lib/avatar";
 import { AttentePleine } from "../components/AttenteRecherche";
 import { connexionGoogle, deconnexion, nomAffiche, supprimerCompte, useSession } from "../lib/auth";
 import {
@@ -501,7 +501,7 @@ function LignePhoto({ profil }: { profil: { nom: string; avatarUrl: string | nul
       <input
         ref={champ}
         type="file"
-        accept={TYPES_ACCEPTES}
+        accept={ACCEPT}
         className="sr-only"
         aria-label="Choisir une photo de profil"
         onChange={(e) => {
@@ -510,8 +510,12 @@ function LignePhoto({ profil }: { profil: { nom: string; avatarUrl: string | nul
           // fichier après avoir annulé ne déclenche aucun `change`.
           e.target.value = "";
           if (!choisi) return;
-          if (choisi.size > POIDS_MAX) {
-            toast.error("Image trop lourde. 20 Mo au plus.");
+          /* `accept` ne filtre que la fenêtre du système, et « Tous les
+             fichiers » le contourne d'un clic : le contrôle réel est ici, et
+             le seau en a un troisième. */
+          const refus = verifierFichier(choisi);
+          if (refus) {
+            toast.error(refus);
             return;
           }
           setFichier(choisi);
@@ -723,7 +727,15 @@ function Carte({ children }: { children: ReactNode }) {
       className="overflow-hidden rounded-[12px]"
       style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
     >
-      <div className="[&>*+*]:border-t" style={{ borderColor: "var(--reel-border)" }}>
+      {/*
+        **La couleur du filet est posée sur les enfants, pas sur ce parent.**
+        `border-color` ne s'hérite pas : un `style` ici ne descendait nulle part,
+        et le trait retombait sur `currentColor`. Les lignes qui fixaient leur
+        propre couleur en avaient un, les autres — la bascule de page publique —
+        en portaient un invisible. Une règle qui marche sur trois éléments sur
+        quatre se repère moins vite qu'une règle qui ne marche pas du tout.
+      */}
+      <div className="[&>*+*]:border-t [&>*+*]:border-[color:var(--reel-border)]">
         {children}
       </div>
     </div>
@@ -758,7 +770,7 @@ function Ligne({
   const teinte = destructif ? "#ef6b6b" : "var(--reel-text)";
 
   return (
-    <div style={{ borderColor: "var(--reel-border)" }}>
+    <div>
       <button
         type="button"
         onClick={onToggle}

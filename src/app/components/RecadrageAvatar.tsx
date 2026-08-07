@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Minus, Plus } from "lucide-react";
-import { recadrerEnWebp } from "../lib/avatar";
+import { PIXELS_MAX, recadrerEnWebp } from "../lib/avatar";
 
 /**
  * Recadrer une photo dans un rond, avant de la déposer.
@@ -67,7 +67,23 @@ export function RecadrageAvatar({
   useEffect(() => {
     const url = URL.createObjectURL(fichier);
     const img = new Image();
-    img.onload = () => setImage(img);
+    img.onload = () => {
+      /*
+        **Le plafond en pixels se pose ici, pas au choix du fichier.** Les
+        dimensions ne sont connues qu'une fois l'en-tête décodé, et c'est
+        justement ce que le poids ne dit pas : un PNG de 3 Mo bien compressé
+        peut faire 20 000 × 20 000, soit 1,6 Go en mémoire. Le décodage complet
+        n'a pas encore eu lieu à ce stade, donc le refus arrive avant le coût.
+      */
+      if (img.naturalWidth * img.naturalHeight > PIXELS_MAX) {
+        setErreur(
+          `Image trop grande : ${img.naturalWidth} × ${img.naturalHeight}. ` +
+          `Réduisez-la avant de l’envoyer.`,
+        );
+        return;
+      }
+      setImage(img);
+    };
     img.onerror = () => setErreur("Ce fichier n’a pas pu être ouvert comme une image.");
     img.src = url;
     return () => URL.revokeObjectURL(url);

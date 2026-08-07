@@ -45,17 +45,74 @@ const TAILLE = 512;
 /** Au-delà, on rogne dans la qualité sans que ça se voie sur un rond. */
 const QUALITE = 0.85;
 
-/** Ce que le sélecteur de fichier accepte, et ce que le recadrage sait ouvrir. */
-export const TYPES_ACCEPTES = "image/jpeg,image/png,image/webp,image/gif,image/avif";
+/** Le plafond du seau, repris ici pour ne pas le découvrir au refus. */
+const POIDS_ENVOYE_MAX = 2 * 1024 * 1024;
+
+/**
+ * Les types acceptés, et **la liste fait autorité côté code**.
+ *
+ * L'attribut `accept` d'un champ de fichier n'est qu'une amabilité : il filtre
+ * la fenêtre du système, et « Tous les fichiers » le contourne d'un clic. Le
+ * vrai contrôle est `verifierFichier`, et derrière lui le seau, qui n'accepte
+ * que `image/webp` (`20260807_avatars.sql`).
+ *
+ * HEIC n'y est pas, et n'a pas à y être : aucun navigateur ne le décode dans un
+ * canevas hors Safari, et iOS convertit déjà en JPEG au moment de l'envoi.
+ */
+export const TYPES_ACCEPTES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+  "image/gif",
+] as const;
+
+/** La chaîne pour l'attribut `accept`, dérivée de la liste. Jamais recopiée. */
+export const ACCEPT = TYPES_ACCEPTES.join(",");
 
 /**
  * Plafond du fichier **en entrée**, avant recadrage.
  *
- * Il ne protège pas le seau, qui a le sien : il protège le navigateur. Décoder
- * une image de cent mégaoctets dans un canevas fait tomber l'onglet, et une
- * page qui meurt en silence est pire qu'un refus qui s'explique.
+ * Il ne protège pas le seau, qui a le sien : il protège le navigateur. Dix
+ * mégaoctets couvrent large une photo de téléphone, qui pèse trois à huit ; au
+ * delà, on a affaire à un scan ou à un fichier qui n'a rien à faire là.
  */
-export const POIDS_MAX = 20 * 1024 * 1024;
+export const POIDS_MAX = 10 * 1024 * 1024;
+
+/**
+ * Plafond en **pixels**, et c'est le vrai garde-fou.
+ *
+ * Le poids d'un fichier ne dit rien de ce qu'il coûte à décoder : un PNG de
+ * 3 Mo bien compressé peut faire 20 000 × 20 000, soit 1,6 Go une fois
+ * décompressé en mémoire. C'est comme ça qu'on fait tomber un onglet, et le
+ * plafond de poids seul ne l'attrape pas.
+ *
+ * 50 mégapixels laissent passer tout ce qu'un appareil grand public produit,
+ * un 48 Mpx de téléphone compris.
+ */
+export const PIXELS_MAX = 50_000_000;
+
+/**
+ * Ce qui empêche ce fichier d'être une photo de profil, ou `null`.
+ *
+ * Rend une phrase et non un booléen, comme `etat_identifiant` en base : « trop
+ * lourd » et « pas une image » ne se corrigent pas de la même façon, et l'écran
+ * doit pouvoir le dire.
+ */
+export function verifierFichier(fichier: File): string | null {
+  if (!(TYPES_ACCEPTES as readonly string[]).includes(fichier.type)) {
+    return "Formats acceptés : JPEG, PNG, WebP, AVIF et GIF.";
+  }
+  if (fichier.size > POIDS_MAX) {
+    return `Image trop lourde : ${enMo(fichier.size)} pour ${enMo(POIDS_MAX)} au plus.`;
+  }
+  return null;
+}
+
+/** `1,4 Mo`. Une taille de fichier se lit en mégaoctets, pas en octets. */
+export function enMo(octets: number): string {
+  return `${(octets / 1024 / 1024).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} Mo`;
+}
 
 /** `avatars/<user_id>/<jeton>.webp`, la forme qu'impose le `check` de la table. */
 function nouveauChemin(userId: string): string {
@@ -113,11 +170,39 @@ export function recadrerEnWebp(
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(image, source.x, source.y, source.cote, source.cote, 0, 0, TAILLE, TAILLE);
 
+  return encoder(canevas, QUALITE);
+}
+
+/**
+ * Encode le canevas, et **redescend en qualité si le résultat dépasse le seau**.
+ *
+ * À 512 px, un WebP à 0,85 pèse quelques dizaines de kilo-octets : ce repli ne
+ * jouera sans doute jamais. Il est là parce que le plafond est posé côté
+ * serveur, et qu'un refus à l'envoi est le pire endroit pour découvrir qu'on
+ * avait deux cents kilo-octets de trop — l'utilisateur a déjà recadré.
+ *
+ * **Le type produit est vérifié.** Un navigateur qui ne sait pas encoder en
+ * WebP ne lève pas d'erreur, il rend un PNG sous le même appel ; le seau, lui,
+ * n'accepte que `image/webp`, et le refus arriverait sous la forme d'un message
+ * de stockage incompréhensible. Mieux vaut le dire ici.
+ */
+function encoder(canevas: HTMLCanvasElement, qualite: number): Promise<Blob> {
   return new Promise((resoudre, rejeter) => {
     canevas.toBlob(
-      (blob) => (blob ? resoudre(blob) : rejeter(new Error("Encodage impossible."))),
+      (blob) => {
+        if (!blob) { rejeter(new Error("Encodage impossible.")); return; }
+        if (blob.type !== "image/webp") {
+          rejeter(new Error("Ce navigateur ne sait pas produire de WebP. Essayez-en un autre."));
+          return;
+        }
+        if (blob.size > POIDS_ENVOYE_MAX && qualite > 0.5) {
+          encoder(canevas, qualite - 0.15).then(resoudre, rejeter);
+          return;
+        }
+        resoudre(blob);
+      },
       "image/webp",
-      QUALITE,
+      qualite,
     );
   });
 }
