@@ -6751,6 +6751,149 @@ l'enregistrement TXT de la Search Console.
 fait répondre 200 à n'importe quel chemin en servant `index.html`, donc Awin
 aurait « validé » sans fichier. Lire le corps, 33 octets contre 6 586.
 
+#### Relayer une promotion de marchand, le 7 août 2026
+
+momox shop a envoyé aux éditeurs une remise de 12 % sur l'occasion, code
+`ETE12`, valable le **9 août 2026**. `src/app/lib/promotions.ts` et
+`components/BandeauPromo.tsx`.
+
+**Ce n'est pas une publicité extérieure**, et c'est ce qui a décidé de la
+forme : 5 719 offres momox sont déjà à l'écran sur les fiches depuis
+l'acceptation du 6 août, et `valeur.ts` s'en sert pour estimer une collection.
+La remise porte donc sur ce que le site montre déjà.
+
+Deux endroits, **un seul par page** :
+
+- un encart sous la liste des éditions, **une fois par fiche** et non par
+  ligne, quand une offre affichée vient d'un marchand en promotion. Un film à
+  soixante éditions momox répéterait sinon soixante fois le même code, ce que
+  le §7 reproche déjà à une mention posée partout. Le test porte sur l'offre
+  **retenue** par `offreAAfficher`, pas sur celles en base ;
+- un bandeau en bas de toutes les pages, fermable, avec le lien de campagne en
+  pilule.
+
+**L'encart de fiche ne porte aucun lien, à dessein.** Le prix au-dessus en a
+déjà un, de tracking et **par produit**, et c'est celui qui atterrit sur le bon
+disque ; un second lien vers la page de campagne ferait perdre le film qu'on
+regardait. Le bandeau, lui, n'a pas de produit sous la main, donc il le porte.
+
+**En bas et non en haut.** Le bandeau du site est en `fixed`, donc il ne réserve
+aucune place dans le flux, et **dix-sept rembourrages hauts en dur** le
+compensent page par page, de `pt-[72px]` à `pt-[152px]`. Une bande au-dessus les
+fausserait tous les dix-sept, pour une promotion d'un jour.
+
+##### Trois états, et le temps du verbe suit
+
+C'est le cœur du module, et la seule chose à ne pas défaire :
+
+    avant le 9    annonce   « 12 % sur l'occasion dimanche 9 août »
+    le 9          active    « 12 % sur l'occasion aujourd'hui »
+    apres         passee    rien, et rien a deployer
+
+Le bandeau était demandé visible tout de suite. Écrire « aujourd'hui » un 7 août
+serait le prix annoncé comme actuel alors qu'il ne l'est pas, que le §10 traite
+en pratique commerciale trompeuse : l'annonce au futur donne le bandeau sans le
+mensonge.
+
+**La fenêtre s'évalue en heure de Paris, jamais sur l'horloge du visiteur.**
+Comparer une date écrite sans fuseau la ferait interpréter dans celui du
+navigateur. Les bornes portent donc `+02:00`, et vérifié sur huit instants :
+un visiteur à Tokyo le 9 à 3 h locale, soit le 8 à 20 h à Paris, ne la voit pas,
+et un visiteur à Los Angeles le 9 à 18 h, soit le 10 à 3 h à Paris, non plus.
+Ni l'un ni l'autre ne pourrait utiliser le code chez momox.
+
+**`libelleJour` est écrit à la main et non calculé de `debut`** :
+`toLocaleDateString` rendrait la date dans le fuseau du visiteur, donc
+« samedi 8 août » à Los Angeles pour un instant qui est bien le 9 à Paris. Le
+jour est une donnée du marchand, pas une conversion.
+
+`quand()` est le **seul** endroit qui décide du temps employé, pour que le
+bandeau et l'encart ne puissent pas diverger.
+
+**La clé de fermeture porte l'état autant que le code.** Fermer l'annonce ne
+doit pas faire taire le jour J, ce sont deux informations différentes et la
+seconde est celle qui sert ; une clé sur le seul code aurait fait taire la
+promotion chez quiconque a balayé l'annonce l'avant-veille.
+
+##### Ce qu'on écrit, et ce qu'on n'écrit pas
+
+`conditions` reprend **mot pour mot** ce que le marchand annonce. Le §10 pose
+que le site n'est ni marchand ni intermédiaire de vente : on relaie une offre,
+on ne la formule pas.
+
+`conditionsCourtes` est un **second texte relu**, pas une troncature : couper
+`conditions` à la longueur ferait un jour disparaître le montant minimum, qui
+est justement ce qu'il ne faut pas taire.
+
+**Le lien de tracking se recopie tel quel, sur une seule ligne.**
+`awinaffid=3006883` est l'identifiant d'éditeur (§1), et le §3 pose que c'est la
+seule valeur dont une faute est silencieuse. Vérifié identique à l'octet près et
+résolvant en 302 vers le tracker momox avec `pubId=3006883`.
+`rel="sponsored"` comme tous les liens marchands.
+
+**Le courriel de momox se contredisait sur les dates**, et ça se consigne plutôt
+que se corriger en silence : son visuel annonçait « Jusqu'au 09/08 », un
+paragraphe « uniquement le 09/08/**2025** », ses conditions « uniquement le
+09/08/2026 ». La seule ligne non ambiguë est celle des bornes,
+`Beginnt: 09.08.26 00:00. Endet: 09.08.26 23:59 (Europa/Paris)`, et c'est elle
+qui fait foi. « Jusqu'au » aurait annoncé une plage de plusieurs jours.
+
+##### La forme, après un détour par Mobbin
+
+**La pastille ronde a été essayée puis retirée.** Elle rendait le chiffre petit
+pour tenir dans un rond, et rien dans le site ne parle en disques. Trois
+bandeaux marchands relevés n'en posent d'ailleurs aucune : Seed fait porter la
+promo par la couleur de la bande, adidas met une pilule pleine à droite, The New
+Yorker joue l'emphase typographique.
+
+Ce qui est repris est l'emphase, dans le vocabulaire du site : une **étiquette
+de rayon**, cadre arrondi comme les capsules du §8, avec **le seul taux**. Fond
+en `color-mix` et non en aplat d'accent, sinon elle se lit comme un bouton alors
+qu'elle ne mène nulle part ; c'est la pilule qui se clique.
+
+Un « OCCASION » en petites capitales sous le taux a tenu quelques heures, puis
+il est parti : il redisait ce que la phrase à côté écrit déjà, « 12 % sur
+l'occasion », et il faisait de l'étiquette un bloc à deux étages là où une
+étiquette de prix n'en a qu'un.
+
+**Les couleurs sont celles du site, jamais celles du marchand.** Le §8 pose
+qu'un logo ne suit pas la palette du site ; la réciproque vaut, le site
+n'emprunte pas celle d'un marchand, et reprendre le disque rouge de leur
+courriel reviendrait à republier leur création.
+
+**Le bandeau ne suit pas la gouttière, et c'est le point qui le fait exister.**
+`.reel-gouttiere` cadre le corps du site, 877 px à 1 512 : s'y aligner le faisait
+lire comme une section de la page. Il va donc d'un bord à l'autre, avec son
+propre rembourrage, et son fond n'est pas `--reel-surface`, qui est celui des
+cartes d'édition juste au-dessus, mais un mélange d'accent, filet du haut
+compris. C'est le motif de Seed, où la couleur de la bande porte la promotion à
+elle seule.
+
+**Aucun `backdrop-filter`**, quelle que soit l'envie : le §8 en garde la trace,
+un flou sur toute la largeur force une couche de composition et laisse peindre
+des tuiles périmées, page dédoublée et décalée d'une centaine de pixels. Un
+aplat opaque fait le même travail.
+
+    1280 px   1 ligne + 1, hauteur 58
+     375 px   2 lignes + 2, hauteur 88
+
+La pilule saute sous `md` : à 640 px elle poussait la phrase à trois lignes.
+
+**L'étiquette est `aria-hidden`, donc le pourcentage reste dans la phrase.** Le
+déléguer au visuel le rendrait inaudible d'un lecteur d'écran.
+
+##### Une liste en dur, et pas encore une table
+
+Le §3 pose qu'une table se justifie quand la donnée bouge sans qu'on déploie,
+ce qui est le cas des prix. Une promotion arrive par un courriel qu'il faut de
+toute façon lire, et son texte demande une relecture avant publication. Le
+gabarit est là, la table se posera en une migration le jour où elles
+s'enchaînent.
+
+**Les entrées passées ne se suppriment pas** : elles ne s'affichent plus
+d'elles-mêmes, et elles disent quel code a couru quel jour, ce qu'aucune autre
+trace ne garde.
+
 ---
 
 ## 9. Pièges rencontrés
@@ -7926,6 +8069,12 @@ Ce qui a évité le plus d'erreurs :
   au moment de la commande fait foi. Un prix périmé affiché comme actuel est une
   pratique commerciale trompeuse : c'est ce qui rend le rafraîchissement des
   offres (§6) une obligation et pas un confort.
+- **La même règle vaut pour un code de réduction**, et elle a décidé de la forme
+  du bandeau momox du 7 août 2026 (§8). Un bandeau demandé visible avant le jour
+  de la promotion ne peut pas écrire « aujourd'hui » : le code ne marche pas, et
+  l'annoncer actif est le prix périmé de la ligne au-dessus, dans l'autre sens.
+  D'où l'annonce **au futur** tant que la fenêtre n'a pas ouvert, et une fenêtre
+  qui se referme seule plutôt qu'un retrait à la main le lendemain.
 - **La confidentialité disait deux choses fausses**, corrigées le 3 août 2026 :
   Google Fonts figurait encore dans les services tiers alors que les polices
   sont auto-hébergées depuis le 31 juillet et que la CSP n'autorise plus que

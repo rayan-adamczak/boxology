@@ -171,39 +171,59 @@ export function estOccasion(offre: Offre): boolean {
 }
 
 /**
- * L'offre à montrer sur une ligne d'édition, quand il y en a plusieurs.
+ * Les offres à montrer sur une ligne d'édition, la moins chère d'abord.
  *
- * **La moins chère, et son état est écrit à côté.** Le choix d'origine était
- * « la première qui porte un prix », ce qui était juste tant qu'un seul
- * programme existait. Avec deux marchands dont l'un vend de l'occasion, cet
- * ordre est celui que PostgREST a rendu, c'est-à-dire un hasard : la même
- * édition aurait pu afficher 3,49 € ou 19,99 € sans que rien ne le décide.
+ * **Toutes, et non la seule moins chère**, depuis le 9 août 2026. Le choix
+ * d'origine était « la première qui porte un prix », ordre rendu par PostgREST
+ * et donc un hasard ; il est devenu « la moins chère » le 6 août, ce qui était
+ * déterministe mais **jetait les autres**. Sur les 413 éditions qui portent deux
+ * marchands, le second prix était lu, présent dans la page, et jamais affiché.
  *
- * La moins chère est ce qu'on vient chercher, à condition de dire ce qu'elle
- * est : un occasion « état acceptable » à 3,49 € n'est pas une bonne affaire
- * sur un neuf, c'est un autre produit. C'est `LIBELLE_ETAT` qui porte cette
- * moitié du contrat, et sans elle ce classement serait trompeur.
+ * Ce que ça coûtait n'est pas cosmétique : le compte déclare `Moteur de
+ * comparaison` comme canal publicitaire principal chez Awin, et un annonceur qui
+ * ouvrait une fiche voyait un prix unique. Comparer est le métier annoncé, il
+ * faut que la page le fasse.
+ *
+ * **L'ordre est croissant, et il porte l'information.** Pas de badge « le moins
+ * cher » : la première ligne l'est, et un ornement de plus sur deux offres est du
+ * bruit. C'est l'ordre qui compare, pas une étiquette.
+ *
+ * **L'état reste écrit à côté de chaque prix**, et c'est la moitié du contrat :
+ * un occasion « état acceptable » à 3,49 € au-dessus d'un neuf à 19,99 € n'est
+ * pas une bonne affaire, c'est un autre produit. Un classement par prix sans
+ * l'état serait trompeur, et l'empilement le rend plus visible encore.
  *
  * **On ne compare que des montants dans la même monnaie.** `lib/prix.ts` pose
  * déjà qu'additionner des livres à des euros donne un nombre qui ne veut rien
- * dire, et le classer n'est pas mieux. Les deux flux sont en euros aujourd'hui,
+ * dire, et les classer n'est pas mieux. Les deux flux sont en euros aujourd'hui,
  * donc ce repli ne sert rien ; il empêche qu'un troisième programme, une
  * boutique britannique par exemple, fasse passer 8,99 £ pour moins cher que
- * 9,99 €.
+ * 9,99 €. Les offres non comparables sont rendues **après** celles qui le sont,
+ * dans leur ordre d'arrivée : on les montre, on ne prétend pas les classer.
  */
-export function offreAAfficher(offres: Offre[] | null | undefined): Offre | null {
+export function offresAAfficher(offres: Offre[] | null | undefined): Offre[] {
   const exploitables = (offres ?? []).filter(
     (o) => typeof o.prix === "number" && Number.isFinite(o.prix) && o.prix > 0,
   );
-  if (exploitables.length === 0) return null;
+  if (exploitables.length === 0) return [];
 
   const euros = exploitables.filter((o) => (o.devise || "EUR") === "EUR");
-  const comparables = euros.length > 0 ? euros : null;
-  // Aucune offre en euros : on n'a rien à départager honnêtement, on garde la
-  // première plutôt que d'inventer un taux de change.
-  if (!comparables) return exploitables[0];
+  const autres = exploitables.filter((o) => (o.devise || "EUR") !== "EUR");
 
-  return comparables.reduce((a, b) => ((b.prix as number) < (a.prix as number) ? b : a));
+  return [
+    ...euros.sort((a, b) => (a.prix as number) - (b.prix as number)),
+    ...autres,
+  ];
+}
+
+/**
+ * La moins chère, ou `null`. Conservée parce que trois endroits n'ont besoin que
+ * d'elle : la mention d'affiliation, le décompte des marchands cités, et le test
+ * d'occasion qui décide d'une phrase. Un second classement recopié là-bas
+ * dériverait de celui-ci sans que ça se voie.
+ */
+export function offreAAfficher(offres: Offre[] | null | undefined): Offre | null {
+  return offresAAfficher(offres)[0] ?? null;
 }
 
 export interface PisteAudio {

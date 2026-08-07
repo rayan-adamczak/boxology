@@ -6,6 +6,7 @@ import { PersonModal } from "../components/PersonModal";
 import { UserAvatar } from "../components/UserAvatar";
 import { RailHorizontal } from "../components/RailHorizontal";
 import { AttentePleine } from "../components/AttenteRecherche";
+import { etatPromotion, promotionActive, quand } from "../lib/promotions";
 import { Lanterne, pleineResolution } from "../components/Lanterne";
 import { toast } from "sonner";
 import {
@@ -15,6 +16,7 @@ import {
   agregerSpecs,
   zonesDe,
   offreAAfficher,
+  offresAAfficher,
   estOccasion,
   LIBELLE_ETAT,
   type Film,
@@ -1317,17 +1319,23 @@ export function FilmDetailPage() {
                             valeur qu'on vient chercher.
                           */}
                           {/*
-                            **L'offre est choisie, pas prise au hasard**, depuis
-                            que momox shop vend de l'occasion à côté du neuf
-                            d'E.Leclerc : `offreAAfficher` prend la moins chère
-                            et l'état est écrit à côté du marchand. Sans ce
-                            libellé, le classement par prix serait trompeur, un
-                            « état acceptable » à 3,49 € n'étant pas une bonne
-                            affaire sur un neuf mais un autre produit.
+                            **Toutes les offres, la moins chère d'abord**, depuis
+                            le 9 août 2026. On n'en montrait qu'une, et sur les
+                            413 éditions à deux marchands le second prix était lu
+                            puis jeté. Le compte déclare `Moteur de comparaison`
+                            comme canal principal chez Awin : comparer est le
+                            métier annoncé, la page doit le faire.
+
+                            L'ordre porte l'information, il n'y a pas de badge
+                            « le moins cher » : la première ligne l'est. Et
+                            l'état reste collé à chaque prix, sans quoi un
+                            occasion « état acceptable » en tête se lirait comme
+                            une bonne affaire sur le neuf en dessous.
                           */}
                           {(() => {
-                            const offre = offreAAfficher(ed.offres);
-                            if (offre) {
+                            const offres = offresAAfficher(ed.offres);
+                            if (offres.length > 0) {
+                              return offres.map((offre) => {
                               const montant = formaterMontant(offre.prix, offre.devise);
                               const jour = new Date(offre.releve_le).toLocaleDateString("fr-FR");
                               const lien = lienMarchand(offre.url);
@@ -1351,7 +1359,15 @@ export function FilmDetailPage() {
                                 </>
                               );
                               return (
-                                <p className="flex items-baseline gap-1.5">
+                                /* La clé porte le marchand et sa référence de
+                                   prix : deux offres d'une même édition ne
+                                   viennent jamais du même marchand, l'unicité
+                                   `(edition_id, marchand, reference)` de
+                                   `public.offres` le garantit (§3). */
+                                <p
+                                  key={`${offre.marchand}-${offre.prix}`}
+                                  className="flex items-baseline gap-1.5"
+                                >
                                   {lien ? (
                                     <a
                                       href={lien}
@@ -1374,6 +1390,7 @@ export function FilmDetailPage() {
                                   )}
                                 </p>
                               );
+                              });
                             }
                             const conseille =
                               formaterPrix(ed.prix_editeur, ed.source) ??
@@ -1444,6 +1461,68 @@ export function FilmDetailPage() {
               lire, et elle ne doit pas s'interposer entre le lecteur et les
               éditions, qui sont le sujet de la page.
             */}
+            {/*
+              La promotion du marchand, **une fois par fiche et non par ligne**.
+
+              C'est la règle de la mention d'affiliation juste en dessous,
+              appliquée à autre chose : un film à soixante éditions momox
+              répéterait soixante fois le même code, et le §7 pose déjà qu'une
+              mention posée partout est l'inverse d'informer.
+
+              Le test porte sur l'offre **retenue** par `offreAAfficher`, pas sur
+              celles en base : annoncer une remise chez un marchand dont on
+              n'affiche aucun prix ne mènerait nulle part.
+
+              Pas de lien ici, à dessein. Le prix au-dessus en porte déjà un, de
+              tracking et par produit, et c'est celui qu'il faut suivre pour
+              atterrir sur le bon disque ; un second lien vers la page de
+              campagne ferait perdre le film qu'on regardait. Le bandeau du bas,
+              lui, n'a pas de produit sous la main, donc il porte le lien.
+
+              La fenêtre se referme seule (`lib/promotions.ts`) : rien à
+              déployer le 10 août.
+            */}
+            {(() => {
+              const marchands = new Set(
+                filteredEditions
+                  .map((ed) => offreAAfficher(ed.offres)?.marchand)
+                  .filter((m): m is string => Boolean(m)),
+              );
+              const promo = [...marchands]
+                .map((m) => promotionActive(m))
+                .find((p): p is NonNullable<typeof p> => p !== null);
+              if (!promo) return null;
+              return (
+                <p
+                  className="mt-6 rounded-[10px] px-3.5 py-2.5"
+                  style={{
+                    backgroundColor: "var(--reel-surface)",
+                    border: "1px solid var(--reel-border)",
+                    fontSize: "13px",
+                    lineHeight: "20px",
+                    color: "var(--reel-muted)",
+                  }}
+                >
+                  <span style={{ color: "var(--reel-text)", fontWeight: 600 }}>
+                    {promo.resume} chez {promo.marchand}{" "}
+                    {quand(promo, etatPromotion(promo))}
+                  </span>
+                  {" avec le code "}
+                  <span
+                    style={{
+                      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                      color: "var(--reel-text)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {promo.code}
+                  </span>
+                  {". "}
+                  {promo.conditions} Offre du marchand, relayée ici.
+                </p>
+              );
+            })()}
+
             {filteredEditions.some((ed) => (ed.offres ?? []).length > 0) && (
               <p
                 className="mt-6"
@@ -1453,18 +1532,28 @@ export function FilmDetailPage() {
                 versée si vous achetez, sans que le prix change pour vous. Prix relevés à la
                 date indiquée au survol, seul le site marchand fait foi.
                 {/*
+                  **La non-exhaustivité se dit, et depuis le 9 août 2026 elle est
+                  obligatoire.** Tant qu'un seul prix paraissait, le lecteur ne
+                  pouvait pas le prendre pour un relevé de marché. Une liste
+                  ordonnée par prix, si : elle a la forme d'un comparateur, donc
+                  elle promet implicitement de couvrir l'offre. Or elle ne couvre
+                  que nos partenaires, deux aujourd'hui.
+                  Le taire serait la pratique trompeuse par omission de
+                  l'article L. 121-3 du code de la consommation.
+                */}
+                {" Cette liste ne couvre que nos marchands partenaires, elle n’est pas un relevé de l’ensemble du marché."}
+                {/*
                   **La phrase d'occasion n'est écrite que si une occasion est
                   affichée.** Même règle que la mention elle-même, qui ne paraît
                   pas sur les 82 % du catalogue sans offre : annoncer de la
                   seconde main sur une liste qui n'en porte pas est l'inverse
-                  d'informer. Et le test porte sur l'offre **retenue** par
-                  `offreAAfficher`, pas sur celles en base : dire « certains
-                  prix » d'une offre qu'on n'affiche pas serait faux.
+                  d'informer. Le test porte sur les offres **affichées**, pas sur
+                  celles en base : dire « certains prix » d'une offre qu'on ne
+                  montre pas serait faux.
                 */}
-                {filteredEditions.some((ed) => {
-                  const o = offreAAfficher(ed.offres);
-                  return o !== null && estOccasion(o);
-                }) && " Certaines offres portent sur un disque d'occasion, indiqué à côté du prix."}
+                {filteredEditions.some((ed) =>
+                  offresAAfficher(ed.offres).some(estOccasion),
+                ) && " Certaines offres portent sur un disque d'occasion, indiqué à côté du prix."}
               </p>
             )}
           </div>
