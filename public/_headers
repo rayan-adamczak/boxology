@@ -30,6 +30,14 @@
 #               est donc légitime et voulu, là où celui vers Shopify est un
 #               accident à réparer.
 #
+#               **Cinquième hôte le 6 août 2026, `images2.medimops.eu`**, celui
+#               de momox shop, même statut que Leclerc : flux Awin, visuels
+#               licenciés pour l'usage affilié. Il porte les 154 887 lignes du
+#               flux, à 100 %, et il a été **posé avant tout import** plutôt
+#               qu'après : la directive est un instantané, et l'oubli ne casse
+#               rien de bruyant, il rend des cadres gris qu'on met des jours à
+#               relier à la CSP. C'est la leçon des 2 312 éditions Leclerc.
+#
 #               **Sixième hôte le 7 août 2026, le projet Supabase lui-même.**
 #               Les photos de profil sont dans son Storage et non sur R2 : un
 #               navigateur ne peut pas déposer dans le seau R2, qui n'est écrit
@@ -42,17 +50,6 @@
 #               `blob:` est arrivé avec, et pour la même fonction : la fenêtre
 #               de recadrage affiche le fichier choisi par `createObjectURL`,
 #               donc avant tout réseau. Sans lui, on recadre à l'aveugle.
-#               **Cinquième hôte le 6 août 2026, `images2.medimops.eu`**, celui
-#               de momox shop, même statut que Leclerc : flux Awin, visuels
-#               licenciés pour l'usage affilié. Il porte les 154 887 lignes du
-#               flux, à 100 %, et il est **posé avant tout import** plutôt
-#               qu'après : la directive est un instantané, et l'oubli ne casse
-#               rien de bruyant, il rend des cadres gris qu'on met des jours à
-#               relier à la CSP. C'est la leçon des 2 312 éditions Leclerc.
-#
-#               Rien n'en dépend encore, aucune édition momox n'étant écrite au
-#               6 août ; ouvrir un hôte qui ne sert pas est sans risque, il
-#               n'autorise qu'à afficher des images venues de lui.
 #
 #               Symptôme à reconnaître, il n'a rien d'évident : la carte rend
 #               un cadre gris, la console ne dit rien d'utile, et la requête

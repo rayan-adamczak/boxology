@@ -3435,6 +3435,65 @@ neuves, la distribution et le studio. Détail de la règle et de son
 différents ; les mêler rendrait l'une inannulable sans l'autre. Le §3 pose la
 règle, la source d'un lien dit **comment** il a été obtenu.
 
+### Séries par le rang de saison (`series/`, 2026-08-07)
+
+    set -a; . ~/.config/boxology.env; set +a
+    python3 resoudre_series.py --echantillon 30    # mesurer d'abord
+    python3 resoudre_series.py                     # lecture seule
+    python3 ecrire_series.py --apply
+
+**59 liens posés, 25 séries créées**, sur des œuvres que TMDB connaissait
+toutes : Peaky Blinders, Game of Thrones, Fallout, Hercule Poirot, Twin Peaks,
+Babylon 5. Ce qui bloquait n'était pas la source mais le bruit du titre, qui
+empile le nom, le rang de saison écrit deux fois, le format et le pays :
+
+    Agatha Christie: Poirot Season 12 Blu-ray (Saison 12) (France)
+    Bakuman. Box 1/2 Season 1 Blu-ray (Coffret 1/2 Saison 1) (France)
+
+**On rattache la série, jamais la saison.** Les huit coffrets de Game of Thrones
+pointent la même œuvre : le rang n'est pas une donnée à retrouver, c'est du
+bruit à retirer. Et la recherche se fait en `search/tv` **seul**, le §9 gardant
+la trace de `Peaky Blinders: Series 4` rattaché à un film nommé « Series 4 ».
+
+**Le plafond est un plafond, jamais un filtre.** L'année d'un coffret « saison
+4 » est postérieure à la première diffusion, de plusieurs années : on vérifie
+que la série a commencé **avant** le disque. Passer `first_air_date_year` à TMDB
+éliminerait la bonne réponse.
+
+**Sans date de parution, ce qui tranche est l'unicité**, et c'est une nuance de
+la règle des deux mesures. Le §9 les exige pour **départager** des candidats ;
+quand un seul titre exact existe chez TMDB, il n'y a rien à départager. Le lot
+le prouve : les 14 rattachements à candidat unique sont tous justes, et le seul
+faux — `Wacky Races` renvoyé au reboot de 2017 plutôt qu'à la série de 1968 —
+est parmi les 5 à candidats multiples, que la popularité départage et qui
+favorise mécaniquement le remake. Ces 5 restent en relecture.
+
+**Trois mesures ont été cherchées avant l'unicité, et deux sont mortes à la
+mesure** : le bandeau blu-ray.com, seul contrôle indépendant du dépôt, ne couvre
+que 2 des 19 cas, quatorze venant de Metaluna ; le nombre de saisons annoncé
+dans la fiche n'en couvre qu'un, Babylon 5 et ses « 5 seasons 110 episodes ».
+`date_sortie`, `pays` et `disques` sont vides sur tout le lot, qui est du Warner
+Archive.
+
+**Le risque résiduel n'est pas l'homonyme, c'est l'absence.** `Eclipse Series
+47: Abbas Kiarostami (17 films)` est une collection Criterion de coffrets, pas
+une série, et TMDB porte une série « Eclipse » : le titre exact suffit à
+produire un faux, sous le plafond compris. Aucune mesure ne dit qu'un disque
+n'est pas une série ; celui-là s'écarte par `FAUSSES_SERIES`, sur son nom.
+
+Quatre défauts trouvés en écrivant, le taux passant de 7/30 à 45/99 :
+
+- **`\m` et `\M` sont des ancres PostgreSQL**, pas Python, reprises telles
+  quelles des requêtes de mesure ;
+- **le rang de coffret part avant la coupe**, sinon la barre de `Box 1/2` sert
+  de séparateur et `Bakuman` se réduit à « Bakuman. Box 1 ». C'est la règle du
+  §9 pour les doubles programmes, appliquée ici ;
+- **le possessif anglais fait échouer un titre exact** : TMDB écrit `Agatha
+  Christie's Poirot`, les disques `Agatha Christie: Poirot`, et un `s` isolé
+  suffit ;
+- **blu-ray.com écrit « The Complete Eight Season »** là où l'anglais demande
+  « Eighth » : les cardinaux comptent autant que les ordinaux.
+
 ### Étiquetage des formats (`formats.py`, `etiqueter_formats.py`, 2026-08-06)
 
     python3 etiqueter_formats.py                 # simulation
