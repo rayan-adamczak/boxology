@@ -6811,6 +6811,11 @@ un visiteur à Tokyo le 9 à 3 h locale, soit le 8 à 20 h à Paris, ne la voit 
 et un visiteur à Los Angeles le 9 à 18 h, soit le 10 à 3 h à Paris, non plus.
 Ni l'un ni l'autre ne pourrait utiliser le code chez momox.
 
+**La borne de fin porte ses millisecondes**, `23:59:59.999` et non `23:59:59`.
+Sans elles la valeur vaut `.000`, et comme la comparaison est inclusive, la
+dernière seconde du 9 août n'affichait rien. Détail au §9, il vaut pour toute
+borne de fin.
+
 **`libelleJour` est écrit à la main et non calculé de `debut`** :
 `toLocaleDateString` rendrait la date dans le fuseau du visiteur, donc
 « samedi 8 août » à Los Angeles pour un instant qui est bien le 9 à Paris. Le
@@ -7875,6 +7880,21 @@ Documentés parce qu'ils se reproduiront.
   les 12 pages abîmées du crawl de juillet. Remises dans la file le 30 juillet
   2026 en retirant leur ligne et leur `.gz`. **Vérifier le cache, pas le
   journal.**
+- **Une borne de fin écrite à la seconde ouvre un trou d'une seconde.**
+  `2026-08-09T23:59:59+02:00` vaut `.000` : avec une comparaison inclusive,
+  `t <= fin`, tout ce qui tombe entre `23:59:59.001` et `23:59:59.999` est déjà
+  dehors. Le bandeau promo du 9 août aurait donc disparu une seconde avant la
+  fin de la journée.
+
+  Une seconde ne se voit pas, et c'est précisément ce qui la rend coûteuse :
+  elle se recopie dans la borne suivante sans que personne ne la remarque. Deux
+  écritures justes, `…T23:59:59.999+02:00` pour une fin inclusive, ou la borne
+  du jour suivant à minuit avec une comparaison stricte, `t < fin`. La première
+  a été retenue ici, elle dit le jour qu'on veut plutôt que le lendemain.
+
+  **Trouvé en éprouvant le rendu, pas en relisant le code** : la relecture
+  voyait « 23 h 59 min 59 s », donc la fin de la journée. C'est le §9 sur les
+  scans appliqué au temps, une borne qui a l'air juste se mesure.
 - **`ResizeObserver` saute les éléments en `display: none`, il ne les rapporte
   pas à zéro.** La spécification les exclut de l'observation, donc **aucun
   rappel ne part** quand un élément se masque, et la dernière taille mesurée
