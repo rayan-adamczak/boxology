@@ -893,20 +893,31 @@ les deux hôtes depuis la page, sous la CSP qu'on soupçonne :
     new Image().src = '…filerobot…'   -> onerror   bloque
     new Image().src = '…e.leclerc…'   -> onload    naturalWidth 200
 
-**Corollaire non traité, et il coûte de la bande passante** : `lib/visuels.ts`
-ne réécrit `w` et `h` que pour l'hôte `media.e.leclerc`, donc ces 436 offres
-téléchargent la pleine taille, **149 177 octets mesurés** pour une vignette de
-56 × 84. C'est exactement le défaut que le §5 dit réglé depuis le 4 août, rouvert
-par un second nom d'hôte.
+**La taille est réglée dans la foulée**, `lib/visuels.ts` ne réécrivant `w` et
+`h` que pour `media.e.leclerc` : ces 436 offres tiraient l'original pour un
+cadre de 56 × 84. Mesuré sur dix lignes réelles, avant puis après :
 
-**Et l'ajouter à `HOTE_LECLERC` ne suffira pas**, ce qui est la raison de ne pas
-l'avoir fait dans la foulée : **128 des 436 URL n'ont pas de point
-d'interrogation**, le flux ayant écrit `…/<EAN>_1&w=1000&h=1000&func=fit` où le
-premier séparateur manque. Leurs paramètres sont donc dans le **chemin**, pas
-dans la requête, et `searchParams.set` y accolerait un second jeu de `w` et `h`
-au lieu de remplacer le premier. Elles répondent 200 en l'état ; le jour où on
-optimise, il faut traiter les deux formes, et mesurer que la seconde honore bien
-la taille demandée.
+    forme requête   792 Ko à 1 013 Ko   ->  49 à 67 Ko    200 × 200
+    forme chemin     91 Ko à  228 Ko    ->  24 à 66 Ko    200 × 200
+
+**Ma crainte sur la forme sans point d'interrogation était fausse, et la mesure
+l'a dite.** J'avais écrit que `searchParams.set` accolerait un second jeu de `w`
+et `h` au premier ; il n'y a pas de premier jeu. Les paramètres écrits dans le
+chemin, `…/<EAN>_1&w=1000&h=1000&func=fit&org_if_sml=1`, sont **inertes** :
+remplacer `w=1000` par `w=200` dedans rend le même fichier à l'octet près,
+203 757 o en 600 × 813, le CDN lisant tout cela comme une partie du nom. Ce qui
+rétrécit est d'ajouter une vraie chaîne de requête par-dessus, ce que
+`searchParams.set` fait tout seul puisqu'il n'y en a aucune.
+
+**Le seul vrai piège de ces 128 est que `func` manque**, la requête n'existant
+pas. Il est donc posé quand il est absent et jamais écrasé : mesuré, `func=fit`
+est présent sur les 2 973 autres et absent sur ces 128 exactement. L'imposer
+partout écraserait un jour un `func` que la source aurait voulu autre.
+
+**Retenir la forme du raisonnement fautif** : « le paramètre est écrit dans
+l'URL, donc il compte ». Un CDN décide seul de ce qu'il lit, et deux URL qui se
+ressemblent ne se comportent pas forcément pareil. Une requête `curl` valait
+mieux qu'une lecture de la chaîne.
 
 **La signature d'un blocage CSP est à connaître, elle ne ressemble à rien
 d'autre** : les 2 312 éditions Leclerc rendaient un cadre gris alors que la

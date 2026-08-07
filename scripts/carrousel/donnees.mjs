@@ -75,10 +75,16 @@ export async function compter(chemin) {
 function pleineTaille(url) {
   try {
     const u = new URL(url);
-    if (u.hostname === "media.e.leclerc") {
+    if (u.hostname === "media.e.leclerc" || u.hostname === "fgellaobb.filerobot.com") {
+      // Deux hôtes pour le même marchand, cf. lib/visuels.ts : Filerobot est le
+      // CDN derrière `media.e.leclerc`, et la passe Awin du 6 août 2026 a écrit
+      // 436 offres sous son nom brut.
       u.searchParams.set("w", "1400");
       u.searchParams.set("h", "1400");
-      // `func=fit` garde le rapport au lieu de rogner, cf. lib/visuels.ts.
+      // `func=fit` garde le rapport au lieu de rogner, cf. lib/visuels.ts. Il
+      // manque sur les 128 URL dont les paramètres sont dans le chemin, où ils
+      // sont inertes : sans lui, elles rendraient l'original de 600 px.
+      if (!u.searchParams.has("func")) u.searchParams.set("func", "fit");
       return u.toString();
     }
     if (u.hostname === "image.tmdb.org") {
