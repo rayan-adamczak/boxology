@@ -4985,11 +4985,20 @@ défilement est cassé :
 | `requestAnimationFrame` suspendu, l'onglet étant masqué | tout étranglement en `rAF` gèle après le montage |
 | `innerWidth` et `innerHeight` parfois à **0** | mise en page repliée en une colonne, sections de 12 000 px, mesures dénuées de sens |
 | `scrollTo` n'émet aucun événement `scroll` | les écouteurs ne se déclenchent jamais |
+| **`resize_window` n'émet aucun événement `resize`** | tout ce qui se recalcule au redimensionnement garde sa valeur d'avant |
 
 Ce qui marche : **redimensionner l'onglet explicitement**, puis émettre
 `dispatchEvent(new Event("scroll"))` à la main après chaque `scrollTo`. Et
 vérifier `innerWidth` avant de croire une mesure, un viewport à zéro invalide
 tout ce qui suit.
+
+**La ligne `resize` a été payée le 7 août 2026**, sur le bandeau promo : la
+mesure disait que le bandeau flottait à 63 px de la barre d'onglets, et j'ai
+soupçonné le code. Un `dispatchEvent(new Event("resize"))` émis à la main rendait
+aussitôt le bon `bottom: 64px`. **C'était l'instrument, pas la page**, et c'est
+le §9 mot pour mot appliqué à une sonde de mise en page. Recharger après avoir
+redimensionné, ou émettre l'événement, mais ne jamais conclure d'un
+redimensionnement seul.
 
 Les captures d'écran sont par ailleurs aléatoires après un défilement programmé,
 elles rendent souvent un écran vide alors que le DOM est correct. Naviguer
@@ -6847,14 +6856,21 @@ promo par la couleur de la bande, adidas met une pilule pleine à droite, The Ne
 Yorker joue l'emphase typographique.
 
 Ce qui est repris est l'emphase, dans le vocabulaire du site : une **étiquette
-de rayon**, cadre arrondi comme les capsules du §8, avec **le seul taux**. Fond
-en `color-mix` et non en aplat d'accent, sinon elle se lit comme un bouton alors
-qu'elle ne mène nulle part ; c'est la pilule qui se clique.
+de rayon**, cadre arrondi comme les capsules du §8. Fond en `color-mix` et non
+en aplat d'accent, sinon elle se lit comme un bouton alors qu'elle ne mène nulle
+part ; c'est la pilule qui se clique.
 
-Un « OCCASION » en petites capitales sous le taux a tenu quelques heures, puis
-il est parti : il redisait ce que la phrase à côté écrit déjà, « 12 % sur
-l'occasion », et il faisait de l'étiquette un bloc à deux étages là où une
-étiquette de prix n'en a qu'un.
+**Elle porte le code, et c'est un revirement.** Elle a d'abord montré « −12 % »,
+qui redisait le début de la phrase à côté, puis « −12 % / OCCASION », qui
+redisait la suite. Le code, lui, n'est écrit nulle part ailleurs et c'est la
+seule chose que le lecteur doit **emporter** : il se recopie dans un panier, chez
+le marchand, plusieurs minutes plus tard. Le mettre dans la plus grosse graisse
+du bandeau, c'est le mettre là où on le retrouve. Il quitte donc la première
+ligne, qui ne garde que le marchand, le taux et le jour.
+
+**Et l'étiquette perd son `aria-hidden` du même coup.** Tant qu'elle portait le
+taux, la phrase le redisait et la masquer ne coûtait rien ; portant le code, la
+masquer le rendrait introuvable à un lecteur d'écran.
 
 **Les couleurs sont celles du site, jamais celles du marchand.** Le §8 pose
 qu'un logo ne suit pas la palette du site ; la réciproque vaut, le site
@@ -6869,15 +6885,36 @@ cartes d'édition juste au-dessus, mais un mélange d'accent, filet du haut
 compris. C'est le motif de Seed, où la couleur de la bande porte la promotion à
 elle seule.
 
+**Le fond va d'un bord à l'autre, le contenu non.** Collé aux bords, il laissait
+à 1 512 px l'étiquette contre le bord gauche et la pilule contre le droit, à
+sept cents pixels l'une de l'autre, ce qui se lit comme deux éléments sans
+rapport plutôt que comme une phrase. Le rembourrage monte donc par paliers,
+96 px de chaque côté à 1 512, et il reste bien plus étroit que les 21 % de la
+gouttière, sans quoi la barre reprendrait la largeur du corps dont elle doit se
+détacher.
+
+**La mention d'affiliation tient en deux mots, « Lien affilié », et elle est
+obligatoire.** « Offre du marchand, relayée ici. » prenait une ligne entière et
+elle est partie, mais la pilule **est** un lien rémunéré : la retirer sans rien
+laisser aurait fait du bandeau le seul endroit du site qui porte un lien affilié
+sans le dire (§10). Elle paraît avec la pilule, à partir de `md` ; en dessous le
+bandeau ne porte aucun lien, donc il n'y a rien à déclarer.
+
 **Aucun `backdrop-filter`**, quelle que soit l'envie : le §8 en garde la trace,
 un flou sur toute la largeur force une couche de composition et laisse peindre
 des tuiles périmées, page dédoublée et décalée d'une centaine de pixels. Un
 aplat opaque fait le même travail.
 
-    1280 px   1 ligne + 1, hauteur 58
-     375 px   2 lignes + 2, hauteur 88
+    1512 px   1 ligne + 1, hauteur 58, marges 96 de chaque cote
+     375 px   2 lignes + 1, hauteur 71, colle a la barre d'onglets
 
 La pilule saute sous `md` : à 640 px elle poussait la phrase à trois lignes.
+
+**Sur téléphone il est collé à la barre d'onglets, et cette hauteur se mesure.**
+Un `bottom-[68px]` en dur laissait un jour visible : la barre fait 64 px et porte
+en plus `env(safe-area-inset-bottom)`, donc sa hauteur dépend de l'appareil, et
+elle a gagné un onglet « Scanner » entre-temps. Un nombre deviné se périme à la
+première retouche de ce qu'il devine. Détail du piège d'observation au §9.
 
 **L'étiquette est `aria-hidden`, donc le pourcentage reste dans la phrase.** Le
 déléguer au visuel le rendrait inaudible d'un lecteur d'écran.
@@ -7837,6 +7874,25 @@ Documentés parce qu'ils se reproduiront.
   les 12 pages abîmées du crawl de juillet. Remises dans la file le 30 juillet
   2026 en retirant leur ligne et leur `.gz`. **Vérifier le cache, pas le
   journal.**
+- **`ResizeObserver` saute les éléments en `display: none`, il ne les rapporte
+  pas à zéro.** La spécification les exclut de l'observation, donc **aucun
+  rappel ne part** quand un élément se masque, et la dernière taille mesurée
+  reste posée pour toujours. Le bandeau promo calait sa position sur la hauteur
+  de la barre d'onglets mobile : au passage du téléphone au bureau, la barre
+  passait en `md:hidden`, l'observateur se taisait, et le bandeau flottait à
+  64 px du bas d'un écran de 1 280.
+
+  Le défaut est **muet** et il ne se voit que dans le sens masquage : à
+  l'apparition, l'observateur se réveille et corrige. D'où un écouteur de
+  redimensionnement en plus de l'observateur, qui lui se déclenche au
+  franchissement du palier. Et `offsetHeight` plutôt que
+  `getBoundingClientRect`, les deux rendant 0 sur un `display: none` mais le
+  premier le disant sans forcer de calcul de disposition.
+
+  Règle générale : **une hauteur d'élément fixé ne se met pas en dur.** Ici
+  `bottom-[68px]` a tenu quelques heures pour une barre qui fait 64 px, qui
+  porte en plus `env(safe-area-inset-bottom)` donc dépend de l'appareil, et qui
+  a gagné un onglet entre-temps.
 - **Tailwind 4 a changé son preflight** : les `<button>` reçoivent
   `cursor: default` là où Tailwind 3 posait `cursor: pointer`. Toute
   l'interface bâtie sur des boutons (onglets, capsules de format, cartes

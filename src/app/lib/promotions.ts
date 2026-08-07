@@ -60,14 +60,6 @@ export interface Promotion {
    * celle-ci est `aria-hidden`, un lecteur d'écran n'entendrait rien du taux.
    */
   resumeCourt: string;
-  /**
-   * La remise en deux ou trois signes, pour la pastille du bandeau.
-   *
-   * Un chiffre, jamais un visuel du marchand : reprendre le disque rouge de
-   * leur courriel reviendrait à republier leur création, et le §10 pose qu'on
-   * relaie une offre sans se substituer à celui qui la formule.
-   */
-  badge: string;
   /** Les conditions du marchand, reprises telles quelles. */
   conditions: string;
   /**
@@ -138,7 +130,6 @@ export const PROMOTIONS: Promotion[] = [
     code: "ETE12",
     resume: "12 % de réduction sur les disques d'occasion",
     resumeCourt: "12 % sur l'occasion",
-    badge: "−12 %",
     conditions:
       "Dès 20 € d'achat, une fois par personne, sur les seuls articles d'occasion. " +
       "Non cumulable, aucun remboursement en espèces.",

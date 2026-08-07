@@ -172,26 +172,42 @@ export function BandeauPromo() {
         borderTop: "1px solid color-mix(in srgb, var(--reel-accent-clair) 40%, transparent)",
       }}
     >
-      <div className="flex items-center gap-3 px-5 py-2.5 sm:px-8 lg:px-12">
+      {/*
+        Le fond va d'un bord à l'autre, le contenu non.
+
+        Le rembourrage monte par paliers jusqu'à `2xl` : à 1 512 px la bande
+        collée aux bords laissait l'étiquette contre le bord gauche et la pilule
+        contre le droit, à sept cents pixels l'une de l'autre, ce qui se lit
+        comme deux éléments sans rapport plutôt que comme une phrase.
+
+        Il ne reprend pas `.reel-gouttiere` pour autant : elle vaut 21 % de
+        chaque côté et ramènerait la barre à la largeur du corps, or c'est
+        justement de lui qu'elle doit se détacher. Ces valeurs sont plus
+        étroites, donc la bande reste plus large que la page tout en cessant de
+        toucher les bords.
+      */}
+      <div className="flex items-center gap-3 px-5 py-2.5 sm:px-8 lg:px-16 xl:px-24 2xl:px-32">
         {/*
-          Une étiquette de rayon, et non une pastille ronde.
+          L'étiquette porte le **code**, et non plus le taux.
 
-          Le disque de 44 px a été essayé et retiré : il rendait le chiffre
-          petit pour tenir dans un rond, et rien dans le site ne parle en
-          disques. Trois bandeaux marchands relevés sur Mobbin, Seed, adidas et
-          The New Yorker, ne posent d'ailleurs aucun badge circulaire : la
-          couleur de la bande ou l'emphase typographique porte la remise, et
-          l'action passe par une pilule pleine à droite.
+          Elle a d'abord montré « −12 % », qui redisait le début de la phrase à
+          côté. Le code, lui, n'est écrit nulle part ailleurs et c'est la seule
+          chose que le lecteur doit **emporter** : il se recopie dans un panier,
+          chez le marchand, plusieurs minutes plus tard. Le mettre dans la
+          plus grosse graisse du bandeau, c'est le mettre là où on le retrouve.
 
-          Ce qui est repris ici est l'emphase typographique, dans le vocabulaire
-          du site : un cadre rectangulaire arrondi comme les capsules du §8, avec
-          le seul taux. Ça se lit comme une étiquette posée sur un boîtier, ce
-          que le site montre par ailleurs.
+          Trois bandeaux marchands relevés sur Mobbin, Seed, adidas et The New
+          Yorker, ne posent aucun badge circulaire : la couleur de la bande ou
+          l'emphase typographique porte la promotion, et l'action passe par une
+          pilule pleine à droite. Le disque de 44 px essayé au début rendait de
+          toute façon son contenu illisible, et rien dans le site ne parle en
+          disques.
 
-          **Le taux est seul, sans mot dessous.** Un « OCCASION » en petites
-          capitales a tenu quelques heures : il redisait ce que la phrase à côté
-          écrit déjà, « 12 % sur l'occasion », et il faisait de l'étiquette un
-          bloc à deux étages là où une étiquette de prix n'en a qu'un.
+          **Pas d'`aria-hidden` ici, contrairement à la première version.** Tant
+          que l'étiquette portait le taux, la phrase le redisait et la masquer
+          ne coûtait rien ; maintenant qu'elle porte le code, la masquer le
+          rendrait introuvable à un lecteur d'écran. Le deux-points de « Code
+          promo : » est dans le texte pour que l'annonce se lise d'un trait.
 
           Les couleurs sont celles du site et non celles de momox : le §8 pose
           qu'un logo ne suit pas la palette du site, la réciproque vaut, le site
@@ -202,24 +218,37 @@ export function BandeauPromo() {
           ne mène nulle part. C'est la pilule à droite qui se clique.
         */}
         <span
-          aria-hidden
-          className="flex shrink-0 items-center justify-center rounded-[8px] px-2.5 py-1 sm:px-3"
+          className="flex shrink-0 flex-col justify-center rounded-[8px] px-2.5 py-1 sm:px-3"
           style={{
             backgroundColor: "color-mix(in srgb, var(--reel-accent) 18%, transparent)",
             border: "1px solid color-mix(in srgb, var(--reel-accent-clair) 45%, transparent)",
           }}
         >
           <span
-            className="tabular-nums text-[15px] sm:text-[17px]"
             style={{
-              fontFamily: "var(--reel-font-titre)",
-              fontWeight: 800,
-              lineHeight: "20px",
-              letterSpacing: "-0.02em",
+              fontSize: "9px",
+              fontWeight: 600,
+              lineHeight: "11px",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--reel-muted)",
+            }}
+          >
+            Code promo&nbsp;:
+          </span>
+          {/* Chasse fixe, comme un code-barres : c'est une valeur qu'on recopie
+              signe à signe, et `I` contre `l` s'y joue. */}
+          <span
+            className="tabular-nums text-[15px] sm:text-[16px]"
+            style={{
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontWeight: 700,
+              lineHeight: "19px",
+              letterSpacing: "0.02em",
               color: "var(--reel-accent-clair)",
             }}
           >
-            {promo.badge}
+            {promo.code}
           </span>
         </span>
 
@@ -244,34 +273,32 @@ export function BandeauPromo() {
             <span style={{ fontWeight: 600 }}>
               {promo.resumeCourt} {quand(promo, etat)}
             </span>
-            <span style={{ color: "var(--reel-muted)" }}>{" · code "}</span>
-            {/* Chasse fixe, comme un code-barres : c'est une valeur qu'on
-                recopie signe à signe, et `I` contre `l` s'y joue. */}
-            <span
-              className="tabular-nums"
-              style={{
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                fontWeight: 600,
-              }}
-            >
-              {promo.code}
-            </span>
           </p>
-          {/*
-            La mention d'affiliation ne paraît qu'à partir de `md`, et ce n'est
-            pas une commodité de place : c'est là que la pilule apparaît, donc
-            là qu'il y a un lien rémunéré à déclarer (§10). En dessous, le
-            bandeau ne porte aucun lien, il informe et rien de plus, et la
-            phrase prenait une ligne entière sur les quatre d'un écran de 375.
-
-            La fiche film, elle, garde la mention en toutes lettres sous sa
-            liste d'éditions, où les prix sont des liens affiliés.
-          */}
           <p className="text-[11px] leading-[16px] sm:text-[12px] sm:leading-[18px]" style={{ color: "var(--reel-muted)" }}>
             {promo.conditionsCourtes}
-            <span className="hidden md:inline"> Offre du marchand, relayée ici.</span>
           </p>
         </div>
+
+        {/*
+          Deux mots, et ils sont obligatoires.
+
+          « Offre du marchand, relayée ici. » est partie, elle prenait une ligne
+          entière. Mais la pilule qui suit **est** un lien rémunéré, et le §10
+          veut la transparence sur la nature commerciale d'un lien là où il
+          s'affiche : la retirer sans rien laisser aurait fait du bandeau le seul
+          endroit du site qui porte un lien affilié sans le dire.
+
+          Elle est collée à la pilule et paraît avec elle, à partir de `md` :
+          sous ce palier le bandeau ne porte aucun lien, donc il n'y a rien à
+          déclarer. La fiche film garde la mention en toutes lettres sous sa
+          liste d'éditions, où les prix sont des liens affiliés.
+        */}
+        <span
+          className="hidden shrink-0 md:inline"
+          style={{ fontSize: "11px", color: "var(--reel-muted)" }}
+        >
+          Lien affilié
+        </span>
 
         {/*
           L'action en pilule pleine, motif commun aux trois bandeaux relevés :
