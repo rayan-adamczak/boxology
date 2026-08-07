@@ -139,7 +139,11 @@ export function TableauDeBordPage() {
             doit pas être vide pendant le chargement, ni si la lecture échoue.
           */}
           <div className="flex items-center gap-3">
-            <UserAvatar name={profil?.nom ?? nomAffiche(session ?? null)} size={44} />
+            <UserAvatar
+              name={profil?.nom ?? nomAffiche(session ?? null)}
+              src={profil?.avatarUrl}
+              size={44}
+            />
             <div className="min-w-0">
               <p className="truncate" style={{ fontSize: "15px", fontWeight: 600, color: "var(--reel-text)" }}>
                 {profil?.nom ?? nomAffiche(session ?? null)}

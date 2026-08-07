@@ -457,6 +457,66 @@ Deux raisons, et la seconde est la vraie : `anon` ne peut pas lire
 `auth.users`, et surtout personne ne doit être obligé de publier son état civil
 pour avoir une page. Il est recopié de Google à la création, puis modifiable.
 
+**La photo de Google non plus n'est pas reprise**, pour la même raison : elle
+existe dans `user_metadata`, et l'afficher publierait un portrait que personne
+n'a choisi de publier ici. `avatar_url` est vide tant qu'on ne dépose rien, et
+`UserAvatar` retombe sur les initiales.
+
+#### `profils.avatar_url` et le seau `avatars`, le 7 août 2026
+
+Migration `20260807_avatars.sql`. Une colonne nullable, un seau Supabase
+Storage public en lecture, et quatre policies sur `storage.objects`.
+
+**Storage plutôt que R2, et ce n'est pas un revirement du §2.** Les 36 000
+visuels du catalogue restent sur R2 : ce seau-là est écrit par des scripts
+Python qui portent les clés `R2_*`, et **un navigateur ne peut pas y déposer**
+sans qu'une Pages Function signe une URL, donc sans une liaison R2 et un secret
+de plus. Le Storage accepte le dépôt sous le jeton de session déjà en main, et
+ses règles s'écrivent dans le même langage que le reste du schéma.
+
+**Le chemin porte toute la règle**, `<user_id>/<jeton>.webp` :
+`(storage.foldername(name))[1] = auth.uid()::text` sur l'insertion, la mise à
+jour et l'effacement. Personne ne dépose ni n'efface sous le dossier d'un autre.
+
+**Le second segment est tiré au hasard à chaque dépôt.** Un nom fixe obligerait
+à purger le cache de périphérie à chaque changement, et le §8 garde la trace de
+ce piège : une entrée déjà en cache garde les en-têtes qu'elle avait à sa
+création, et l'ancienne image resterait servie des heures. Une URL neuve n'a
+rien à purger.
+
+**`avatar_url` est contrainte par un `check` sur le préfixe.** Sans lui, un
+compte pourrait écrire n'importe quelle adresse dans sa propre ligne, et la
+page de profil ferait charger une image chez un tiers qui relèverait l'IP de
+chaque visiteur. La CSP refuserait l'hôte, mais compter sur elle serait faire
+d'un filet la seule serrure.
+
+**Le navigateur réencode avant d'envoyer**, 512 px en WebP à 0,85, jamais le
+fichier choisi. Mesuré : 1,25 Mo de PNG en entrée, **6,6 Ko** en sortie. Effet
+de bord voulu, les métadonnées EXIF disparaissent, **et avec elles les
+coordonnées GPS** que les appareils y écrivent : publier une photo est une
+chose, publier l'endroit où elle a été prise en est une autre.
+
+**Le seau refuse aussi de son côté**, `image/webp` seulement et 2 Mio : le
+contrôle du navigateur est une amabilité, il se contourne avec un `curl` et le
+jeton de session.
+
+**Le compte disparaît, la photo avec**, par un déclencheur `after delete on
+profils` en `security definer` : `storage.objects` n'a aucune clé étrangère
+vers `auth.users`, donc sans lui la photo de quelqu'un qui a effacé son compte
+resterait servie publiquement (§10, article 17).
+
+Mesuré à l'application, le 7 août 2026 :
+
+    depot anon                          400 / RLS  new row violates policy
+    effacement anon                     400        objet invisible pour lui
+    lecture publique sans jeton         200        6 566 o, image/webp
+    profil_public                       rend avatar_url
+    retrait depuis /account             storage.objects vide, colonne nulle
+
+**Piège de vérification à connaître** : juste après l'effacement, l'URL publique
+répond encore **200**. C'est le CDN, pas un échec — `storage.objects` est déjà
+vide, et la même URL avec un paramètre rend 400. Lire la table, pas l'URL.
+
 **`anon` ne reçoit aucun privilège, ni sur `profils` ni sur `collections`.** La
 lecture publique passe par deux fonctions `security definer` :
 
@@ -768,12 +828,14 @@ que le navigateur n'exécute pas. Éprouvé sous `wrangler pages dev dist`, seul
 façon de servir `_headers` et `functions/` ensemble : fiche film, accueil et
 `/about` rendus sans une violation en console, morceau `lazy()` chargé en 200.
 
-**`img-src` en porte quatre depuis le 4 août 2026**, et la directive est un
+**`img-src` en porte six depuis le 7 août 2026**, et la directive est un
 **instantané** : chaque source qui apporte ses propres visuels ajoute un hôte,
 et l'oubli ne casse rien de bruyant. `cdn.shopify.com` est entré le 3 août,
 provisoire le temps de miroiter les visuels Metaluna ; `media.e.leclerc` le 4,
 et celui-là est définitif, le §5 posant qu'E.Leclerc est la seule source dont
-les visuels sont **licenciés pour l'usage affilié**.
+les visuels sont **licenciés pour l'usage affilié**. Le sixième est le projet
+Supabase lui-même, qui sert les photos de profil, et **`blob:` est arrivé avec**
+pour que la fenêtre de recadrage affiche le fichier choisi avant tout réseau.
 
 **La signature d'un blocage CSP est à connaître, elle ne ressemble à rien
 d'autre** : les 2 312 éditions Leclerc rendaient un cadre gris alors que la
@@ -785,6 +847,20 @@ colonne était remplie et que le fichier répondait.
 
 Zéro octet **et** zéro statut, c'est la CSP. La console, elle, ne dit rien
 d'exploitable.
+
+**Correction du 7 août 2026 : cette signature a un faux positif, et il est
+courant.** Une image **d'un autre domaine** qui ne renvoie pas d'en-tête
+`Timing-Allow-Origin` rend elle aussi `transferSize 0` et `responseStatus 0`,
+alors qu'elle a parfaitement chargé — c'est le cas de toutes celles du Storage
+Supabase. Relevé en éprouvant les photos de profil sous `wrangler` : la mesure
+annonçait un blocage, `naturalWidth` valait 512.
+
+    naturalWidth > 0   ->  l'image a chargé, quoi que dise le Resource Timing
+    naturalWidth === 0 ->  là seulement, chercher du côté de la CSP
+
+**Trancher sur `naturalWidth`, pas sur le Resource Timing**, dès que l'hôte
+n'est pas le nôtre. Le tableau ci-dessus ne vaut que pour les images de même
+origine, ou pour celles dont l'hôte pose `Timing-Allow-Origin`.
 
 **HSTS activé le 2 août 2026**, et **« Toujours utiliser HTTPS » avec lui**.
 Les deux se règlent dans Cloudflare, SSL/TLS puis Certificats de périphérie, et
