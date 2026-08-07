@@ -1,7 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { PageStatique, Section, Encadre } from "../components/PageStatique";
+import {
+  AtSign,
+  ChevronDown,
+  Download,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  LogOut,
+  Trash2,
+  UserRound,
+} from "lucide-react";
+import { Banniere } from "../components/VueProfil";
+import { UserAvatar } from "../components/UserAvatar";
 import { AttentePleine } from "../components/AttenteRecherche";
 import { connexionGoogle, deconnexion, nomAffiche, supprimerCompte, useSession } from "../lib/auth";
 import {
@@ -14,8 +26,7 @@ import {
 } from "../lib/identifiant";
 import { exporterCollectionCsv, telecharger } from "../lib/export-collection";
 import { etatIdentifiant, majProfil, useProfil, type EtatIdentifiant } from "../lib/profils";
-import { formaterEuros, valeurCollection, type ValeurCollection } from "../lib/valeur";
-import { SITE_ORIGIN } from "../lib/seo";
+import { SITE_ORIGIN, useSeo } from "../lib/seo";
 
 /**
  * Réglages du compte, et surtout sa suppression.
@@ -25,107 +36,235 @@ import { SITE_ORIGIN } from "../lib/seo";
  * déclenche pas d'un clic de travers. La politique de confidentialité annonce
  * que la suppression est accessible ici, c'est cette page qui tient la
  * promesse, et c'est une obligation du RGPD (article 17), pas un agrément.
+ *
+ * ## Pourquoi elle ne ressemble plus à une page éditoriale
+ *
+ * Elle était bâtie sur `PageStatique`, comme `/legal` et `/privacy` : une
+ * colonne de 760 px, cinq sections titrées, et **treize paragraphes** pour
+ * quatre gestes. Un écran de réglages n'est pas un texte à lire, c'est un
+ * tableau de bord : on y vient changer une chose et repartir.
+ *
+ * D'où trois emprunts, relevés sur des écrans de comptes existants :
+ *
+ *   - **l'en-tête est celui du profil public**, même dégradé, même avatar,
+ *     même `@` en chasse fixe. C'est la même personne vue depuis l'autre côté,
+ *     et se reconnaître d'un coup d'œil vaut mieux qu'un encadré « Compte
+ *     connecté » qui répète ce qu'on sait déjà ;
+ *   - **des tuiles chiffrées** plutôt que des phrases. Ce qu'on possède, ce
+ *     qu'on veut, ce que ça vaut : trois nombres, aucune prose ;
+ *   - **des lignes groupées** dans une carte, chacune repliée sur son libellé
+ *     et sa valeur, qui ne déploie son formulaire et ses avertissements qu'une
+ *     fois ouverte. Le texte n'a pas été supprimé, il a été **déplacé au
+ *     moment où il sert**.
+ *
+ * Ce qui n'a pas bougé, et ne devait pas : le dénominateur collé au total de
+ * l'estimation (§8), les limites de ce total (§10), l'avertissement sur les
+ * liens partagés avant de changer d'identifiant, et la phrase à recopier avant
+ * d'effacer. Ces quatre-là sont le sujet, pas de l'habillage.
  */
 export function ComptePage() {
   const session = useSession();
 
-  return (
-    <PageStatique
-      titre="Mon compte"
-      description="Réglages de votre compte Jaquette et suppression définitive."
-      noindex
-    >
-      {session === undefined && (
+  useSeo({
+    titre: "Mon compte",
+    description: "Réglages de votre compte Jaquette et suppression définitive.",
+    noindex: true,
+  });
+
+  if (session === undefined) {
+    return (
+      <Coquille>
         <AttentePleine libelle="Vérification de la session…" />
-      )}
+      </Coquille>
+    );
+  }
 
-      {session === null && (
-        <Section titre="Aucun compte">
-          <p>
-            Vous n’êtes pas connecté. Le site fonctionne très bien ainsi : vos listes sont alors
-            conservées dans ce navigateur, et rien n’est transmis.
-          </p>
-          <p>
-            Un compte ne sert qu’à retrouver ces listes sur vos autres appareils. La connexion se
-            fait uniquement par Google, et nous ne recevons ni votre mot de passe ni l’accès à vos
-            autres services Google.
-          </p>
-          <div className="pt-1">
-            <Bouton onClick={() => { void connexionGoogle("/account"); }}>
-              Se connecter avec Google
-            </Bouton>
+  if (session === null) return <SansCompte />;
+
+  return <Connecte nom={nomAffiche(session)} email={session.user.email ?? ""} />;
+}
+
+/**
+ * Cadre commun aux trois états.
+ *
+ * La bannière est **hors** de la gouttière, elle doit filer d'un bord à
+ * l'autre ; le contenu, lui, prend la gouttière entière, comme `/u/<@>` juste
+ * à côté.
+ *
+ * **Il a d'abord été borné à 720 px**, au motif qu'une ligne de réglage large
+ * met son libellé et sa valeur à deux mètres l'un de l'autre. L'argument est
+ * juste sur la ligne, faux sur la page : la bannière file d'un bord à l'autre,
+ * et une colonne plus étroite qu'elle fait lire l'écran comme une page
+ * éditoriale posée sous un décor, pas comme le pendant du profil. Le §8 pose
+ * déjà la règle pour tout le site, la gouttière est le cadrage, un `max-w`
+ * local est ce dont on s'est débarrassé le 5 août 2026 sur sept pages.
+ */
+function Coquille({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <Banniere />
+      <div className="reel-gouttiere pb-24">{children}</div>
+    </>
+  );
+}
+
+function SansCompte() {
+  return (
+    <Coquille>
+      <div className="-mt-12">
+        <h1
+          className="pt-16"
+          style={{ fontSize: "28px", fontWeight: 700, color: "var(--reel-text)", lineHeight: 1.2 }}
+        >
+          Mon compte
+        </h1>
+        <p className="max-w-[520px] pt-3" style={{ fontSize: "15px", color: "var(--reel-muted)" }}>
+          Vous n’êtes pas connecté. Le site fonctionne très bien ainsi : vos listes restent dans ce
+          navigateur. Un compte ne sert qu’à les retrouver sur vos autres appareils.
+        </p>
+        <div className="pt-6">
+          <Bouton principal onClick={() => { void connexionGoogle("/account"); }}>
+            Se connecter avec Google
+          </Bouton>
+        </div>
+        <p className="pt-3" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+          Ni mot de passe, ni accès à vos autres services Google.
+        </p>
+      </div>
+    </Coquille>
+  );
+}
+
+function Connecte({ nom, email }: { nom: string; email: string }) {
+  const etat = useProfil();
+  const profil = etat.statut === "pret" ? etat.profil : null;
+
+  return (
+    <Coquille>
+      <EnTete nom={profil?.nom || nom} email={email} identifiant={profil?.identifiant ?? null} visible={profil?.visible ?? false} />
+
+      {etat.statut === "attente" ? (
+        <AttentePleine hauteur={200} />
+      ) : profil ? (
+        <ReglagesProfil profil={profil} />
+      ) : (
+        <Carte>
+          <div className="px-4 py-4" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
+            Votre identifiant n’a pas encore été choisi, ou n’a pas pu être lu. Rechargez la page :
+            l’écran de choix s’ouvrira.
           </div>
-        </Section>
+        </Carte>
       )}
 
-      {session && (
-        <>
-          <Section titre="Compte connecté">
-            <Encadre>
-              <span style={{ color: "var(--reel-text)", fontWeight: 600 }}>{nomAffiche(session)}</span>
-              <br />
-              {session.user.email}
-            </Encadre>
-            <p>
-              Vos listes sont enregistrées sur nos serveurs, situés en Suède, au sein de l’Union
-              européenne, et rattachées à ce compte.
-            </p>
-            <div className="pt-1">
-              <Bouton onClick={() => { void deconnexion(); }}>Se déconnecter</Bouton>
-            </div>
-            <p>
-              La déconnexion n’efface rien : vos listes vous attendent à la prochaine connexion.
-            </p>
-          </Section>
+      <Donnees />
 
-          <ProfilPublicReglages />
+      <p className="pt-6" style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+        Vos listes sont enregistrées sur nos serveurs, en Suède, au sein de l’Union européenne.{" "}
+        <Link to="/privacy" style={{ color: "var(--reel-accent-clair)" }}>
+          Confidentialité
+        </Link>
+      </p>
+    </Coquille>
+  );
+}
 
-          <ValeurEstimee />
+/**
+ * Avatar, nom, `@`, adresse, et les deux gestes de session.
+ *
+ * Repris de `VueProfil` au pixel près, chevauchement de la bannière compris :
+ * c'est le même en-tête, et l'écart entre les deux se verrait tout de suite.
+ * L'adresse électronique, elle, n'apparaît **que** ici, jamais sur la page
+ * publique (§10).
+ */
+function EnTete({
+  nom,
+  email,
+  identifiant,
+  visible,
+}: {
+  nom: string;
+  email: string;
+  identifiant: string | null;
+  visible: boolean;
+}) {
+  return (
+    <header className="-mt-12 flex flex-wrap items-end gap-3">
+      <span className="rounded-full p-1" style={{ backgroundColor: "var(--reel-bg)" }}>
+        <UserAvatar name={nom} size={96} />
+      </span>
 
-          <ExportCollection />
+      <div className="min-w-0 pb-1">
+        <h1 style={{ fontSize: "24px", fontWeight: 700, color: "var(--reel-text)" }}>{nom}</h1>
+        {identifiant && (
+          <p
+            className="truncate"
+            style={{
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontSize: "15px",
+              color: "var(--reel-accent-clair)",
+            }}
+          >
+            {arobase(identifiant)}
+          </p>
+        )}
+        <p className="max-w-[420px] truncate" style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
+          {email}
+        </p>
+      </div>
 
-          <SuppressionCompte />
-        </>
-      )}
-    </PageStatique>
+      <div className="mb-1 ml-auto flex items-center gap-2">
+        {identifiant && visible && (
+          <Lien to={cheminProfil(identifiant)}>
+            <ExternalLink size={15} />
+            Ma page
+          </Lien>
+        )}
+        <Bouton onClick={() => { void deconnexion(); }} titre="Se déconnecter">
+          <LogOut size={15} />
+          <span className="hidden sm:inline">Déconnexion</span>
+        </Bouton>
+      </div>
+    </header>
   );
 }
 
 /**
  * L'identifiant, le nom affiché et la visibilité de la page publique.
  *
- * Les trois vivent dans la même section parce qu'ils décrivent une seule
- * chose : ce que voit quelqu'un qui ouvre votre lien. Les séparer aurait
- * dispersé le consentement, alors que c'est précisément ce qui doit se lire
- * d'un coup d'œil.
+ * Les trois vivent dans la même carte parce qu'ils décrivent une seule chose :
+ * ce que voit quelqu'un qui ouvre votre lien. Les séparer aurait dispersé le
+ * consentement, alors que c'est précisément ce qui doit se lire d'un coup
+ * d'œil.
  *
- * **Changer d'identifiant casse les liens déjà partagés**, et rien ne les
- * répare : il n'y a pas d'id stable derrière comme sur une fiche film, où le
- * slug est décoratif (§7). C'est écrit à l'écran plutôt que découvert après
- * coup, et c'est aussi pourquoi l'ancien identifiant redevient libre : le
- * garder en réserve n'aiderait personne et priverait les autres d'un mot.
+ * **Changer d'identifiant ne casse plus les liens déjà partagés**, depuis
+ * `20260806_identifiants_precedents.sql` : l'ancienne adresse redirige en 301
+ * vers la nouvelle, comme `/films/560` redirige vers `/movies/<slug>/560`
+ * (§7). La ligne ouverte le dit, parce que c'est exactement l'inquiétude qui
+ * retient de corriger une faute de frappe dans son pseudonyme.
+ *
+ * La contrepartie est l'inverse de ce que le §3 posait au départ : **un
+ * identifiant, une fois porté, n'est plus rendu à la circulation.** Le laisser
+ * reprendre par quelqu'un d'autre ferait mener un lien partagé vers la
+ * collection d'un tiers, ce qui est bien pire qu'un 404.
  */
-function ProfilPublicReglages() {
-  const etat = useProfil();
-  const profil = etat.statut === "pret" ? etat.profil : null;
-
-  const [identifiant, setIdentifiant] = useState("");
-  const [nom, setNom] = useState("");
+function ReglagesProfil({ profil }: { profil: { identifiant: string; nom: string; visible: boolean } }) {
+  const [ouverte, setOuverte] = useState<"identifiant" | "nom" | null>(null);
+  const [identifiant, setIdentifiant] = useState(profil.identifiant);
+  const [nom, setNom] = useState(profil.nom);
   const [verdict, setVerdict] = useState<EtatIdentifiant | "attente" | null>(null);
   const [enCours, setEnCours] = useState(false);
 
   // Le formulaire part de la valeur en base, et s'y réaligne quand elle change,
   // par exemple après un enregistrement réussi.
   useEffect(() => {
-    if (!profil) return;
     setIdentifiant(profil.identifiant);
     setNom(profil.nom);
-  }, [profil?.identifiant, profil?.nom]);
+  }, [profil.identifiant, profil.nom]);
 
   // Même temporisation que l'écran de création : une requête par frappe
   // interrogerait la base huit fois pour un identifiant de huit signes.
   useEffect(() => {
-    if (!profil || identifiant === profil.identifiant) { setVerdict(null); return; }
+    if (identifiant === profil.identifiant) { setVerdict(null); return; }
     if (!identifiantBienForme(identifiant)) { setVerdict("invalide"); return; }
 
     let annule = false;
@@ -137,42 +276,15 @@ function ProfilPublicReglages() {
     }, 400);
 
     return () => { annule = true; clearTimeout(minuteur); };
-  }, [identifiant, profil?.identifiant]);
-
-  if (etat.statut === "attente") {
-    return (
-      <AttentePleine hauteur={180} />
-    );
-  }
-
-  // Profil absent ou illisible : on n'invente pas un formulaire vide qui
-  // échouerait à l'envoi. Le garde-fou du Layout demandera l'identifiant à la
-  // prochaine page.
-  if (!profil) {
-    return (
-      <Section titre="Ma page publique">
-        <p>
-          Votre identifiant n’a pas encore été choisi, ou n’a pas pu être lu. Rechargez la page :
-          l’écran de choix s’ouvrira.
-        </p>
-      </Section>
-    );
-  }
+  }, [identifiant, profil.identifiant]);
 
   const nomPropre = nom.trim();
-  const modifie = identifiant !== profil.identifiant || nomPropre !== profil.nom;
-  const valide =
-    identifiantBienForme(identifiant) &&
-    nomPropre.length > 0 &&
-    verdict !== "pris" &&
-    verdict !== "reserve" &&
-    verdict !== "invalide";
 
-  async function enregistrer() {
-    if (!profil) return;
+  async function enregistrer(champs: { identifiant?: string; nom?: string }) {
     setEnCours(true);
     try {
-      await majProfil({ identifiant, nom: nomPropre });
+      await majProfil(champs);
+      setOuverte(null);
       toast.success("Profil mis à jour.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Enregistrement impossible.");
@@ -182,7 +294,6 @@ function ProfilPublicReglages() {
   }
 
   async function basculerVisibilite() {
-    if (!profil) return;
     setEnCours(true);
     try {
       const suite = await majProfil({ visible: !profil.visible });
@@ -194,116 +305,166 @@ function ProfilPublicReglages() {
     }
   }
 
+  const identifiantValide =
+    identifiantBienForme(identifiant) &&
+    identifiant !== profil.identifiant &&
+    verdict !== "pris" &&
+    verdict !== "reserve" &&
+    verdict !== "invalide" &&
+    verdict !== "attente";
+
   return (
-    <Section titre="Ma page publique">
-      <p>
-        Votre identifiant donne son adresse à votre page de collection. Elle se consulte sans
-        compte, c’est ce qui la rend partageable, et elle est indexée par les moteurs de
-        recherche.
-      </p>
+    <section className="pt-8">
+      <Titre>Ma page publique</Titre>
 
-      <Encadre>
-        <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
-          {SITE_ORIGIN.replace("https://", "")}
-          {cheminProfil(profil.identifiant)}
-        </span>
-        <br />
-        {profil.visible ? (
-          <Link to={cheminProfil(profil.identifiant)} style={{ color: "var(--reel-accent-clair)" }}>
-            Ouvrir ma page
-          </Link>
-        ) : (
-          <span>Masquée : cette adresse répond comme une page inexistante.</span>
-        )}
-      </Encadre>
-
-      <label className="flex flex-col gap-2 pt-1">
-        <span style={{ color: "var(--reel-text)", fontWeight: 600 }}>Identifiant</span>
-        <span className="flex items-center gap-1">
-          <span aria-hidden="true" style={{ fontFamily: "ui-monospace, monospace" }}>@</span>
-          <input
-            type="text"
-            value={identifiant}
-            onChange={(e) => setIdentifiant(normaliserIdentifiant(e.target.value))}
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            disabled={enCours}
-            className="w-full max-w-[320px] rounded-[8px] px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
+      <Carte>
+        <Ligne
+          icone={AtSign}
+          libelle="Identifiant"
+          valeur={arobase(profil.identifiant)}
+          mono
+          ouverte={ouverte === "identifiant"}
+          onToggle={() => setOuverte(ouverte === "identifiant" ? null : "identifiant")}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span aria-hidden="true" style={{ fontFamily: "ui-monospace, monospace" }}>@</span>
+            <Champ
+              value={identifiant}
+              onChange={(v) => setIdentifiant(normaliserIdentifiant(v))}
+              disabled={enCours}
+              mono
+              ariaLabel="Identifiant"
+            />
+            <Bouton
+              principal
+              disabled={!identifiantValide || enCours}
+              onClick={() => { void enregistrer({ identifiant }); }}
+            >
+              {enCours ? "…" : "Enregistrer"}
+            </Bouton>
+          </div>
+          <p
+            aria-live="polite"
             style={{
-              backgroundColor: "var(--reel-surface)",
-              border: "1px solid var(--reel-border)",
-              color: "var(--reel-text)",
-              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-              fontSize: "14px",
+              fontSize: "13px",
+              color:
+                verdict === "libre"
+                  ? "#4ade80"
+                  : verdict === "pris" || verdict === "reserve" || verdict === "invalide"
+                  ? "#ef6b6b"
+                  : "var(--reel-muted)",
             }}
-          />
-        </span>
-        <span
-          aria-live="polite"
-          style={{
-            fontSize: "13px",
-            color:
-              verdict === "libre"
-                ? "#4ade80"
-                : verdict === "pris" || verdict === "reserve" || verdict === "invalide"
-                ? "#ef6b6b"
-                : "var(--reel-muted)",
-          }}
-        >
-          {verdict === "attente"
-            ? "Vérification…"
-            : verdict === "libre"
-            ? "Disponible."
-            : verdict === "pris"
-            ? "Cet identifiant est déjà pris."
-            : verdict === "reserve"
-            ? "Cet identifiant n’est pas disponible."
-            : verdict === "invalide"
-            ? `Entre ${IDENTIFIANT_MIN} et ${IDENTIFIANT_MAX} signes : lettres, chiffres et « _ ».`
-            : `Les liens déjà partagés vers ${arobase(profil.identifiant)} cesseront de fonctionner si vous le changez.`}
-        </span>
-      </label>
+          >
+            {verdict === "attente"
+              ? "Vérification…"
+              : verdict === "libre"
+              ? "Disponible."
+              : verdict === "pris"
+              ? "Cet identifiant est déjà pris."
+              : verdict === "reserve"
+              ? "Cet identifiant n’est pas disponible."
+              : verdict === "invalide"
+              ? `Entre ${IDENTIFIANT_MIN} et ${IDENTIFIANT_MAX} signes : lettres, chiffres et « _ ».`
+              : `Les liens déjà partagés vers ${arobase(profil.identifiant)} suivront : l’ancienne adresse redirigera vers la nouvelle.`}
+          </p>
+        </Ligne>
 
-      <label className="flex flex-col gap-2">
-        <span style={{ color: "var(--reel-text)", fontWeight: 600 }}>Nom affiché</span>
-        <input
-          type="text"
-          value={nom}
-          onChange={(e) => setNom(e.target.value.slice(0, 60))}
-          autoComplete="off"
+        <Ligne
+          icone={UserRound}
+          libelle="Nom affiché"
+          valeur={profil.nom}
+          ouverte={ouverte === "nom"}
+          onToggle={() => setOuverte(ouverte === "nom" ? null : "nom")}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <Champ
+              value={nom}
+              onChange={(v) => setNom(v.slice(0, 60))}
+              disabled={enCours}
+              ariaLabel="Nom affiché"
+            />
+            <Bouton
+              principal
+              disabled={nomPropre.length === 0 || nomPropre === profil.nom || enCours}
+              onClick={() => { void enregistrer({ nom: nomPropre }); }}
+            >
+              {enCours ? "…" : "Enregistrer"}
+            </Bouton>
+          </div>
+          <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
+            Il paraît sur votre page publique. Votre adresse électronique, elle, n’y paraît jamais.
+          </p>
+        </Ligne>
+
+        <LigneBascule
+          libelle="Page publique"
+          detail={
+            profil.visible
+              ? `${SITE_ORIGIN.replace("https://", "")}${cheminProfil(profil.identifiant)}`
+              : "Masquée : l’adresse répond comme une page inexistante."
+          }
+          mono={profil.visible}
+          actif={profil.visible}
           disabled={enCours}
-          className="w-full max-w-[320px] rounded-[8px] px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
-          style={{
-            backgroundColor: "var(--reel-surface)",
-            border: "1px solid var(--reel-border)",
-            color: "var(--reel-text)",
-            fontSize: "14px",
-          }}
+          onChange={() => { void basculerVisibilite(); }}
         />
-        <span style={{ fontSize: "13px" }}>
-          Ce nom paraît sur votre page publique. Votre adresse électronique, elle, n’y paraît jamais.
-        </span>
-      </label>
+      </Carte>
+    </section>
+  );
+}
 
-      <div className="flex flex-wrap gap-2 pt-1">
-        <Bouton
-          disabled={!modifie || !valide || enCours}
-          onClick={() => { void enregistrer(); }}
-        >
-          {enCours ? "Enregistrement…" : "Enregistrer"}
-        </Bouton>
-        <Bouton disabled={enCours} onClick={() => { void basculerVisibilite(); }}>
-          {profil.visible ? "Masquer ma page" : "Rendre ma page publique"}
-        </Bouton>
-      </div>
+/**
+ * Export CSV, puis suppression, dans cet ordre et dans la même carte.
+ *
+ * Les deux répondent à la même question, « et si je veux partir ». Le relevé du
+ * 2 août 2026 met la perte de données au deuxième rang des griefs contre les
+ * concurrents : des collections de sept à neuf cents titres effacées après une
+ * mise à jour, sans récupération. Pouvoir tout emporter avant d'effacer est ce
+ * qui rend la ligne rouge acceptable, et l'export doit donc rester au-dessus,
+ * pas dans un autre bloc.
+ *
+ * **L'export est gratuit et le restera.** Movie Collector le réserve à sa
+ * version Pro. Le grief numéro un dans ces avis n'est pas le fait de payer,
+ * c'est le mur surgi en cours de route : gager l'export retournerait l'argument
+ * de confiance.
+ */
+function Donnees() {
+  const [enCours, setEnCours] = useState(false);
 
-      <p>
-        Masquée, la page répond comme une page inexistante, et non « profil masqué » : un visiteur ne
-        peut donc pas déduire de son adresse que le compte existe. Vos listes restent visibles pour
-        vous, et vos gestes sur les fiches films ne changent pas.
-      </p>
-    </Section>
+  async function exporter() {
+    setEnCours(true);
+    try {
+      const csv = await exporterCollectionCsv(SITE_ORIGIN);
+      if (csv.lignes === 0) {
+        // Télécharger un fichier vide laisserait croire à une panne. On le dit.
+        toast("Vos listes sont vides, il n’y a rien à exporter.");
+        return;
+      }
+      telecharger(csv);
+      toast.success(`${csv.lignes} ligne${csv.lignes > 1 ? "s" : ""} exportée${csv.lignes > 1 ? "s" : ""}.`);
+    } catch {
+      toast.error("L’export a échoué. Réessayez dans un instant.");
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <section className="pt-8">
+      <Titre>Mes données</Titre>
+
+      <Carte>
+        <LigneAction
+          icone={Download}
+          libelle="Exporter mes listes"
+          detail="CSV de la collection et des envies. Gratuit, et il le restera."
+          action={enCours ? "Préparation…" : "Télécharger"}
+          disabled={enCours}
+          onClick={() => { void exporter(); }}
+        />
+        <SuppressionCompte />
+      </Carte>
+    </section>
   );
 }
 
@@ -343,183 +504,10 @@ function normaliser(valeur: string): string {
  *
  * Une simple boîte « êtes-vous sûr ? » se clique par réflexe. Comme il n’existe
  * aucune sauvegarde de laquelle revenir, le geste doit demander une intention
- * explicite.
+ * explicite. La ligne repliée reste donc courte, mais **tout ce qu'elle déploie
+ * a été conservé mot pour mot** : c'est le seul endroit de la page où raccourcir
+ * le texte reviendrait à raccourcir l'avertissement.
  */
-/**
- * Valeur estimée de la collection, sur les prix d'occasion.
- *
- * **Deuxième fonction la plus demandée** du relevé du 2 août 2026, et la
- * première fois qu'elle peut s'écrire sans mentir : momox shop, accepté sur
- * Awin le 6 août 2026, est la première source de seconde main du catalogue.
- * Ce que le nombre veut dire, et ce qu'il ne veut pas dire, est dans
- * `lib/valeur.ts`.
- *
- * **Sur `/account` et nulle part ailleurs, en particulier pas sur `/u/…`.** Le
- * profil public montre ce qu'on possède, et c'est déjà un changement de posture
- * assumé (§10) ; ce qu'une collection vaut est autre chose. Publier l'inventaire
- * chiffré de biens qui dorment chez quelqu'un, sous un identifiant qu'un moteur
- * indexe, n'est pas une fonction qu'on ajoute sans que la personne l'ait
- * demandé. Cette page-là est en `noindex` et ne se lit que connecté.
- *
- * **Rien n'est calculé avant qu'on le demande.** Un compte de mille éditions
- * coûte cinq requêtes par lots de deux cents, et l'immense majorité des visites
- * à `/account` viennent chercher autre chose. C'est aussi la règle du §8 vue de
- * l'autre bout : ce qui se décide au premier rendu doit se décider sans réseau,
- * donc ce qui demande le réseau ne se décide pas au premier rendu.
- */
-function ValeurEstimee() {
-  const [etat, setEtat] = useState<"repos" | "calcul" | "fait" | "panne">("repos");
-  const [valeur, setValeur] = useState<ValeurCollection | null>(null);
-
-  async function estimer() {
-    setEtat("calcul");
-    try {
-      setValeur(await valeurCollection());
-      setEtat("fait");
-    } catch {
-      setEtat("panne");
-    }
-  }
-
-  return (
-    <Section titre="Valeur estimée de ma collection">
-      <p>
-        Une estimation de ce qu’il coûterait de racheter vos disques d’occasion aujourd’hui, au
-        moins cher des exemplaires en vente chez nos partenaires.
-      </p>
-
-      {etat !== "fait" && (
-        <div className="pt-1">
-          <Bouton onClick={() => { void estimer(); }} disabled={etat === "calcul"}>
-            {etat === "calcul" ? "Calcul…" : "Estimer ma collection"}
-          </Bouton>
-        </div>
-      )}
-
-      {etat === "panne" && (
-        <p>Le calcul a échoué. Réessayez dans un instant.</p>
-      )}
-
-      {etat === "fait" && valeur && valeur.possedees === 0 && (
-        <p>
-          Votre collection est vide. Marquez des éditions comme possédées depuis une fiche film,
-          et le calcul aura de quoi travailler.
-        </p>
-      )}
-
-      {etat === "fait" && valeur && valeur.possedees > 0 && (
-        <>
-          <Encadre>
-            {valeur.estimees === 0 ? (
-              <>
-                Aucune de vos {valeur.possedees} édition{valeur.possedees > 1 ? "s" : ""} ne porte
-                de prix d’occasion connu. Ce n’est pas un défaut de votre collection : nos
-                partenaires publient un prix pour une édition sur quinze.
-              </>
-            ) : (
-              <>
-                <span
-                  className="tabular-nums"
-                  style={{ fontSize: "24px", fontWeight: 600, color: "var(--reel-text)" }}
-                >
-                  {formaterEuros(valeur.total)}
-                </span>
-                <br />
-                {/*
-                  **Le dénominateur est collé au total, jamais dans une note plus
-                  bas.** 1 618 éditions du catalogue portent un prix d'occasion
-                  sur 23 803 : un montant présenté seul laisserait croire qu'il
-                  couvre toute la collection. C'est la même règle qu'au §4, un
-                  taux se lit avec ce qui le divise.
-                */}
-                sur {valeur.estimees} édition{valeur.estimees > 1 ? "s" : ""} estimée
-                {valeur.estimees > 1 ? "s" : ""} — vous en possédez {valeur.possedees}.
-                {valeur.medianeUnitaire !== null && (
-                  <> Médiane {formaterEuros(valeur.medianeUnitaire)} par disque.</>
-                )}
-              </>
-            )}
-          </Encadre>
-
-          {valeur.estimees > 0 && (
-            <>
-              <p>
-                {/* La date la plus ancienne du lot, pas la plus fraîche : c'est
-                    elle qui dit ce que vaut l'estimation (§10). */}
-                Prix d’occasion relevés chez {valeur.marchands.join(", ")}, le plus ancien datant du{" "}
-                {new Date(valeur.releveLePlusAncien ?? "").toLocaleDateString("fr-FR")}.
-              </p>
-              <p>
-                {/* Trois limites, écrites parce qu'elles sont le sujet. Le §8
-                    refusait ce total tant qu'il ne pouvait pas être qualifié. */}
-                C’est un plancher, pas une cote : le total ne compte que les éditions dont un
-                partenaire publie un prix, retient le moins cher, et ne dit pas ce qu’un
-                revendeur vous en donnerait — un marchand d’occasion achète bien moins cher
-                qu’il ne vend. Rien n’est publié sur votre page publique.
-              </p>
-            </>
-          )}
-        </>
-      )}
-    </Section>
-  );
-}
-
-/**
- * Export CSV de la collection et des envies.
- *
- * **Il est ici, et juste avant la suppression, exprès.** Les deux répondent à
- * la même question, « et si je veux partir ». Le relevé du 2 août 2026 met la
- * perte de données au deuxième rang des griefs contre les concurrents : des
- * collections de sept à neuf cents titres effacées après une mise à jour, sans
- * récupération. Pouvoir tout emporter avant d'effacer est ce qui rend le
- * bouton rouge acceptable.
- *
- * **Gratuit, et il le restera.** Movie Collector réserve l'export à sa version
- * Pro. Le grief numéro un dans ces avis n'est pas le fait de payer, c'est le
- * mur surgi en cours de route : gager l'export retournerait l'argument de
- * confiance.
- */
-function ExportCollection() {
-  const [enCours, setEnCours] = useState(false);
-
-  async function exporter() {
-    setEnCours(true);
-    try {
-      const csv = await exporterCollectionCsv(SITE_ORIGIN);
-      if (csv.lignes === 0) {
-        // Télécharger un fichier vide laisserait croire à une panne. On le dit.
-        toast("Vos listes sont vides, il n’y a rien à exporter.");
-        return;
-      }
-      telecharger(csv);
-      toast.success(`${csv.lignes} ligne${csv.lignes > 1 ? "s" : ""} exportée${csv.lignes > 1 ? "s" : ""}.`);
-    } catch {
-      toast.error("L’export a échoué. Réessayez dans un instant.");
-    } finally {
-      setEnCours(false);
-    }
-  }
-
-  return (
-    <Section titre="Exporter mes listes">
-      <p>
-        Un fichier CSV de votre collection et de vos envies, à ouvrir dans un tableur. Une ligne
-        par édition, avec le film, l’éditeur, le code-barres et le lien vers la fiche.
-      </p>
-      <div className="pt-1">
-        <Bouton onClick={() => { void exporter(); }} disabled={enCours}>
-          {enCours ? "Préparation…" : "Télécharger le CSV"}
-        </Bouton>
-      </div>
-      <p>
-        L’export est gratuit et le restera. C’est votre sauvegarde : gardez-la avant de supprimer
-        quoi que ce soit.
-      </p>
-    </Section>
-  );
-}
-
 function SuppressionCompte() {
   const [demande, setDemande] = useState(false);
   const [saisie, setSaisie] = useState("");
@@ -541,89 +529,315 @@ function SuppressionCompte() {
   }
 
   return (
-    <Section titre="Supprimer mon compte">
-      <p>
+    <Ligne
+      icone={Trash2}
+      libelle="Supprimer mon compte"
+      valeur=""
+      destructif
+      ouverte={demande}
+      onToggle={() => { setDemande(!demande); setSaisie(""); }}
+    >
+      <p style={{ fontSize: "14px", color: "var(--reel-muted)", lineHeight: "22px" }}>
         La suppression est immédiate et définitive. Le compte, la collection et les envies sont
         effacés dans le même mouvement, sans copie conservée : nous n’avons aucun moyen de les
         rétablir ensuite.
       </p>
+      <p style={{ fontSize: "14px", color: "var(--reel-muted)" }}>
+        Pour confirmer, recopiez <code style={{ color: "var(--reel-text)" }}>{PHRASE}</code>. La
+        casse et la ponctuation n’ont pas d’importance.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Champ
+          value={saisie}
+          onChange={setSaisie}
+          disabled={enCours}
+          ariaLabel="Phrase de confirmation"
+        />
+        <Bouton
+          destructif
+          disabled={!confirme || enCours}
+          onClick={() => { void supprimer(); }}
+        >
+          {enCours ? "Suppression…" : "Supprimer définitivement"}
+        </Bouton>
+      </div>
+    </Ligne>
+  );
+}
 
-      {!demande && (
-        <div className="pt-1">
-          <Bouton destructif onClick={() => setDemande(true)}>
-            Supprimer mon compte
-          </Bouton>
+/* ------------------------------------------------------------------ */
+/* Briques d'interface                                                 */
+/* ------------------------------------------------------------------ */
+
+function Titre({ children }: { children: ReactNode }) {
+  return (
+    <h2 className="pb-3" style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--reel-muted)" }}>
+      {children}
+    </h2>
+  );
+}
+
+/**
+ * Une carte de lignes, séparées par un filet et jamais par un espace.
+ *
+ * Le filet dit qu'elles appartiennent au même sujet ; des cartes distinctes
+ * diraient l'inverse et rendraient la page deux fois plus haute pour la même
+ * information.
+ */
+function Carte({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="overflow-hidden rounded-[12px]"
+      style={{ backgroundColor: "var(--reel-surface)", border: "1px solid var(--reel-border)" }}
+    >
+      <div className="[&>*+*]:border-t" style={{ borderColor: "var(--reel-border)" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Ligne repliable : libellé et valeur courante, puis le formulaire au clic.
+ *
+ * Le chevron pivote plutôt que de changer de glyphe : deux icônes pour deux
+ * états se lisent comme deux commandes différentes.
+ */
+function Ligne({
+  icone: Icone,
+  libelle,
+  valeur,
+  mono,
+  destructif,
+  ouverte,
+  onToggle,
+  children,
+}: {
+  icone: typeof AtSign;
+  libelle: string;
+  valeur: string;
+  mono?: boolean;
+  destructif?: boolean;
+  ouverte: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  const teinte = destructif ? "#ef6b6b" : "var(--reel-text)";
+
+  return (
+    <div style={{ borderColor: "var(--reel-border)" }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={ouverte}
+        className="flex w-full items-center gap-3 px-4 py-3.5 text-left outline-none transition hover:bg-[var(--reel-surface-2)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--reel-accent)]"
+      >
+        <Icone size={17} style={{ color: destructif ? "#ef6b6b" : "var(--reel-muted)" }} />
+        <span style={{ fontSize: "15px", fontWeight: 500, color: teinte }}>{libelle}</span>
+        <span
+          className="ml-auto truncate"
+          style={{
+            fontSize: "14px",
+            color: "var(--reel-muted)",
+            fontFamily: mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : undefined,
+          }}
+        >
+          {valeur}
+        </span>
+        <ChevronDown
+          size={16}
+          className="shrink-0 transition-transform"
+          style={{ color: "var(--reel-muted)", transform: ouverte ? "rotate(180deg)" : undefined }}
+        />
+      </button>
+
+      {ouverte && (
+        <div
+          className="flex flex-col gap-3 px-4 pb-4"
+          style={{ borderTop: "1px solid var(--reel-border)", paddingTop: "14px" }}
+        >
+          {children}
         </div>
       )}
+    </div>
+  );
+}
 
-      {demande && (
-        <div className="flex flex-col gap-3 pt-1">
-          <label className="flex flex-col gap-2">
-            <span>
-              Pour confirmer, recopiez{" "}
-              <code style={{ color: "var(--reel-text)" }}>{PHRASE}</code> ci-dessous. La casse et la
-              ponctuation n’ont pas d’importance.
-            </span>
-            <input
-              type="text"
-              value={saisie}
-              onChange={(e) => setSaisie(e.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-              disabled={enCours}
-              className="w-full max-w-[320px] rounded-[8px] px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
-              style={{
-                backgroundColor: "var(--reel-surface)",
-                border: "1px solid var(--reel-border)",
-                color: "var(--reel-text)",
-                fontSize: "14px",
-              }}
-            />
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <Bouton
-              destructif
-              disabled={!confirme || enCours}
-              onClick={() => { void supprimer(); }}
-            >
-              {enCours ? "Suppression…" : "Supprimer définitivement"}
-            </Bouton>
-            <Bouton
-              disabled={enCours}
-              onClick={() => { setDemande(false); setSaisie(""); }}
-            >
-              Annuler
-            </Bouton>
-          </div>
+/** Ligne qui déclenche une action au lieu d'ouvrir un formulaire. */
+function LigneAction({
+  icone: Icone,
+  libelle,
+  detail,
+  action,
+  disabled,
+  onClick,
+}: {
+  icone: typeof Download;
+  libelle: string;
+  detail: string;
+  action: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 px-4 py-3.5">
+      {/* Icône et texte dans un même bloc insécable : à 390 px, le `flex-wrap`
+          du parent renvoyait le bouton à la ligne et laissait l'icône seule sur
+          la sienne, ce qui se lit comme une puce orpheline. */}
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Icone size={17} className="shrink-0" style={{ color: "var(--reel-muted)" }} />
+        <div className="min-w-0">
+          <p style={{ fontSize: "15px", fontWeight: 500, color: "var(--reel-text)" }}>{libelle}</p>
+          <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>{detail}</p>
         </div>
+      </div>
+      <span className="ml-auto">
+        <Bouton disabled={disabled} onClick={onClick}>{action}</Bouton>
+      </span>
+    </div>
+  );
+}
+
+/** Ligne à interrupteur : l'état se lit et se change au même endroit. */
+function LigneBascule({
+  libelle,
+  detail,
+  mono,
+  actif,
+  disabled,
+  onChange,
+}: {
+  libelle: string;
+  detail: string;
+  mono?: boolean;
+  actif: boolean;
+  disabled?: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3.5">
+      {actif ? (
+        <Eye size={17} style={{ color: "var(--reel-accent-clair)" }} />
+      ) : (
+        <EyeOff size={17} style={{ color: "var(--reel-muted)" }} />
       )}
-    </Section>
+      <div className="min-w-0">
+        <p style={{ fontSize: "15px", fontWeight: 500, color: "var(--reel-text)" }}>{libelle}</p>
+        <p
+          className="truncate"
+          style={{
+            fontSize: "13px",
+            color: "var(--reel-muted)",
+            fontFamily: mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : undefined,
+          }}
+        >
+          {detail}
+        </p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={actif}
+        aria-label={libelle}
+        disabled={disabled}
+        onClick={onChange}
+        className="relative ml-auto h-[26px] w-[46px] shrink-0 rounded-full outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] disabled:opacity-50"
+        style={{
+          backgroundColor: actif ? "var(--reel-accent)" : "var(--reel-surface-2)",
+          border: `1px solid ${actif ? "var(--reel-accent)" : "var(--reel-border)"}`,
+        }}
+      >
+        <span
+          className="absolute top-[2px] h-[20px] w-[20px] rounded-full transition-all"
+          style={{ left: actif ? "22px" : "2px", backgroundColor: "#ffffff" }}
+        />
+      </button>
+    </div>
+  );
+}
+
+function Champ({
+  value,
+  onChange,
+  disabled,
+  mono,
+  ariaLabel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  mono?: boolean;
+  ariaLabel: string;
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      aria-label={ariaLabel}
+      onChange={(e) => onChange(e.target.value)}
+      autoComplete="off"
+      autoCapitalize="none"
+      spellCheck={false}
+      disabled={disabled}
+      className="min-w-0 flex-1 rounded-[8px] px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
+      style={{
+        backgroundColor: "var(--reel-bg)",
+        border: "1px solid var(--reel-border)",
+        color: "var(--reel-text)",
+        fontFamily: mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : undefined,
+        fontSize: "14px",
+      }}
+    />
+  );
+}
+
+function Lien({ to, children }: { to: string; children: ReactNode }) {
+  return (
+    <Link
+      to={to}
+      className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
+      style={{
+        fontSize: "14px",
+        fontWeight: 600,
+        backgroundColor: "var(--reel-surface-2)",
+        color: "var(--reel-text)",
+        border: "1px solid var(--reel-border)",
+      }}
+    >
+      {children}
+    </Link>
   );
 }
 
 function Bouton({
   children,
   onClick,
+  principal,
   destructif,
   disabled,
+  titre,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick: () => void;
+  principal?: boolean;
   destructif?: boolean;
   disabled?: boolean;
+  titre?: string;
 }) {
+  const fond = destructif ? "#b3261e" : principal ? "var(--reel-accent)" : "var(--reel-surface-2)";
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="rounded-full px-4 py-2 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] disabled:opacity-50"
+      title={titre}
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 outline-none transition hover:brightness-125 focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)] disabled:opacity-50 disabled:hover:brightness-100"
       style={{
         fontSize: "14px",
         fontWeight: 600,
-        backgroundColor: destructif ? "#b3261e" : "var(--reel-surface-2)",
-        color: destructif ? "#ffffff" : "var(--reel-text)",
-        border: `1px solid ${destructif ? "#b3261e" : "var(--reel-border)"}`,
+        backgroundColor: fond,
+        color: destructif || principal ? "#ffffff" : "var(--reel-text)",
+        border: `1px solid ${destructif ? "#b3261e" : principal ? "var(--reel-accent)" : "var(--reel-border)"}`,
       }}
     >
       {children}

@@ -309,7 +309,16 @@ export function BoutonPartage({ identifiant }: { identifiant: string }) {
  * Bandeau dégradé de la maquette. Purement décoratif : deux halos colorés sur
  * un fond sombre, sans image à charger.
  */
-function Banniere() {
+/**
+ * Le dégradé qui coiffe un profil.
+ *
+ * Exporté parce que `/account` porte le même en-tête : c'est la même personne
+ * et la même étagère, vues depuis les réglages plutôt que depuis l'adresse
+ * publique. Deux dégradés écrits séparément auraient dérivé à la première
+ * retouche, et c'est exactement ce que `VueProfil` évite déjà entre les deux
+ * pages de profil.
+ */
+export function Banniere() {
   return (
     // Le bandeau du site est en `position: fixed` et ne réserve pas sa hauteur.
     // Sans ce décalage, les 72 premiers pixels du dégradé passent dessous et

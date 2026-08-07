@@ -246,7 +246,7 @@ export const FAQ: SectionFaq[] = [
         question: "À quoi sert mon « @ » ?",
         reponse: [
           "Il donne son adresse à votre page de collection : jaquette.app/u/votre-identifiant. C’est le lien qu’on partage, il s’ouvre sans compte, et il est indexé par les moteurs.",
-          "Il se choisit à la création du compte et se change ensuite depuis « Mon compte ». Attention, changer d’identifiant change l’adresse : les liens déjà partagés cessent de fonctionner, et l’ancien identifiant redevient disponible pour quelqu’un d’autre.",
+          "Il se choisit à la création du compte et se change ensuite depuis « Mon compte ». Les liens déjà partagés continuent de fonctionner : l’ancienne adresse redirige vers la nouvelle. En contrepartie, un identifiant que vous avez porté n’est jamais rendu à quelqu’un d’autre, sans quoi un lien partagé mènerait un jour vers la collection d’une autre personne.",
         ],
       },
       {

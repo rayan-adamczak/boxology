@@ -9,7 +9,7 @@ import { IntrouvablePage } from "./IntrouvablePage";
 import { useSession } from "../lib/auth";
 import { idsParStatut } from "../lib/collections";
 import { arobase, cheminProfil, normaliserIdentifiant } from "../lib/identifiant";
-import { editionsDuProfil, profilPublic, useProfil } from "../lib/profils";
+import { editionsDuProfil, identifiantCourant, profilPublic, useProfil } from "../lib/profils";
 import { getEditionsByIds, type StatutValue } from "../lib/reelio-db";
 import { useSeo } from "../lib/seo";
 
@@ -50,6 +50,8 @@ import { useSeo } from "../lib/seo";
 type Etat =
   | { statut: "attente" }
   | { statut: "introuvable" }
+  /** L'identifiant demandé a été relâché par son porteur, qui en a un autre. */
+  | { statut: "renomme"; vers: string }
   | { statut: "erreur"; message: string }
   | {
       statut: "pret";
@@ -100,7 +102,16 @@ export function ProfilPublicPage() {
       try {
         const nom = cestMoi ? monProfil.nom : (await profilPublic(canonique))?.nom ?? null;
         if (annule) return;
-        if (nom === null) { setEtat({ statut: "introuvable" }); return; }
+        if (nom === null) {
+          /* Avant de rendre un 404, on regarde si quelqu'un portait cette
+             adresse et l'a changée : un lien partagé doit suivre. La lecture
+             n'a lieu que sur ce chemin-là, donc elle ne coûte rien aux profils
+             qui répondent. */
+          const vers = await identifiantCourant(canonique);
+          if (annule) return;
+          setEtat(vers ? { statut: "renomme", vers } : { statut: "introuvable" });
+          return;
+        }
 
         const listes = await Promise.all(
           ONGLETS.map(async ({ statut: s }) => {
@@ -178,6 +189,10 @@ export function ProfilPublicPage() {
     choix. Le propriétaire, lui, ne passe pas par là : il lit sous session.
   */
   if (etat.statut === "introuvable") return <IntrouvablePage />;
+
+  /* `replace` pour la même raison que la forme non canonique juste au-dessus :
+     le bouton retour ne doit pas ramener sur une adresse qui redirige. */
+  if (etat.statut === "renomme") return <Navigate to={cheminProfil(etat.vers)} replace />;
 
   if (etat.statut === "erreur") {
     return (

@@ -4576,9 +4576,59 @@ dans une barre de navigation rendait 500 sur un chemin de consultation. Elle
 rend maintenant 301 puis 404.
 
 **L'identifiant n'a pas d'id derrière lui**, contrairement à une fiche film où
-le slug est décoratif. Le changer change donc l'adresse pour de bon : les liens
-partagés cessent de fonctionner et l'ancien identifiant redevient libre.
-`/account` l'écrit avant le champ, pas après l'enregistrement.
+le slug est décoratif. Il a désormais une **table d'anciens noms**, ce qui
+revient au même pour qui suit un lien.
+
+#### Un lien partagé survit au renommage, le 6 août 2026
+
+`identifiants_precedents`, migration `20260806_identifiants_precedents.sql`.
+Clé primaire l'identifiant, `user_id` en cascade sur `auth.users`, `libere_le`.
+Un déclencheur `after insert or update` sur `profils` consigne l'ancien nom et
+retire celui qu'on reprend. `/u/<ancien>` répond **301** vers `/u/<courant>`,
+dans le middleware comme dans `ProfilPublicPage`.
+
+**Ce que la version précédente disait était l'inverse**, et c'était le mauvais
+arbitrage : « les liens partagés cessent de fonctionner et l'ancien identifiant
+redevient libre ». Une adresse de profil est faite pour être **donnée**, elle
+part dans un message ou une signature, et celui qui la reçoit n'a aucun moyen
+de savoir qu'elle a changé. Un 404 parce que quelqu'un a corrigé une faute de
+frappe dans son pseudonyme est une panne, pas une conséquence.
+
+**La contrepartie est réelle et non négociable : un identifiant porté n'est
+plus jamais rendu à la circulation.** Les deux règles ne peuvent pas coexister,
+et le sens est clair : si un tiers reprend `@rayan`, un lien partagé mène à
+**la collection de quelqu'un d'autre**, ce qui est bien pire qu'un 404.
+`etat_identifiant` rend donc `pris` pour l'ancien identifiant d'un autre
+compte, et `libre` pour les siens propres, revenir en arrière étant le cas
+normal. Ça se déjuge sans migration, un `delete` sur la table rend tout.
+
+**Le déclencheur est `security definer`, et c'est le point à ne pas rater** :
+il écrit dans une table en `revoke all`, donc en `security invoker` il
+s'exécuterait sous le rôle qui met à jour son profil et buterait sur ce refus.
+C'est le piège du §3 pris dans l'autre sens, là où on avait cru à tort qu'un
+déclencheur tournait sous le propriétaire.
+
+**`identifiant_courant` ne rend rien pour un profil devenu masqué**, alors même
+que la ligne existe : une redirection qui ne partirait que dans ce cas serait
+l'oracle que `profil_public` s'emploie à ne pas être. Un seul saut résout
+`a → b → c`, toutes les lignes d'un compte pointant le même `user_id`.
+
+**Elle n'est appelée qu'après un `profil_public` à `null`**, jamais avant : le
+renommage est le cas rare, et l'ajouter au chemin normal coûterait un
+aller-retour à chaque profil ouvert.
+
+**Rien n'est rattrapable en arrière** : aucun ancien identifiant n'était
+conservé avant cette date, donc les liens cassés par un renommage antérieur le
+restent. Ne pas chercher la passe de rattrapage, elle n'existe pas.
+
+Mesuré à l'application, huit contrôles sur huit, par un renommage réel du
+profil puis retour immédiat, et les barrières exercées à la clé anon :
+
+    GET  identifiants_precedents        401  42501 permission denied
+    POST identifiants_precedents        401  42501 permission denied
+    rpc/identifiant_courant <ancien>    200  "rayan"
+    rpc/identifiant_courant <inconnu>   200  null
+    rpc/etat_identifiant                401  permission denied for function
 
 `ProfilPublicPage` **n'est pas en `lazy()`** : c'est une porte d'entrée depuis
 l'extérieur, donc un chemin de consultation, et le §9 interdit qu'un tel chemin
@@ -4999,6 +5049,24 @@ disque.
   dvdfr avait qualifiés en août dormaient dans le cache, écartés par le seul
   périmètre. Deux disques sur cinq se scannent désormais.
 
+  **Puis 48,0 % dans la nuit du 7 août 2026**, 14 255 codes pour 29 701
+  éditions, après l'import du gisement français haute définition de Momox :
+  2 947 éditions écrites, 1 426 films créés, qualifiées une à une par dvdfr sur
+  4 766 codes crawlés en deux créneaux locaux, **zéro erreur**. Presque un disque
+  sur deux se scanne.
+
+  **C'est la démonstration que le rattrapage était la mauvaise question.** Les
+  quatre voies sondées le 6 août sont toutes mortes, mesurées plus bas ; ce qui
+  fait monter le taux, c'est de faire entrer des éditions qui **portent** un
+  code. Deux mouvements en deux jours, le DVD puis Momox, 26,5 → 48,0 %, et
+  aucun des deux n'a rattrapé une seule ligne existante.
+
+  **Le pré-filtre de format s'est vérifié à l'échelle** : 13 fiches écartées
+  comme DVD sur 3 614 qualifiées, soit 0,25 %. Le marqueur `[Blu-ray]` de Momox
+  dit vrai, là où Leclerc obligeait à interroger 6 393 codes dont 52 %
+  finissaient en DVD. Un marqueur lisible déplace le tri **avant** le crawl, et
+  c'est la différence entre cinq heures de machine et quarante.
+
   **Ce n'est toujours pas assez pour poser la caméra sans le dire.** Un scan qui
   échoue trois fois sur cinq reste un scan qui déçoit, et la réponse au cas
   manquant existe déjà, `/report` branché sur l'enrichissement dvdfr par
@@ -5012,7 +5080,8 @@ disque.
   seule reconnaissance réelle. Le levier reste `/report`, qui part du code que
   quelqu'un a vraiment scanné.
 - ~~**La valeur de la collection, deuxième plus demandée.**~~ **Faite le 6 août
-  2026**, dans `/account`, sur les prix d'occasion de Momox shop.
+  2026**, sur les prix d'occasion de Momox shop, et **déplacée sur l'accueil
+  connecté le même jour**.
 
   **Ce qui manquait n'était pas le calcul, c'était la source.** Le §8 écrivait
   qu'additionner les 724 prix Leclerc « donnerait un total qui se lit comme une
@@ -5032,37 +5101,70 @@ disque.
       c'est un plancher                   au moins cher, sur les seules
                                           éditions couvertes
 
-  **Le dénominateur est collé au total, jamais dans une note plus bas.** 1 618
-  éditions portent un prix d'occasion sur 23 803, donc un montant seul laisserait
-  croire à une couverture qu'on n'a pas. L'écran écrit « sur N éditions estimées,
-  vous en possédez M », et nomme les marchands avec **la date du relevé le plus
-  ancien** du lot, pas la plus fraîche : c'est elle qui dit ce que vaut
-  l'estimation (§10).
+  **Le dénominateur est collé au total, jamais dans une note plus bas.** 5 506
+  éditions portent un prix d'occasion sur 29 701, soit 18,5 %, donc un montant
+  seul laisserait croire à une couverture qu'on n'a pas. L'écran écrit « sur N
+  éditions estimées, vous en possédez M », et nomme les marchands avec **la date
+  du relevé le plus ancien** du lot, pas la plus fraîche : c'est elle qui dit ce
+  que vaut l'estimation (§10).
 
-  **Sur `/account` et nulle part ailleurs, en particulier pas sur `/u/…`.** Le
-  profil public montre ce qu'on possède, ce qui est déjà un changement de posture
-  assumé (§10) ; ce qu'une collection vaut est autre chose. Publier l'inventaire
-  chiffré de biens qui dorment chez quelqu'un, sous un identifiant qu'un moteur
-  indexe, n'est pas une fonction qu'on ajoute sans qu'elle ait été demandée.
+  **La couverture a triplé dans la nuit du 7 août 2026**, de 1 618 à 5 506
+  éditions, et par un chemin qui vaut d'être retenu : **ce n'est pas la source de
+  prix qui a changé, c'est le catalogue.** Les 2 947 éditions Momox importées
+  portent des EAN de son propre flux, donc elles apparient ses offres dès qu'elles
+  existent. La même passe `offres_awin.py --marchand momox` est repassée sans une
+  ligne de code neuve et a écrit 5 697 offres au lieu de 1 684.
+
+  La boucle complète se lit donc : Momox **désigne** les disques par ses
+  code-barres, dvdfr les **qualifie** fiche à fiche, Momox les **date** par son
+  prix. Trois rôles, deux sources, et c'est le premier cas du dépôt où un
+  marchand sert à la fois d'annuaire et d'horloge.
+
+  Somme des prix d'occasion les moins chers sur tout le catalogue au 7 août 2026 :
+  93 847 €, médiane 12,47 €, et par état 13,49 € en très bon, 8,79 € en bon,
+  4,99 € en acceptable.
+
+  **Elle vit dans la colonne de l'accueil connecté**, `TableauDeBordPage`, sous
+  les deux compteurs. Elle avait d'abord été posée dans `/account` : c'est
+  l'écran des réglages, on y va changer son pseudonyme ou effacer son compte,
+  pas contempler un chiffre, et l'accueil est justement l'endroit où l'on
+  regarde sa collection.
+
+  **Jamais sur `/u/…`, et cette règle-là ne bouge pas.** Le profil public montre
+  ce qu'on possède, ce qui est déjà un changement de posture assumé (§10) ; ce
+  qu'une collection vaut est autre chose. Publier l'inventaire chiffré de biens
+  qui dorment chez quelqu'un, sous un identifiant qu'un moteur indexe, n'est pas
+  une fonction qu'on ajoute sans qu'elle ait été demandée. L'accueil connecté
+  tient la condition par trois côtés : il ne se rend qu'avec une session, il est
+  en `noindex`, et `public/avant-montage.js` retire le corps injecté aux
+  visiteurs connectés (§7), donc aucun robot ne le voit.
+
+  **Elle a remplacé un chiffre qui était faux.** La colonne portait déjà une
+  tuile « Valeur estimée », sommant les `prix_editeur`, c'est-à-dire des prix
+  conseillés **neufs** figés à la sortie du disque. C'était exactement le total
+  que ce paragraphe refusait deux alinéas plus haut, affiché sans qu'on le
+  remarque. `getResumeCollection` ne lit donc plus `editions` du tout, ce qui
+  retire au passage une lecture par lots de 500 à chaque ouverture de l'accueil.
 
   **Rien n'est calculé avant qu'on le demande**, un bouton et non un chiffre posé
-  au chargement : un compte de mille éditions coûte cinq requêtes, et l'immense
-  majorité des visites à `/account` viennent chercher autre chose. C'est la règle
-  du §8 vue de l'autre bout, ce qui se décide au premier rendu doit se décider
-  sans réseau, donc ce qui demande le réseau ne se décide pas au premier rendu.
+  au chargement : un compte de mille éditions coûte cinq requêtes par lots de
+  deux cents, et l'accueil en fait déjà quatre. C'est la règle du §8 vue de
+  l'autre bout, ce qui se décide au premier rendu doit se décider sans réseau,
+  donc ce qui demande le réseau ne se décide pas au premier rendu.
 
-  **Reste non vérifié, et c'est le même trou que partout ailleurs** : le chemin
-  connecté. La section a été montée sous une session forgée dans le stockage, ce
-  qui valide sa place dans la page et sa dégradation — le jeton étant invalide,
-  la lecture de `collections` est refusée et l'écran affiche « Le calcul a
-  échoué » sans casser la page. **La branche à chiffres n'a jamais été rendue** :
-  l'unique compte réel a deux éditions possédées et aucune ne porte de prix
-  d'occasion. Ce qui a été vérifié à sa place est la requête, exercée à la clé
-  anon sur deux éditions portant les deux marchands (elle rend les deux occasions
-  et écarte les deux neufs), et son équivalent SQL sur le compte réel, `2
-  possédées, 0 estimées`. Pour éprouver la branche à chiffres il faut une vraie
-  session Google, donc soit le site en production, soit réajouter l'adresse
-  locale dans Supabase, ce que le §3 a délibérément retirée le 4 août.
+  **La branche à chiffres a enfin été rendue, le 6 août 2026.** Le §8 la donnait
+  pour non vérifiée, faute de session réelle portant une édition à prix
+  d'occasion : l'unique compte en a deux, aucune couverte. Éprouvée en ajoutant
+  temporairement à cette collection les trois éditions les plus chères portant
+  une offre d'occasion, puis en les retirant.
+
+      452,57 EUR | prix d'occasion connu sur 3 des 5 | momox shop | 06/08/2026
+
+  Ce qui restait faux dans la note précédente : la dégradation avait bien été
+  vue sous une session forgée, mais un jeton invalide fait échouer la lecture de
+  `collections`, donc c'est le message d'échec qui s'affichait, pas le zéro. Les
+  deux états se distinguent maintenant à l'écran, « Le calcul a échoué » contre
+  « aucun prix d'occasion connu sur vos N ».
 
 #### Abonnement envisagé en v2, deux à trois euros par mois
 

@@ -1393,6 +1393,37 @@ async function lireProfil(identifiant: string): Promise<ProfilSeo | null> {
 }
 
 /**
+ * L'identifiant du jour d'un compte qui portait `identifiant`, ou `null`.
+ *
+ * C'est ce qui fait qu'un lien partagé survit à un renommage. Elle n'est
+ * appelée que lorsque `lireProfil` a déjà rendu `null`, donc sur le chemin du
+ * 404 : les profils qui répondent ne paient pas cet aller-retour.
+ *
+ * `identifiant_courant` est `stable`, donc le GET est accepté et la réponse
+ * entre dans le cache de périphérie, comme `profil_public`. Une panne rend
+ * `null` : on sert alors la page introuvable, qui est la bonne réponse par
+ * défaut, plutôt que de casser la requête.
+ */
+async function lireIdentifiantCourant(identifiant: string): Promise<string | null> {
+  try {
+    const url =
+      `https://${PROJET}.supabase.co/rest/v1/rpc/identifiant_courant` +
+      `?p_identifiant=${encodeURIComponent(identifiant)}`;
+
+    const reponse = await fetch(url, {
+      headers: { apikey: CLE_ANON, Authorization: `Bearer ${CLE_ANON}` },
+      cf: { cacheTtl: CACHE_SECONDES, cacheEverything: true },
+    } as RequestInit);
+
+    if (!reponse.ok) return null;
+    const courant = (await reponse.json()) as string | null;
+    return typeof courant === "string" && courant.length > 0 ? courant : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * `/u/<identifiant>` : la page qu'on partage.
  *
  * Elle sert un `<head>` complet parce que **c'est tout ce que lit un aperçu de
@@ -1485,7 +1516,17 @@ async function servirProfil(url: URL, next: () => Promise<Response>): Promise<Re
 
   try {
     const profil = await lireProfil(identifiant);
-    if (!profil) return pageIntrouvable(next);
+    if (!profil) {
+      /* Personne ne porte cette adresse aujourd'hui : quelqu'un l'a peut-être
+         portée hier. Une 301 plutôt qu'un 404, pour que le lien déjà partagé
+         suive son propriétaire et que Google réattribue le classement de
+         l'ancienne adresse à la nouvelle. */
+      const courant = await lireIdentifiantCourant(identifiant);
+      if (courant) {
+        return Response.redirect(`${url.origin}${cheminProfil(courant)}${url.search}`, 301);
+      }
+      return pageIntrouvable(next);
+    }
 
     const reponse = await next();
     if (!(reponse.headers.get("content-type") ?? "").includes("text/html")) return reponse;
