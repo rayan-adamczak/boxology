@@ -98,12 +98,29 @@ export function BandeauPromo() {
          l'écran, et se poser dessus masquerait la navigation. Au-dessus de `md`
          elle n'existe pas, donc le bandeau descend au ras. */
       className="fixed inset-x-0 bottom-[68px] z-30 md:bottom-0"
+      /*
+        **Il ne suit pas la gouttière, et c'est voulu.** `.reel-gouttiere` cadre
+        le corps du site, 877 px à 1 512 : s'y aligner faisait lire le bandeau
+        comme une section de la page. Une barre qui annonce autre chose que le
+        catalogue doit se détacher de lui, donc elle va d'un bord à l'autre et
+        garde son propre rembourrage.
+
+        Le fond n'est pas `--reel-surface` non plus, qui est celui des cartes
+        d'édition juste au-dessus : un mélange d'accent l'en écarte, et le filet
+        du haut le reprend plus franchement. C'est le motif de Seed relevé sur
+        Mobbin, où la couleur de la bande porte la promotion à elle seule.
+
+        **Aucun `backdrop-filter`**, quelle que soit l'envie : le §8 en garde la
+        trace, un flou sur toute la largeur force une couche de composition et
+        laisse le navigateur peindre des tuiles périmées, page dédoublée et
+        décalée d'une centaine de pixels. Un aplat opaque fait le même travail.
+      */
       style={{
-        backgroundColor: "var(--reel-surface)",
-        borderTop: "1px solid var(--reel-border)",
+        backgroundColor: "color-mix(in srgb, var(--reel-accent) 14%, var(--reel-bg))",
+        borderTop: "1px solid color-mix(in srgb, var(--reel-accent-clair) 40%, transparent)",
       }}
     >
-      <div className="reel-gouttiere flex items-center gap-3 py-2.5">
+      <div className="flex items-center gap-3 px-5 py-2.5 sm:px-8 lg:px-12">
         {/*
           Une étiquette de rayon, et non une pastille ronde.
 
@@ -115,23 +132,26 @@ export function BandeauPromo() {
           l'action passe par une pilule pleine à droite.
 
           Ce qui est repris ici est l'emphase typographique, dans le vocabulaire
-          du site : un cadre rectangulaire arrondi comme les capsules du §8, le
-          taux en gros et ce sur quoi il porte en petites capitales dessous. Ça
-          se lit comme une étiquette posée sur un boîtier, ce que le site montre
-          par ailleurs.
+          du site : un cadre rectangulaire arrondi comme les capsules du §8, avec
+          le seul taux. Ça se lit comme une étiquette posée sur un boîtier, ce
+          que le site montre par ailleurs.
+
+          **Le taux est seul, sans mot dessous.** Un « OCCASION » en petites
+          capitales a tenu quelques heures : il redisait ce que la phrase à côté
+          écrit déjà, « 12 % sur l'occasion », et il faisait de l'étiquette un
+          bloc à deux étages là où une étiquette de prix n'en a qu'un.
 
           Les couleurs sont celles du site et non celles de momox : le §8 pose
           qu'un logo ne suit pas la palette du site, la réciproque vaut, le site
           n'emprunte pas celle d'un marchand.
 
-          **`color-mix` pour le fond**, plutôt qu'un aplat d'accent : la barre
-          est déjà posée sur `--reel-surface`, un bleu plein y ferait un bouton
-          qu'on cherche à cliquer alors que l'étiquette ne mène nulle part.
-          C'est la pilule à droite qui se clique.
+          **`color-mix` pour le fond**, plutôt qu'un aplat d'accent : un bleu
+          plein ferait un bouton qu'on cherche à cliquer alors que l'étiquette
+          ne mène nulle part. C'est la pilule à droite qui se clique.
         */}
         <span
           aria-hidden
-          className="flex shrink-0 flex-col items-center justify-center rounded-[8px] px-2 py-0.5 sm:px-2.5 sm:py-1"
+          className="flex shrink-0 items-center justify-center rounded-[8px] px-2.5 py-1 sm:px-3"
           style={{
             backgroundColor: "color-mix(in srgb, var(--reel-accent) 18%, transparent)",
             border: "1px solid color-mix(in srgb, var(--reel-accent-clair) 45%, transparent)",
@@ -148,23 +168,6 @@ export function BandeauPromo() {
             }}
           >
             {promo.badge}
-          </span>
-          {/* Le mot sous le taux saute sous `sm` : à 375 px l'étiquette faisait
-              100 px de large, sur les 300 disponibles, et poussait la phrase à
-              trois lignes. Ce qu'il dit est de toute façon écrit dans la phrase,
-              « 12 % sur l'occasion ». */}
-          <span
-            className="hidden sm:block"
-            style={{
-              fontSize: "9px",
-              fontWeight: 600,
-              lineHeight: "11px",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--reel-muted)",
-            }}
-          >
-            {promo.badgeObjet}
           </span>
         </span>
 

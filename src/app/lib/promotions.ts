@@ -68,14 +68,6 @@ export interface Promotion {
    * relaie une offre sans se substituer à celui qui la formule.
    */
   badge: string;
-  /**
-   * Ce sur quoi la remise porte, en un mot, sous le taux de l'étiquette.
-   *
-   * « −12 % » seul laisserait croire à une remise sur tout le magasin, ce que
-   * les conditions démentent trois lignes plus bas. Un mot suffit à ne pas
-   * promettre ce qui n'est pas offert, et c'est le §10 appliqué à une étiquette.
-   */
-  badgeObjet: string;
   /** Les conditions du marchand, reprises telles quelles. */
   conditions: string;
   /**
@@ -147,7 +139,6 @@ export const PROMOTIONS: Promotion[] = [
     resume: "12 % de réduction sur les disques d'occasion",
     resumeCourt: "12 % sur l'occasion",
     badge: "−12 %",
-    badgeObjet: "occasion",
     conditions:
       "Dès 20 € d'achat, une fois par personne, sur les seuls articles d'occasion. " +
       "Non cumulable, aucun remboursement en espèces.",
