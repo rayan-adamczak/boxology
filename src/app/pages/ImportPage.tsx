@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import { Upload, AtSign, ArrowRight, CheckCircle2, HelpCircle, Search } from "lucide-react";
 import { PageStatique, Section, Encadre } from "../components/PageStatique";
+import { Selecteur } from "../components/Selecteur";
 import { AttentePleine } from "../components/AttenteRecherche";
 import { connexionGoogle, useSession } from "../lib/auth";
 import { lienFilm } from "../lib/liens";
@@ -671,23 +672,44 @@ function Appariement({
           <Compteur valeur={bilan.absent} libelle={pluriel(bilan.absent, "absent", "absents")} />
         </div>
 
+        {/*
+          `Selecteur` et non un `<select>` natif : le 7 août 2026 a retiré les
+          derniers du site, au motif qu'un `select` sans `appearance-none` garde
+          la flèche du navigateur au milieu d'une capsule dessinée, et que cette
+          flèche change de forme d'une machine à l'autre. Un seul composant sert
+          désormais les filtres du catalogue, le tri du profil et cette page.
+
+          Il apporte au passage ce qu'une liste maison rate d'habitude : la
+          feuille par le bas sous 640 px, le retour du focus au bouton, et la
+          frappe au vol. Sur une table de trente éditions, la dernière compte.
+        */}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1">
           <label className="flex items-center gap-2">
             <span>Ranger dans</span>
-            <Menu value={statut} onChange={(v) => setStatut(v as StatutValue)}>
-              <option value="possede">ma collection</option>
-              <option value="envie">mes envies</option>
-            </Menu>
+            <Selecteur
+              libelle="Ranger dans"
+              taille="sm"
+              valeur={statut}
+              onChange={(v) => setStatut(v as StatutValue)}
+              options={[
+                { valeur: "possede", libelle: "ma collection" },
+                { valeur: "envie", libelle: "mes envies" },
+              ]}
+            />
           </label>
 
           <label className="flex items-center gap-2">
             <span>Surtout en</span>
-            <Menu value={format ?? ""} onChange={(v) => setFormat((v || null) as FormatVoulu | null)}>
-              <option value="">tous formats</option>
-              {FORMATS.map((f) => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </Menu>
+            <Selecteur
+              libelle="Format de prédilection"
+              taille="sm"
+              valeur={format ?? ""}
+              onChange={(v) => setFormat((v || null) as FormatVoulu | null)}
+              options={[
+                { valeur: "", libelle: "tous formats" },
+                ...FORMATS.map((f) => ({ valeur: f, libelle: f })),
+              ]}
+            />
           </label>
         </div>
       </Section>
@@ -824,16 +846,21 @@ function Correspondance({
           </span>
         ) : (
           <span className="min-w-0 flex-1">
-            <Menu value="" onChange={(v) => v && onFilm(Number(v))} pleineLargeur>
-              <option value="">{ligne.entree.titre} — quel film ?</option>
-              {ligne.candidats.map((c) => (
-                <option key={c.filmId} value={c.filmId}>
-                  {c.titre}
-                  {c.annee ? ` (${c.annee})` : ""}
-                  {c.realisateur ? ` — ${c.realisateur}` : ""}
-                </option>
-              ))}
-            </Menu>
+            <Selecteur
+              libelle={`${ligne.entree.titre} — quel film ?`}
+              valeur=""
+              onChange={(v) => v && onFilm(Number(v))}
+              options={[
+                { valeur: "", libelle: `${ligne.entree.titre} — quel film ?` },
+                ...ligne.candidats.map((c) => ({
+                  valeur: String(c.filmId),
+                  libelle:
+                    c.titre +
+                    (c.annee ? ` (${c.annee})` : "") +
+                    (c.realisateur ? ` — ${c.realisateur}` : ""),
+                })),
+              ]}
+            />
           </span>
         )}
       </div>
@@ -843,18 +870,20 @@ function Correspondance({
       {/* Droite : l'édition. */}
       <div className="w-full sm:w-[290px] sm:shrink-0">
         {film ? (
-          <Menu
-            value={ligne.precisee && ligne.edition ? String(ligne.edition.id) : ""}
+          <Selecteur
+            libelle={`Édition de ${film.titre}`}
+            valeur={ligne.precisee && ligne.edition ? String(ligne.edition.id) : ""}
             onChange={(v) => onEdition(v ? Number(v) : null)}
-            pleineLargeur
-          >
-            <option value="">
-              {ligne.edition ? `Non précisée — ${resume(ligne.edition)}` : "Non précisée"}
-            </option>
-            {film.editions.map((e) => (
-              <option key={e.id} value={e.id}>{resume(e)}</option>
-            ))}
-          </Menu>
+            options={[
+              {
+                valeur: "",
+                libelle: ligne.edition
+                  ? `Non précisée — ${resume(ligne.edition)}`
+                  : "Non précisée",
+              },
+              ...film.editions.map((e) => ({ valeur: String(e.id), libelle: resume(e) })),
+            ]}
+          />
         ) : (
           <span style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
             choisissez le film d’abord
@@ -1085,51 +1114,6 @@ function resume(e: EditionCandidate): string {
  */
 function pluriel(n: number, singulier: string, plurielForme: string): string {
   return n > 1 ? plurielForme : singulier;
-}
-
-/**
- * Menu déroulant, seule forme de choix de la page.
- *
- * Un `select` natif et non une liste maison : sur téléphone il ouvre le
- * sélecteur du système, qui sait déjà afficher trente éditions dans une feuille
- * défilante, et c'est exactement ce dont la table a besoin.
- *
- * **Aucune teinte d'alerte sur le bord**, et c'est un revirement. La première
- * version cerclait de bleu toute ligne dont l'édition n'était pas précisée ;
- * comme c'est le cas de la grande majorité, la table entière paraissait
- * sélectionnée, et le bleu ne distinguait plus rien. Ce que la ligne a à dire
- * est déjà écrit dedans, « Non précisée », et les compteurs en tête donnent le
- * compte.
- */
-function Menu({
-  value,
-  onChange,
-  children,
-  pleineLargeur,
-}: {
-  value: string;
-  onChange: (valeur: string) => void;
-  children: React.ReactNode;
-  pleineLargeur?: boolean;
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={
-        (pleineLargeur ? "w-full min-w-0 " : "") +
-        "truncate rounded-[8px] px-2 py-1.5 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
-      }
-      style={{
-        backgroundColor: "var(--reel-surface-2)",
-        border: "1px solid var(--reel-border)",
-        color: "var(--reel-text)",
-        fontSize: "13px",
-      }}
-    >
-      {children}
-    </select>
-  );
 }
 
 function Compteur({
