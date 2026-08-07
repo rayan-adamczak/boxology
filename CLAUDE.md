@@ -1841,6 +1841,71 @@ lit comme un scan négatif :
 - **le Dublin Core ne rend pas l'EAN** alors que la notice le porte en `001`
   ou `073`.
 
+### senscritique.com : source d'import, jamais de catalogue, 7 août 2026
+
+**Elle n'apporte aucune édition, et ce n'est pas son rôle.** SensCritique
+catalogue des œuvres, pas des disques : on ne va pas y chercher du catalogue,
+on y va chercher **la liste de quelqu'un**, pour la reprendre dans sa
+collection. C'est la seule source du dépôt lue depuis le navigateur du visiteur
+et non depuis une machine à nous.
+
+**Leur API GraphQL non documentée est ouverte, mesuré et non supposé** :
+
+    POST https://apollo.senscritique.com/   content-type: application/json
+
+    access-control-allow-origin: *          n'importe quelle origine
+    access-control-allow-credentials: true
+    aucune authentification demandee
+    aucun robots.txt servi par cet hote
+
+Quatre requêtes couvrent le besoin, toutes vérifiées sans jeton :
+
+| requête | ce qu'elle rend |
+|---|---|
+| `user(username)` | `null` si le pseudo n'existe pas, ce qui **valide le pseudo** |
+| `.collection(action: DONE\|WISH, universe, order, limit, offset)` | `total` + `products{id,title,originalTitle,yearOfProduction}` |
+| `.listsCreated(limit, offset, notEmpty)` | les listes, `{id,label,productCount,isPrivate,url}` |
+| `userList(id).productsList(limit, offset)` | les films d'une liste, avec **`annotation`** |
+
+Relevé sur des comptes réels : 847 vus et 1 005 envies films, 51 et 191 en
+séries, 73 listes. `searchListExplorer(query:"ma collection blu-ray")` annonce
+**11 868 listes** : c'est le gisement, et c'est celui que le banc d'essai du
+2 août utilisait déjà.
+
+**Tout se fait dans le navigateur du visiteur, sur ses propres données.** Il n'y
+a ni proxy, ni crawl HTML, ni pagination de `www.senscritique.com`. Le
+`Disallow: /*?page=*` de leur `robots.txt` vise un robot sur l'hôte `www`, que
+nous ne touchons pas. Le proxy PHP de SensBoxd est un vestige, la CORS est
+ouverte. Il faut en revanche `apollo.senscritique.com` dans le `connect-src` de
+la CSP, et le §10 le déclare dans la politique de confidentialité, la requête
+partant de chez le visiteur.
+
+**Toutes les requêtes ne sont pas ouvertes, et c'est rassurant plutôt que
+l'inverse** : `usersByUniverse` rend `auth/unauthenticated-user`, « Unauthenticated
+Users Not Allowed ». L'API distingue explicitement ce qu'elle expose de ce
+qu'elle ferme, et les quatre champs employés sont du côté ouvert.
+
+**Deux pièges mesurés, et le premier est vicieux :**
+
+- **un `universe` inconnu n'est pas refusé, il est ignoré**, et la requête rend
+  alors *tous* les univers confondus. `universe: "serie"`, qui n'existe pas, rend
+  **4 998** œuvres là où `movie` en rend 847 et `tvShow` 51 : jeux vidéo, livres,
+  BD et albums compris. Une faute de frappe ferait donc entrer un catalogue de
+  jeux vidéo dans une collection de disques, sans la moindre erreur. Les deux
+  seules valeurs valides sont `movie` et `tvShow` ;
+- **la pagination par 18 de leur application mobile n'est pas une limite.** Le
+  plafond n'a pas été atteint à 200, ce qui divise par onze le nombre
+  d'allers-retours sur une collection de deux mille titres.
+
+**Le `GET www.senscritique.com/{pseudo}/collection?action=WISH` que d'autres
+intégrations utilisent pour valider le pseudo est inutile et inutilisable** :
+`user(username)` rend déjà `null` sur un pseudo inconnu, et `www` ne sert aucun
+en-tête CORS, donc un navigateur ne peut pas le lire.
+
+**Aucun export en libre-service de leur côté**, l'export RGPD se demande. Les
+outils tiers (SensBoxd, critique.rs, l'extension SensCritique+) produisent un
+CSV que notre import lit aussi, la lecture d'en-tête étant tolérante.
+
 ### dvdfr.com, enrichissement par code-barres, 3 août 2026
 
 **Écarté deux fois, puis retenu pour ce qu'il sait faire.** Le sujet avait été
@@ -5195,6 +5260,8 @@ disque.
 
 #### Les deux murs, et ils ne se règlent pas par du front
 
+- ~~**Le scan de code-barres, fonction la plus demandée.**~~ **Livré le 7 août
+  2026**, `/scan`, avec `/report` en aval. Voir plus bas, « Le scan et l'import ».
 - **Le scan de code-barres, fonction la plus demandée.** 5 460 EAN pour
   20 602 éditions, soit **26,5 %**, en baisse : Zavvi et Metaluna n'en publient
   aucun et gonflent le dénominateur à chaque vague. Un scan qui échoue trois
@@ -5456,6 +5523,151 @@ pas.** Ne pas relancer une vague de ce type en espérant un autre résultat.
 
 Ce qui reste, et rien d'autre : le signalement d'édition par l'utilisateur
 branché sur l'enrichissement dvdfr par code-barres, et les flux marchands.
+
+### Le scan et l'import, livrés le 7 août 2026
+
+Les deux portes d'entrée d'une collection : **reprendre une liste tenue
+ailleurs**, et **ajouter un disque qu'on a en main**. Le §8 les classait
+première et cinquième des attentes relevées le 2 août.
+
+#### `/scan`, la caméra
+
+**Couverture EAN mesurée le 7 août : 48,0 %**, 14 253 codes valides sur 29 701
+éditions, contre 41,1 % la veille et 26,5 % le 3 août. Un scan sur deux
+aboutit, et c'est ce qui a levé le blocage : le §8 posait qu'un scan qui échoue
+trois fois sur quatre est pire que pas de scan.
+
+**Le chiffre est écrit sur la page**, en toutes lettres. Un échec annoncé n'est
+pas un échec subi, et l'autre moitié part vers `/report?ean=…`, prérempli :
+c'est le couple que le §8 réclamait, pas le lecteur seul.
+
+**Le scan désambiguïse là où l'import ne peut pas**, et c'est sa vraie valeur :
+un code-barres désigne **le disque qu'on a dans la main**. On cherche donc dans
+`editions`, jamais par la route `/ean/` du middleware, qui redirige vers le
+film. Trois issues, toutes exercées : une édition, plusieurs pour un même code
+(5 cas en base), aucune.
+
+**Deux verrous d'infrastructure, tous deux dans `public/_headers`**, et aucun
+des deux ne se voit dans le code applicatif :
+
+    Permissions-Policy: camera=()   interdisait la camera sur NOTRE origine
+    script-src 'self'               interdisait la compilation WebAssembly
+
+Le second parce que **Safari et tous les navigateurs iOS n'implémentent pas
+`BarcodeDetector`**, WebKit ne le porte pas et Firefox non plus : sans repli
+WebAssembly, la fonction la plus demandée n'existerait que sur Chrome Android.
+`'wasm-unsafe-eval'` n'autorise **que** la compilation WASM, pas `eval` ni
+`new Function`.
+
+**Le `.wasm` est servi par nous.** zxing-wasm va le chercher sur
+`fastly.jsdelivr.net` par défaut ; `lib/scan.ts` réécrit ce chemin vers l'asset
+émis par Vite. Le §10 a sorti le site de toute dépendance à un tiers pour ses
+fichiers, et `connect-src` refuserait de toute façon la requête.
+
+Vérifié sous `wrangler` : `.wasm` servi en 200 `application/wasm`, 1 065 634
+octets, `WebAssembly.compile` réussit (77 imports), zéro violation CSP.
+
+**Chromium déclare `upc_a` inconnu**, sa liste ne porte que `upc_e`. Il ne se
+plaint pas quand on le demande, mais une autre implémentation lèverait et on
+basculerait sur un mégaoctet de WASM pour rien : on n'exige donc que ce qu'il
+déclare savoir lire. Rien n'est perdu, un UPC-A **est** un EAN 13 avec un zéro
+devant, et `normaliserCode` le remet.
+
+#### `/import`, reprendre Letterboxd ou SensCritique
+
+**SensCritique se lit depuis le navigateur du visiteur**, détail des mesures au
+§5. Nos serveurs n'adressent aucune requête chez eux.
+
+**Letterboxd, jamais.** Leur `robots.txt` met `ClaudeBot`, `GPTBot`, `CCBot` et
+une vingtaine d'autres en `Disallow: /`, politique déclarée au sens du §5. Leur
+export officiel est en libre-service, *Settings → Data → Export your data*, et
+c'est ce ZIP qu'on lit. **Ouvert sans bibliothèque**,
+`DecompressionStream('deflate-raw')` plus une lecture du répertoire central :
+le §8 a retiré quatorze dépendances le 4 août, on n'en rajoute pas une pour ça.
+
+**L'appariement vit en base**, `public.apparier_import(jsonb)`, migration
+`20260807_apparier_import.sql`. Même règle que la recherche, titre exact replié
+par `mots_recherche` sur le titre, le titre original ou `mots_alternatifs`,
+année à ±1. Une seconde implémentation en TypeScript aurait dérivé, ce que le
+§6 reproche déjà à deux copies de `chercher()`.
+
+**C'est `mots_alternatifs` qui rend l'anglais possible**, colonne générée posée
+le 5 août pour tout autre chose. Sans elle un export Letterboxd ne rendrait
+presque rien, leur `Name` étant le titre anglais quand nos deux colonnes de
+titre sont françaises une fois sur deux :
+
+    Amelie 2001                  -> Le Fabuleux Destin d'Amelie Poulain
+    The Handmaiden 2016          -> Mademoiselle
+    Raising Arizona 1987         -> Arizona Junior
+    Assault on Precinct 13 1976  -> Assaut
+    Enemy 2013                   -> Enemy (2014)   <- rattrape par l'annee ±1
+
+Éprouvé sur 49 titres écrits à la main dans leur graphie : **41 appariés, 0 faux
+positif, 0 ambiguïté**, et les 8 absents sont exactement les trous de fonds
+nommés plus haut. Second contrôle, 300 films cherchés depuis leur titre anglais :
+300/300.
+
+**Deux index btree d'expression** accompagnent la fonction. Les trois index de
+titre du 1er août sont en `gin_trgm_ops`, ce qu'il fallait pour `like '%…%'` ;
+ici on ne fait que de l'égalité, et un GIN trigramme la sert chèrement. Mesuré,
+200 entrées passaient de **1 699 ms** à quelques centaines. Le trigramme reste
+indispensable au seul `mots_alternatifs like '%|…|%'`.
+
+#### L'ambiguïté d'édition, et pourquoi le plan d'origine ne tenait pas
+
+Un fichier donne un titre, donc un film ; `collections` veut une édition.
+
+Le plan tablait sur la moyenne du catalogue : 61,9 % des films n'ont qu'une
+édition, et déclarer un format levait 58,5 % du reste, soit 84 %
+d'auto-résolution. **Rejoué sur une vraie liste**, les 1 005 envies d'un compte
+SensCritique réel :
+
+    527 films apparies, dont 390 a plusieurs editions   -> 74 %, pas 38 %
+    declarer « Blu-ray » n'en leve que 51               -> 35,7 % au total
+
+Ce n'est pas une erreur de mesure, c'est un **biais de population** : une liste
+réelle est faite de films populaires, et un film populaire a quatorze Blu-ray,
+steelbook, digibook, réédition, coffret. `300` en porte vingt dont quatorze
+Blu-ray. La moyenne du catalogue est tirée par les milliers de titres à édition
+unique que personne ne collectionne.
+
+**Le plan d'origine importait donc 26 % d'une liste et jetait le reste.**
+
+Les deux issues habituelles sont mauvaises : faire choisir parmi quatorze
+pressages trois cent quarante fois, personne ne le fera, et personne ne s'en
+souvient ; choisir à sa place et se taire, c'est écrire un lien faux, ce que le
+§9 interdit.
+
+**La troisième est de le dire**, d'où `collections.edition_precisee`, migration
+`20260807_collections_edition_precisee.sql`. « J'ai *300* en Blu-ray » est une
+vérité que les gens savent énoncer ; « j'ai le steelbook Zavvi de 2013 » non. La
+ligne existe, pointe une édition représentative pour avoir une jaquette et une
+fiche, et porte la marque de ce qu'elle n'affirme pas. `true` par défaut, donc
+sans effet sur l'existant : un clic sur une fiche est précis par construction.
+
+    format aucun       importables 527 (52,4 %)  dont pressage sur 137
+    format Blu-ray     importables 527           dont pressage sur 188
+    format DVD         importables 527           dont pressage sur 310
+
+**Les homonymes, eux, ne s'écrivent pas.** Huit sur 1 005, `Le Garde du corps`
+1984 contre 1973, `The Killer` 2023 contre 2024 : rien n'est importé tant que
+personne n'a tranché. Une absence se corrige, un lien faux se lit comme une
+vérité.
+
+**Le choix d'édition est déterministe**, sinon réimporter le même fichier
+écrirait une seconde ligne et la collection doublerait. Quatre chemins, du plus
+sûr au moins sûr : une adresse de fiche dans l'annotation, un code-barres dans
+l'annotation, une seule édition dans le format, puis la représentative.
+
+**L'annotation SensCritique vaut de l'or**, et ce n'était pas prévu. Relevée sur
+une liste réelle intitulée « La collection », elle porte `"Blu-ray"`, `"DVD"`,
+et jusqu'à `"Coffret blu-ray steelbook (https://editioncollector.fr/…)"`. Ce
+dernier cas résout l'édition **exacte** par `editions.url_source`, vérifié de
+bout en bout.
+
+**Mesuré sur la chaîne complète** : 1 005 titres appariés en **3,3 s**, 527
+importables, 8 à trancher, 470 absents. Les absents sont le §8 mot pour mot,
+c'est le catalogue qui manque, pas l'appariement.
 
 ### Fonctionnel
 - **Le premier rendu ne doit pas attendre la session, le 3 août 2026.** Sur une
@@ -7567,6 +7779,36 @@ Documentés parce qu'ils se reproduiront.
 - **Un flux marchand n'annonce pas ce qu'il ne vend pas.** Corollaire du même
   épisode : ne pas conclure d'un « 4/19 » que la source est mauvaise. Elle est
   excellente sur ce qu'elle porte, elle ne porte simplement pas de fonds.
+
+### Front et navigateur
+- **`\w` ne couvre pas les lettres accentuées en JavaScript**, et un garde de
+  contexte s'ouvre en silence. `formatDepuisTexte` refuse de lire un format dans
+  « restauré en 4K », qui décrit une restauration et non un support, par
+  `/(restaur|master|scan|…)\w*\s+(en\s+)?(4k|uhd)/`. Le `\w*` s'arrête avant le
+  « é », le `\s+` échoue, et la garde ne mord pas : « restauré en 4K » repassait
+  pour un disque 4K. `\S*` règle le cas. C'est le piège du §9 sur `translate()`
+  appliqué avant `lower()`, dans une autre grammaire, et **il n'a été trouvé que
+  par un test** — à l'œil, la fonction rendait une valeur plausible.
+- **Une bibliothèque WebAssembly va chercher son `.wasm` sur un CDN par
+  défaut.** zxing-wasm pointe `fastly.jsdelivr.net`, ce que la CSP refuse et ce
+  que le §10 interdit. Le symptôme serait celui du §3 : la caméra s'ouvre, rien
+  n'est jamais détecté, requête à zéro octet et zéro statut. Vérifier ce qu'une
+  dépendance télécharge **à l'exécution**, pas seulement ce qu'elle pèse.
+- **`Permissions-Policy` ferme aussi la porte à sa propre origine.**
+  `camera=()` n'interdit pas « les tiers », il interdit tout le monde, nous
+  compris : `getUserMedia` échoue avant même la demande d'autorisation, donc
+  sans refus visible ni message utile. Il faut `camera=(self)`.
+- **`wrangler pages dev` prend la date du jour comme `compatibility_date`**, que
+  son binaire ne supporte pas toujours encore : « This Worker requires
+  compatibility date 2026-08-07, but the newest date supported by this server
+  binary is 2026-08-06 ». La prévisualisation ne démarre alors **pas du tout**,
+  et le message ne ressemble pas à un problème de version d'outil. Le drapeau
+  est posé dans `.claude/launch.json`.
+- **Un `useState(() => …)` n'est pas un `useEffect`.** L'initialiseur paresseux
+  tourne pendant le rendu et sa valeur de retour est prise pour l'état, donc la
+  fonction de nettoyage n'est jamais appelée et rien ne se rejoue au changement
+  de dépendance. Écrit une fois dans `ImportPage`, corrigé avant de tourner :
+  ça se lit comme un effet et ça n'en est pas un.
 
 ### Doublons et duplication silencieuse
 - **Un lot doublé ressemble à un lot sain.** Le crawl The Jokers a rendu 292

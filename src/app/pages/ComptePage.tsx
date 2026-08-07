@@ -11,6 +11,7 @@ import {
   EyeOff,
   LogOut,
   Trash2,
+  Upload,
   UserRound,
 } from "lucide-react";
 import { Banniere } from "../components/VueProfil";
@@ -591,6 +592,15 @@ function Donnees() {
       <Titre>Mes données</Titre>
 
       <Carte>
+        {/* L'import avant l'export, et ce n'est pas l'ordre alphabétique : on
+            arrive ici pour remplir une collection vide bien plus souvent que
+            pour sauvegarder une collection faite. */}
+        <LigneLien
+          icone={Upload}
+          libelle="Importer une collection"
+          detail="Depuis Letterboxd ou SensCritique, en une fois."
+          to="/import"
+        />
         <LigneAction
           icone={Download}
           libelle="Exporter mes listes"
@@ -840,6 +850,43 @@ function LigneAction({
         <Bouton disabled={disabled} onClick={onClick}>{action}</Bouton>
       </span>
     </div>
+  );
+}
+
+/**
+ * Ligne qui mène ailleurs.
+ *
+ * Un `Link` et non un `onClick` avec `navigate` : c'est une navigation, elle
+ * doit s'ouvrir dans un onglet au clic du milieu et se copier au clic droit
+ * comme n'importe quel lien du site.
+ */
+function LigneLien({
+  icone: Icone,
+  libelle,
+  detail,
+  to,
+}: {
+  icone: typeof Download;
+  libelle: string;
+  detail: string;
+  to: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="flex items-center gap-3 px-4 py-3.5 outline-none transition hover:bg-[var(--reel-surface-2)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--reel-accent)]"
+    >
+      <Icone size={17} className="shrink-0" style={{ color: "var(--reel-muted)" }} />
+      <div className="min-w-0 flex-1">
+        <p style={{ fontSize: "15px", fontWeight: 500, color: "var(--reel-text)" }}>{libelle}</p>
+        <p style={{ fontSize: "13px", color: "var(--reel-muted)" }}>{detail}</p>
+      </div>
+      <ChevronDown
+        size={16}
+        className="shrink-0 -rotate-90"
+        style={{ color: "var(--reel-muted)" }}
+      />
+    </Link>
   );
 }
 

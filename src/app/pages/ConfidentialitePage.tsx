@@ -202,6 +202,21 @@ export function ConfidentialitePage() {
             <strong style={{ color: "var(--reel-text)" }}>momox shop</strong>, uniquement si vous
             cliquez sur un prix affiché.
           </li>
+          {/*
+            Mentionné parce que c'est une requête sortante que le visiteur ne
+            soupçonne pas, et le §10 pose qu'une politique de confidentialité ne
+            vaut que par son exactitude. La formulation dit ce qui compte
+            vraiment : la requête part de **son** navigateur, pas de nos
+            serveurs, donc SensCritique voit son adresse IP comme s'il visitait
+            leur site, et nous ne voyons rien de sa liste tant qu'il n'a pas
+            choisi de l'importer.
+          */}
+          <li>
+            <strong style={{ color: "var(--reel-text)" }}>SensCritique</strong>, uniquement si vous
+            lancez un import depuis leur service. La lecture part alors de votre navigateur et non
+            de nos serveurs : ils reçoivent votre adresse IP comme si vous visitiez leur site, et
+            nous n’enregistrons que les éditions que vous choisissez d’importer.
+          </li>
         </ul>
         {/*
           Google Fonts est sorti de cette liste le 3 août 2026 : les polices

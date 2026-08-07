@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { PageStatique, Section, Encadre } from "../components/PageStatique";
 import { AttentePleine } from "../components/AttenteRecherche";
@@ -84,7 +84,19 @@ export function SignalerPage() {
 }
 
 function Formulaire({ onEnvoye }: { onEnvoye: () => void }) {
-  const [ean, setEan] = useState("");
+  /*
+    Le code peut arriver par l'URL, `/report?ean=…`.
+
+    C'est `/scan` qui l'envoie ici quand le code-barres lu n'est au catalogue,
+    ce qui est le cas d'un disque sur deux : retaper treize chiffres qu'on vient
+    de scanner serait absurde, et c'est ce couple scan-signalement que le §8
+    réclame plutôt que le lecteur seul.
+
+    Lu une seule fois, à l'initialisation : ensuite le champ appartient à la
+    frappe, et le resynchroniser sur l'URL effacerait une correction en cours.
+  */
+  const [parametres] = useSearchParams();
+  const [ean, setEan] = useState(() => chiffres(parametres.get("ean") ?? ""));
   const [note, setNote] = useState("");
   const [enCours, setEnCours] = useState(false);
 

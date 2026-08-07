@@ -70,23 +70,63 @@
 #   style-src   'unsafe-inline' est obligatoire, et ce n'est pas une facilité :
 #               le corps injecté par functions/_middleware.ts pose ses styles en
 #               attribut, faute de pouvoir rendre React dans le Worker.
-#   script-src  'self' suffit. Le JSON-LD du middleware est un `<script
+#   script-src  'self', plus **`'wasm-unsafe-eval'` depuis le 7 août 2026**, pour
+#               le scan de code-barres. Cette valeur n'autorise **que** la
+#               compilation WebAssembly : elle ne rouvre ni `eval`, ni
+#               `new Function`, ni le script en ligne, contrairement à
+#               `'unsafe-eval'` qui les rouvrirait tous. Sans elle, le lecteur de
+#               repli ne démarre pas.
+#
+#               Il faut un repli, et ce n'est pas un confort : **Safari et tous
+#               les navigateurs iOS n'implémentent pas `BarcodeDetector`**, WebKit
+#               ne le porte pas, Firefox non plus. S'en tenir au détecteur natif
+#               reviendrait à ne livrer la fonction la plus demandée du §8 qu'à
+#               Chrome sur Android.
+#
+#               Le `.wasm` lui-même est servi par nous, jamais par un CDN :
+#               zxing-wasm va le chercher sur `fastly.jsdelivr.net` par défaut, et
+#               `lib/scan.ts` réécrit ce chemin vers l'asset émis par Vite. Le
+#               §10 a sorti le site de toute dépendance à un tiers pour ses
+#               fichiers, et `connect-src` refuserait de toute façon la requête.
+#
+#               Le JSON-LD du middleware, lui, est un `<script
 #               type="application/ld+json">`, un bloc de données que le
 #               navigateur n'exécute pas, donc que la CSP ne filtre pas.
 #   connect-src le projet Supabase, qui sert à la fois PostgREST et auth-js.
 #               La connexion Google est une navigation, pas une requête.
 #
+#               **`apollo.senscritique.com` depuis le 7 août 2026**, pour l'import
+#               de collection. Leur API GraphQL publique répond sans
+#               authentification et annonce `access-control-allow-origin: *` :
+#               c'est donc le **navigateur du visiteur** qui lit ses propres
+#               données, directement chez eux. Nos serveurs n'adressent aucune
+#               requête à senscritique.com, il n'y a ni proxy ni crawl, et le
+#               `Disallow: /*?page=*` de leur `robots.txt` vise leur hôte `www`,
+#               que nous ne touchons pas.
+#
+#               Sans cette entrée, l'import échoue en silence côté visiteur, avec
+#               la signature du §3 : requête à zéro octet et zéro statut.
+#
 # `frame-ancestors 'none'` interdit l'iframe, donc le détournement de clic sur
 # les boutons de collection. `X-Frame-Options` le double pour les navigateurs
 # qui ignorent la directive.
+#
+# **`Permissions-Policy` autorise la caméra depuis le 7 août 2026, et pour nous
+# seuls.** `camera=()` interdisait la caméra **sur notre propre origine**, donc
+# `getUserMedia` échouait avant même que le navigateur ne pense à demander une
+# autorisation, et le symptôme ne ressemble à rien : ni refus visible, ni
+# message utile. `camera=(self)` l'ouvre à jaquette.app et à rien d'autre, les
+# iframes tierces restant exclues, ce que `frame-ancestors 'none'` rend de toute
+# façon théorique. Les quatre autres permissions restent fermées : le site n'a
+# aucun usage du micro, de la position, du paiement ni de l'USB.
 #
 # HSTS n'est volontairement pas ici : Cloudflare le gère depuis SSL/TLS > Edge
 # Certificates, et l'engagement est difficile à défaire une fois le max-age
 # servi.
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://image.tmdb.org https://img.jaquette.app https://cdn.shopify.com https://media.e.leclerc https://images2.medimops.eu https://rndyusuyfkrojpazjsll.supabase.co; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://image.tmdb.org https://img.jaquette.app https://cdn.shopify.com https://media.e.leclerc https://images2.medimops.eu https://rndyusuyfkrojpazjsll.supabase.co; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co https://apollo.senscritique.com
   X-Frame-Options: DENY
-  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
+  Permissions-Policy: geolocation=(), microphone=(), camera=(self), payment=(), usb=()
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
 
