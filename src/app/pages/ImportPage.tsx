@@ -1,13 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { Upload, AtSign, CheckCircle2, HelpCircle, Search } from "lucide-react";
+import { Upload, AtSign, ArrowRight, CheckCircle2, HelpCircle, Search } from "lucide-react";
 import { PageStatique, Section, Encadre } from "../components/PageStatique";
 import { AttentePleine } from "../components/AttenteRecherche";
 import { connexionGoogle, useSession } from "../lib/auth";
 import { lienFilm } from "../lib/liens";
 import { vignette } from "../lib/visuels";
 import type { StatutValue } from "../lib/reelio-db";
+import {
+  MESSAGE,
+  chiffres,
+  eanBienForme,
+  signalerEdition,
+  type Verdict,
+} from "../lib/signalements";
 import {
   LIBELLE_NATURE,
   lireCsv,
@@ -730,16 +737,28 @@ function Appariement({
           titre={`${bilan.absent} ${pluriel(bilan.absent, "titre absent", "titres absents")} du catalogue`}
         >
           <p style={{ fontSize: "13px" }}>
-            Aucun disque de nos sources ne les porte. Le boîtier en main,{" "}
-            <Link to="/report" style={{ color: "var(--reel-accent-clair)" }}>
-              son code-barres suffit à le faire entrer
-            </Link>
-            .
+            Aucun disque de nos sources ne les porte. Si vous avez le boîtier en main, son
+            code-barres suffit à le faire entrer : la fiche est créée à la passe suivante.
           </p>
-          <Encadre>
-            {absents.slice(0, 60).map((l) => l.entree.titre).join(" · ")}
-            {absents.length > 60 && ` … et ${absents.length - 60} autres`}
-          </Encadre>
+
+          <div
+            className="overflow-hidden rounded-[10px]"
+            style={{ border: "1px solid var(--reel-border)" }}
+          >
+            {absents.slice(0, PLAFOND_ABSENTS).map((l, n) => (
+              <LigneAbsent key={n} titre={l.entree.titre} annee={l.entree.annee} premiere={n === 0} />
+            ))}
+          </div>
+
+          {absents.length > PLAFOND_ABSENTS && (
+            <p style={{ fontSize: "13px" }}>
+              … et {absents.length - PLAFOND_ABSENTS} autres, qui restent listés dans{" "}
+              <Link to="/report" style={{ color: "var(--reel-accent-clair)" }}>
+                la page de signalement
+              </Link>
+              .
+            </p>
+          )}
         </Section>
       )}
     </>
@@ -771,9 +790,7 @@ function Correspondance({
   onEdition: (editionId: number | null) => void;
 }) {
   const film = ligne.film;
-  const visuel = film
-    ? (ligne.edition ? vignette(ligne.edition.image_url, 120) : null) ?? film.afficheUrl
-    : null;
+  const visuel = film && ligne.edition ? vignette(ligne.edition.image_url, 200) : null;
 
   return (
     <div
@@ -784,20 +801,8 @@ function Correspondance({
       }}
     >
       {/* Gauche : le film. */}
-      <div className="flex min-w-0 flex-1 items-center gap-2.5">
-        {visuel ? (
-          <img
-            src={visuel}
-            alt=""
-            className="h-[42px] w-[28px] shrink-0 rounded-[3px] object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <span
-            className="h-[42px] w-[28px] shrink-0 rounded-[3px]"
-            style={{ backgroundColor: "var(--reel-surface-2)" }}
-          />
-        )}
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Jaquette src={visuel} repli={film?.afficheUrl} />
 
         {film ? (
           <span className="min-w-0">
@@ -819,12 +824,7 @@ function Correspondance({
           </span>
         ) : (
           <span className="min-w-0 flex-1">
-            <Menu
-              value=""
-              onChange={(v) => v && onFilm(Number(v))}
-              pleineLargeur
-              alerte
-            >
+            <Menu value="" onChange={(v) => v && onFilm(Number(v))} pleineLargeur>
               <option value="">{ligne.entree.titre} — quel film ?</option>
               {ligne.candidats.map((c) => (
                 <option key={c.filmId} value={c.filmId}>
@@ -838,30 +838,23 @@ function Correspondance({
         )}
       </div>
 
+      <Fleche />
+
       {/* Droite : l'édition. */}
-      <div className="flex w-full items-center gap-2 sm:w-[300px] sm:shrink-0">
+      <div className="w-full sm:w-[290px] sm:shrink-0">
         {film ? (
-          <>
-            <Menu
-              value={ligne.precisee && ligne.edition ? String(ligne.edition.id) : ""}
-              onChange={(v) => onEdition(v ? Number(v) : null)}
-              pleineLargeur
-              alerte={!ligne.precisee}
-            >
-              <option value="">
-                {ligne.edition ? `Non précisée — ${resume(ligne.edition)}` : "Non précisée"}
-              </option>
-              {film.editions.map((e) => (
-                <option key={e.id} value={e.id}>{resume(e)}</option>
-              ))}
-            </Menu>
-            <span
-              className="shrink-0"
-              style={{ fontSize: "12px", color: "var(--reel-muted)", width: "34px" }}
-            >
-              {film.editions.length > 1 ? `${film.editions.length} éd.` : ""}
-            </span>
-          </>
+          <Menu
+            value={ligne.precisee && ligne.edition ? String(ligne.edition.id) : ""}
+            onChange={(v) => onEdition(v ? Number(v) : null)}
+            pleineLargeur
+          >
+            <option value="">
+              {ligne.edition ? `Non précisée — ${resume(ligne.edition)}` : "Non précisée"}
+            </option>
+            {film.editions.map((e) => (
+              <option key={e.id} value={e.id}>{resume(e)}</option>
+            ))}
+          </Menu>
         ) : (
           <span style={{ fontSize: "13px", color: "var(--reel-muted)" }}>
             choisissez le film d’abord
@@ -869,6 +862,197 @@ function Correspondance({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Combien d'absents on affiche en lignes saisissables.
+ *
+ * Le quota de `signaler_edition` est de **vingt par jour et par compte** (§3) :
+ * dérouler cinq cents champs dont on ne pourra en envoyer que vingt serait une
+ * promesse qu'on ne tient pas, et une page interminable. Trente laisse de la
+ * marge sans mentir sur ce qui est possible en une fois.
+ */
+const PLAFOND_ABSENTS = 30;
+
+/**
+ * Un titre que le catalogue ne connaît pas, avec de quoi le faire entrer.
+ *
+ * **Pas de jaquette, et ce n'est pas un oubli.** Un absent n'est pas un film
+ * sans disque, c'est un film qui n'est pas en base : mesuré le 7 août 2026,
+ * **11 films seulement** sur 14 691 n'ont aucune édition. Il n'y a donc aucune
+ * affiche à afficher de notre côté, et en chercher une supposerait d'appeler
+ * TMDB depuis le navigateur, ce que la CSP refuse et ce qu'aucun jeton client ne
+ * permet. Le cadre reste vide plutôt que de montrer une image devinée.
+ *
+ * **Le champ code-barres est ici et pas seulement sur `/report`**, parce que
+ * c'est ici qu'on a le boîtier en tête : on vient de lire son titre dans sa
+ * propre liste. C'est le couple que le §8 réclame, le signalement branché sur ce
+ * qui l'a fait naître, plutôt qu'une page à retrouver plus tard.
+ */
+function LigneAbsent({
+  titre,
+  annee,
+  premiere,
+}: {
+  titre: string;
+  annee?: number;
+  premiere: boolean;
+}) {
+  const [saisie, setSaisie] = useState("");
+  const [envoye, setEnvoye] = useState<Verdict | null>(null);
+  const [enCours, setEnCours] = useState(false);
+
+  const code = chiffres(saisie);
+  const valide = eanBienForme(code);
+
+  async function envoyer() {
+    setEnCours(true);
+    try {
+      // Le titre part en note : c'est ce qui permet de vérifier à la main que le
+      // code correspond bien à l'œuvre annoncée, quand la passe le reprendra.
+      const verdict = await signalerEdition(code, annee ? `${titre} (${annee})` : titre);
+      setEnvoye(verdict);
+      if (verdict === "enregistre") toast.success(MESSAGE[verdict]);
+      else toast.error(MESSAGE[verdict]);
+    } catch {
+      toast.error("Envoi impossible. Réessayez dans un instant.");
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-3 px-3 py-2.5 sm:flex-nowrap"
+      style={{
+        backgroundColor: "var(--reel-surface)",
+        borderTop: premiere ? undefined : "1px solid var(--reel-border)",
+      }}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Jaquette />
+        <span className="min-w-0">
+          <span className="block truncate" style={{ fontSize: "14px", color: "var(--reel-text)" }}>
+            {titre}
+            {annee ? ` (${annee})` : ""}
+          </span>
+          <span style={{ fontSize: "12px", color: "var(--reel-muted)" }}>
+            absent du catalogue
+          </span>
+        </span>
+      </div>
+
+      <Fleche />
+
+      <div className="flex w-full items-center gap-2 sm:w-[290px] sm:shrink-0">
+        {envoye === "enregistre" ? (
+          <span style={{ fontSize: "13px", color: "var(--reel-accent-clair)" }}>
+            Signalé, la fiche arrive à la prochaine passe.
+          </span>
+        ) : (
+          <>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={saisie}
+              onChange={(e) => setSaisie(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && valide) void envoyer(); }}
+              placeholder="code-barres"
+              autoComplete="off"
+              spellCheck={false}
+              disabled={enCours}
+              aria-label={`Code-barres de ${titre}`}
+              className="w-full min-w-0 rounded-[8px] px-2 py-1.5 outline-none focus:ring-2 focus:ring-[var(--reel-accent)]"
+              style={{
+                backgroundColor: "var(--reel-surface-2)",
+                border: "1px solid var(--reel-border)",
+                color: "var(--reel-text)",
+                fontSize: "13px",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => { void envoyer(); }}
+              disabled={!valide || enCours}
+              className="shrink-0 rounded-[8px] px-2.5 py-1.5 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--reel-accent-clair)]"
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                backgroundColor: valide ? "var(--reel-accent)" : "var(--reel-surface-2)",
+                color: valide ? "#fff" : "var(--reel-muted)",
+                border: "none",
+                cursor: valide ? "pointer" : "default",
+              }}
+            >
+              {enCours ? "…" : "Envoyer"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * La jaquette d'une ligne.
+ *
+ * **Assez grande pour se reconnaître.** À 28 px de large, ce que la première
+ * version posait, on distinguait une tache colorée et rien d'autre : la
+ * jaquette ne servait alors à rien, alors que c'est précisément elle qui permet
+ * de valider un appariement d'un coup d'œil, sans lire le titre.
+ *
+ * Le cadre garde sa place quand l'image manque, sinon les lignes ne s'alignent
+ * plus les unes sous les autres et la colonne de titres ondule.
+ *
+ * **Le repli se déclenche sur l'échec, pas sur l'absence.** La première version
+ * ne retombait sur l'affiche du film que si `image_url` était nul, et *Climax*
+ * rendait donc l'icône d'image cassée : le §4 relève 319 éditions dont le visuel
+ * répond 404 chez la source, colonne remplie et fichier mort. Une URL présente
+ * ne prouve rien, seul `onError` le dit.
+ */
+function Jaquette({ src, repli }: { src?: string | null; repli?: string | null }) {
+  const [echecs, setEchecs] = useState(0);
+  const candidats = [src, repli].filter(Boolean) as string[];
+  const courant = candidats[echecs];
+
+  return courant ? (
+    <img
+      src={courant}
+      alt=""
+      // La clé force le remontage au changement de source : sans elle, le
+      // navigateur garde l'image cassée en cache de rendu et `onError` ne
+      // repasse pas.
+      key={courant}
+      onError={() => setEchecs((n) => n + 1)}
+      className="h-[81px] w-[54px] shrink-0 rounded-[4px] object-cover"
+      loading="lazy"
+    />
+  ) : (
+    <span
+      className="h-[81px] w-[54px] shrink-0 rounded-[4px]"
+      style={{ backgroundColor: "var(--reel-surface-2)" }}
+    />
+  );
+}
+
+/**
+ * La flèche entre les deux colonnes.
+ *
+ * Elle dit le sens de la lecture, « ce film devient cette édition », là où deux
+ * cellules côte à côte laissent deviner. `aria-hidden` : elle ne porte rien
+ * qu'un lecteur d'écran ait à annoncer, l'ordre du document dit déjà la même
+ * chose.
+ */
+function Fleche() {
+  return (
+    <ArrowRight
+      size={16}
+      aria-hidden
+      className="hidden shrink-0 sm:block"
+      style={{ color: "var(--reel-muted)" }}
+    />
   );
 }
 
@@ -910,22 +1094,23 @@ function pluriel(n: number, singulier: string, plurielForme: string): string {
  * sélecteur du système, qui sait déjà afficher trente éditions dans une feuille
  * défilante, et c'est exactement ce dont la table a besoin.
  *
- * `alerte` teinte le bord quand la ligne demande quelque chose. C'est la seule
- * signalisation de la table, il n'y a pas de colonne d'état : la couleur du
- * champ dit où cliquer, et une colonne de plus ne tiendrait pas à 375 px.
+ * **Aucune teinte d'alerte sur le bord**, et c'est un revirement. La première
+ * version cerclait de bleu toute ligne dont l'édition n'était pas précisée ;
+ * comme c'est le cas de la grande majorité, la table entière paraissait
+ * sélectionnée, et le bleu ne distinguait plus rien. Ce que la ligne a à dire
+ * est déjà écrit dedans, « Non précisée », et les compteurs en tête donnent le
+ * compte.
  */
 function Menu({
   value,
   onChange,
   children,
   pleineLargeur,
-  alerte,
 }: {
   value: string;
   onChange: (valeur: string) => void;
   children: React.ReactNode;
   pleineLargeur?: boolean;
-  alerte?: boolean;
 }) {
   return (
     <select
@@ -937,7 +1122,7 @@ function Menu({
       }
       style={{
         backgroundColor: "var(--reel-surface-2)",
-        border: `1px solid ${alerte ? "var(--reel-accent-clair)" : "var(--reel-border)"}`,
+        border: "1px solid var(--reel-border)",
         color: "var(--reel-text)",
         fontSize: "13px",
       }}
