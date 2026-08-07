@@ -855,7 +855,7 @@ que le navigateur n'exécute pas. Éprouvé sous `wrangler pages dev dist`, seul
 façon de servir `_headers` et `functions/` ensemble : fiche film, accueil et
 `/about` rendus sans une violation en console, morceau `lazy()` chargé en 200.
 
-**`img-src` en porte six depuis le 7 août 2026**, et la directive est un
+**`img-src` en porte sept depuis le 7 août 2026**, et la directive est un
 **instantané** : chaque source qui apporte ses propres visuels ajoute un hôte,
 et l'oubli ne casse rien de bruyant. `cdn.shopify.com` est entré le 3 août,
 provisoire le temps de miroiter les visuels Metaluna ; `media.e.leclerc` le 4,
@@ -863,6 +863,30 @@ et celui-là est définitif, le §5 posant qu'E.Leclerc est la seule source dont
 les visuels sont **licenciés pour l'usage affilié**. Le sixième est le projet
 Supabase lui-même, qui sert les photos de profil, et **`blob:` est arrivé avec**
 pour que la fenêtre de recadrage affiche le fichier choisi avant tout réseau.
+
+**Le septième est `fgellaobb.filerobot.com`, et c'est E.Leclerc une seconde
+fois.** Filerobot est le CDN qui sert `media.e.leclerc` ; la passe Awin du
+6 août a écrit 436 offres sous le nom d'hôte brut du CDN plutôt que sous le nom
+de marque, avec la même grammaire d'URL au caractère près,
+`/LEN/fp/<EAN>_1?vh=…&w=1000&h=1000&func=fit`. Vérifié avant d'ouvrir, et pas
+supposé : **436 lignes sur 436 portent `marchand = E.Leclerc`**, zéro chez
+momox, et le fichier répond 200 en `image/jpeg`. Même statut que le quatrième
+hôte, donc, flux Awin et visuels licenciés.
+
+**Ce qu'aucune des six entrées précédentes ne disait : un même marchand peut
+servir ses visuels sous deux noms d'hôte, sans que rien ne l'annonce.**
+Autoriser le nom de marque ne suffit donc pas, et la source de vérité n'est pas
+le nom du marchand mais la colonne `image_url`, à recompter après chaque passe
+de flux.
+
+    select split_part(split_part(image_url, '//', 2), '/', 1), count(*)
+    from offres group by 1 order by 2 desc
+
+**Corollaire non traité, et il coûte de la bande passante** : `lib/visuels.ts`
+ne réécrit `w` et `h` que pour l'hôte `media.e.leclerc`, donc ces 436 offres
+téléchargent la pleine taille, **149 177 octets mesurés** pour une vignette de
+56 × 84. C'est exactement le défaut que le §5 dit réglé depuis le 4 août, rouvert
+par un second nom d'hôte.
 
 **La signature d'un blocage CSP est à connaître, elle ne ressemble à rien
 d'autre** : les 2 312 éditions Leclerc rendaient un cadre gris alors que la
