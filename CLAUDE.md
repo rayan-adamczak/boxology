@@ -882,11 +882,31 @@ de flux.
     select split_part(split_part(image_url, '//', 2), '/', 1), count(*)
     from offres group by 1 order by 2 desc
 
+**Le contrôle qui tranche est une sonde `Image()`, pas le Resource Timing**, et
+c'est la correction du 7 août poussée jusqu'au bout. Mesuré sur la fiche 15119
+en production : `transferSize 0, status 0` sur **les trois** hôtes de la page,
+`image.tmdb.org` et `img.jaquette.app` compris, alors que leurs images
+affichaient 1 280 et 1 000 pixels. La signature du §3 ne dit donc rien du tout
+dès qu'aucun hôte ne pose `Timing-Allow-Origin`. Ce qui tranche est de charger
+les deux hôtes depuis la page, sous la CSP qu'on soupçonne :
+
+    new Image().src = '…filerobot…'   -> onerror   bloque
+    new Image().src = '…e.leclerc…'   -> onload    naturalWidth 200
+
 **Corollaire non traité, et il coûte de la bande passante** : `lib/visuels.ts`
 ne réécrit `w` et `h` que pour l'hôte `media.e.leclerc`, donc ces 436 offres
 téléchargent la pleine taille, **149 177 octets mesurés** pour une vignette de
 56 × 84. C'est exactement le défaut que le §5 dit réglé depuis le 4 août, rouvert
 par un second nom d'hôte.
+
+**Et l'ajouter à `HOTE_LECLERC` ne suffira pas**, ce qui est la raison de ne pas
+l'avoir fait dans la foulée : **128 des 436 URL n'ont pas de point
+d'interrogation**, le flux ayant écrit `…/<EAN>_1&w=1000&h=1000&func=fit` où le
+premier séparateur manque. Leurs paramètres sont donc dans le **chemin**, pas
+dans la requête, et `searchParams.set` y accolerait un second jeu de `w` et `h`
+au lieu de remplacer le premier. Elles répondent 200 en l'état ; le jour où on
+optimise, il faut traiter les deux formes, et mesurer que la seconde honore bien
+la taille demandée.
 
 **La signature d'un blocage CSP est à connaître, elle ne ressemble à rien
 d'autre** : les 2 312 éditions Leclerc rendaient un cadre gris alors que la
