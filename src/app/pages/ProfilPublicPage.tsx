@@ -56,6 +56,7 @@ type Etat =
   | {
       statut: "pret";
       nom: string;
+      avatarUrl: string | null;
       identifiant: string;
       parStatut: Record<StatutValue, Entree[]>;
     };
@@ -100,7 +101,12 @@ export function ProfilPublicPage() {
 
     (async () => {
       try {
-        const nom = cestMoi ? monProfil.nom : (await profilPublic(canonique))?.nom ?? null;
+        /* Le nom **et** la photo viennent de la même lecture : deux requêtes
+           pour deux colonnes de la même ligne feraient un aller-retour de plus
+           sur le chemin d'entrée du site. */
+        const vu = cestMoi ? monProfil : await profilPublic(canonique);
+        const nom = vu?.nom ?? null;
+        const avatarUrl = vu?.avatarUrl ?? null;
         if (annule) return;
         if (nom === null) {
           /* Avant de rendre un 404, on regarde si quelqu'un portait cette
@@ -129,6 +135,7 @@ export function ProfilPublicPage() {
           setEtat({
             statut: "pret",
             nom,
+            avatarUrl,
             identifiant: canonique,
             parStatut: Object.fromEntries(listes) as Record<StatutValue, Entree[]>,
           });
@@ -208,6 +215,7 @@ export function ProfilPublicPage() {
     <>
     <VueProfil
       nom={etat.nom}
+      avatarUrl={etat.avatarUrl}
       identifiant={etat.identifiant}
       // L'adresse électronique n'apparaît nulle part, pas même chez soi : la
       // page est la même pour tout le monde, et une ligne qui n'existe que

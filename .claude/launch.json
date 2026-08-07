@@ -14,7 +14,7 @@
     {
       "name": "jaquette-pages",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["wrangler", "pages", "dev", "dist", "--port", "8788"],
+      "runtimeArgs": ["wrangler", "pages", "dev", "dist", "--port", "8788", "--compatibility-date=2026-08-06"],
       "port": 8788
     }
   ]

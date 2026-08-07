@@ -30,6 +30,18 @@
 #               est donc légitime et voulu, là où celui vers Shopify est un
 #               accident à réparer.
 #
+#               **Sixième hôte le 7 août 2026, le projet Supabase lui-même.**
+#               Les photos de profil sont dans son Storage et non sur R2 : un
+#               navigateur ne peut pas déposer dans le seau R2, qui n'est écrit
+#               que par des scripts portant les clés `R2_*`
+#               (`20260807_avatars.sql`). L'hôte figurait déjà en `connect-src`
+#               pour l'API ; il fallait l'ajouter en `img-src`, et l'oubli
+#               n'aurait rien dit de bruyant — c'est la signature du §3,
+#               `transferSize 0` **et** `status 0`, la requête ne partant pas.
+#
+#               `blob:` est arrivé avec, et pour la même fonction : la fenêtre
+#               de recadrage affiche le fichier choisi par `createObjectURL`,
+#               donc avant tout réseau. Sans lui, on recadre à l'aveugle.
 #               **Cinquième hôte le 6 août 2026, `images2.medimops.eu`**, celui
 #               de momox shop, même statut que Leclerc : flux Awin, visuels
 #               licenciés pour l'usage affilié. Il porte les 154 887 lignes du
@@ -75,7 +87,7 @@
 # Certificates, et l'engagement est difficile à défaire une fois le max-age
 # servi.
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.tmdb.org https://img.jaquette.app https://cdn.shopify.com https://media.e.leclerc https://images2.medimops.eu; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://image.tmdb.org https://img.jaquette.app https://cdn.shopify.com https://media.e.leclerc https://images2.medimops.eu https://rndyusuyfkrojpazjsll.supabase.co; font-src 'self'; connect-src 'self' https://rndyusuyfkrojpazjsll.supabase.co
   X-Frame-Options: DENY
   Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
   X-Content-Type-Options: nosniff

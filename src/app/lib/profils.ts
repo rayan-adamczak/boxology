@@ -28,12 +28,15 @@ export interface Profil {
   identifiant: string;
   nom: string;
   visible: boolean;
+  /** Photo de profil, ou `null`. Voir `lib/avatar.ts` pour le dépôt. */
+  avatarUrl: string | null;
 }
 
 /** Ce qu'un visiteur sans compte a le droit de voir. Jamais l'adresse. */
 export interface ProfilPublic {
   identifiant: string;
   nom: string;
+  avatarUrl: string | null;
   creeLe: string;
   /** Éditions marquées « possédée ». Compté en base, listes comprises. */
   possedees: number;
@@ -106,7 +109,7 @@ export async function rafraichirProfil(): Promise<void> {
 
     const { data, error } = await clientAuthentifie(identite.jeton)
       .from("profils")
-      .select("identifiant, nom, visible")
+      .select(COLONNES)
       .eq("user_id", identite.userId)
       .maybeSingle();
 
@@ -121,7 +124,7 @@ export async function rafraichirProfil(): Promise<void> {
     poser(
       identite.userId,
       data
-        ? { statut: "pret", profil: data as Profil }
+        ? { statut: "pret", profil: versProfil(data) }
         : { statut: "absent" },
     );
   })().finally(() => {
@@ -198,13 +201,50 @@ export async function creerProfil(identifiant: string, nom: string): Promise<Pro
   const { data, error } = await clientAuthentifie(identite.jeton)
     .from("profils")
     .insert(ligne)
-    .select("identifiant, nom, visible")
+    .select(COLONNES)
     .single();
   if (error) throw new Error(traduire(error));
 
-  const profil = data as Profil;
+  const profil = versProfil(data);
   poser(identite.userId, { statut: "pret", profil });
   return profil;
+}
+
+/**
+ * Les colonnes du profil, en une seule copie.
+ *
+ * Trois requêtes les listaient à l'identique ; ajouter `avatar_url` à deux
+ * d'entre elles aurait suffi à ce que la troisième rende un profil sans photo,
+ * sans que rien ne le signale.
+ */
+const COLONNES = "identifiant, nom, visible, avatar_url";
+
+/**
+ * De la forme de l'application vers celle de la table.
+ *
+ * `Profil` est en camel, PostgREST attend les noms de colonnes. La conversion
+ * est **explicite et exhaustive** plutôt qu'automatique : un `update` qui
+ * laisserait passer une clé inconnue serait refusé par PostgREST au mieux, et
+ * écrirait une colonne qu'on ne voulait pas au pire.
+ */
+function versColonnes(champs: Partial<Profil>): Record<string, unknown> {
+  const ligne: Record<string, unknown> = {};
+  if (champs.identifiant !== undefined) ligne.identifiant = champs.identifiant;
+  if (champs.nom !== undefined) ligne.nom = champs.nom;
+  if (champs.visible !== undefined) ligne.visible = champs.visible;
+  if (champs.avatarUrl !== undefined) ligne.avatar_url = champs.avatarUrl;
+  return ligne;
+}
+
+/** Ce que la table rend, vers la forme de l'application. */
+function versProfil(ligne: unknown): Profil {
+  const l = ligne as { identifiant: string; nom: string; visible: boolean; avatar_url: string | null };
+  return {
+    identifiant: l.identifiant,
+    nom: l.nom,
+    visible: l.visible,
+    avatarUrl: l.avatar_url ?? null,
+  };
 }
 
 /** Modifie ce qui est passé, laisse le reste. */
@@ -214,13 +254,13 @@ export async function majProfil(champs: Partial<Profil>): Promise<Profil> {
 
   const { data, error } = await clientAuthentifie(identite.jeton)
     .from("profils")
-    .update(champs)
+    .update(versColonnes(champs))
     .eq("user_id", identite.userId)
-    .select("identifiant, nom, visible")
+    .select(COLONNES)
     .single();
   if (error) throw new Error(traduire(error));
 
-  const profil = data as Profil;
+  const profil = versProfil(data);
   poser(identite.userId, { statut: "pret", profil });
   return profil;
 }
@@ -268,6 +308,7 @@ export async function profilPublic(identifiant: string): Promise<ProfilPublic | 
   const brut = data as {
     identifiant: string;
     nom: string;
+    avatar_url: string | null;
     cree_le: string;
     possedees: number;
     envies: number;
@@ -275,6 +316,7 @@ export async function profilPublic(identifiant: string): Promise<ProfilPublic | 
   return {
     identifiant: brut.identifiant,
     nom: brut.nom,
+    avatarUrl: brut.avatar_url ?? null,
     creeLe: brut.cree_le,
     possedees: brut.possedees,
     envies: brut.envies,

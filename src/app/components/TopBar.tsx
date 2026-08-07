@@ -229,7 +229,10 @@ export function TopBar() {
                   aria-label="Menu du compte"
                   className="flex items-center gap-1 rounded-full p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
                 >
-                  <UserAvatar name={nomAffiche(session)} size={34} />
+                  {/* Le nom reste celui du compte : seule la photo vient du
+                      profil, changer aussi les initiales ferait bouger le
+                      bandeau pour qui n'a rien demandé. */}
+                  <UserAvatar name={nomAffiche(session)} src={profil?.avatarUrl} size={34} />
                   <ChevronDown size={16} color="var(--reel-muted)" />
                 </button>
                 {menuOpen && (

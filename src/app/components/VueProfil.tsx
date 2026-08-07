@@ -75,6 +75,7 @@ export function grouper(editions: EditionWithFilm[]): Entree[] {
 export function VueProfil({
   nom,
   identifiant,
+  avatarUrl,
   sousTitre,
   actions,
   parStatut,
@@ -85,6 +86,8 @@ export function VueProfil({
   nom: string;
   /** Le @ du compte, sans son arobase. Null tant qu'il n'a pas été choisi. */
   identifiant: string | null;
+  /** Photo de profil, ou `null` : le composant retombe sur les initiales. */
+  avatarUrl?: string | null;
   /** Seconde ligne sous le @. L'adresse sur son propre profil, rien en public. */
   sousTitre?: string;
   /** Bouton de partage, invitation à se connecter : posé par l'appelant. */
@@ -134,7 +137,7 @@ export function VueProfil({
         {/* L'en-tête chevauche la bannière, comme dans la maquette. */}
         <header className="-mt-12 flex flex-wrap items-end gap-3">
           <span className="rounded-full p-1" style={{ backgroundColor: "var(--reel-bg)" }}>
-            <UserAvatar name={nom} size={96} />
+            <UserAvatar name={nom} src={avatarUrl} size={96} />
           </span>
           <div className="min-w-0 pb-1">
             <h1 style={{ fontSize: "24px", fontWeight: 700, color: "var(--reel-text)" }}>{nom}</h1>
