@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { TopBar } from "./TopBar";
 import { BottomTabBar } from "./BottomTabBar";
+import { BandeauPromo } from "./BandeauPromo";
 import { Footer } from "./Footer";
 import { EcranIdentifiant } from "./EcranIdentifiant";
 import { AttentePleine } from "./AttenteRecherche";
@@ -109,6 +110,11 @@ export function Layout() {
       <Footer />
 
       <BottomTabBar active={activeTab} onChange={onMobileTab} />
+
+      {/* Après la barre d'onglets dans le document, donc peint après elle à
+          empilement égal : le bandeau est en `z-30` contre `z-40`, il passe
+          dessous, ce qui est voulu, la navigation prime sur une promotion. */}
+      <BandeauPromo />
 
       <Toaster theme="dark" position="bottom-right" richColors />
     </div>
