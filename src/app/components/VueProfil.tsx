@@ -4,6 +4,7 @@ import { Check, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { UserAvatar } from "./UserAvatar";
+import { Selecteur } from "./Selecteur";
 import { arobase, cheminProfil } from "../lib/identifiant";
 import { lienFilm } from "../lib/liens";
 import { splitList, type EditionWithFilm, type StatutValue } from "../lib/reelio-db";
@@ -206,22 +207,19 @@ export function VueProfil({
 
         {entrees.length > 0 && (
           <div className="flex flex-wrap items-center gap-3 pt-6">
-            <label className="sr-only" htmlFor="tri-profil">Trier</label>
-            <select
-              id="tri-profil"
-              value={tri}
-              onChange={(e) => setTri(e.target.value as Tri)}
-              className="rounded-full px-3 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--reel-accent)]"
-              style={{
-                fontSize: "13px",
-                backgroundColor: "var(--reel-surface)",
-                border: "1px solid var(--reel-border)",
-                color: "var(--reel-text)",
-              }}
-            >
-              <option value="recent">Ajout récent</option>
-              <option value="titre">Titre A→Z</option>
-            </select>
+            {/* Menu dessiné et non `<select>` natif : celui-ci gardait la
+                flèche du navigateur, qui paraissait au milieu d'une capsule
+                dessinée et changeait de forme d'une machine à l'autre. */}
+            <Selecteur
+              libelle="Trier"
+              taille="sm"
+              valeur={tri}
+              onChange={(v) => setTri(v as Tri)}
+              options={[
+                { valeur: "recent", libelle: "Ajout récent" },
+                { valeur: "titre", libelle: "Titre A→Z" },
+              ]}
+            />
 
             <div className="flex flex-wrap gap-1.5">
               <Puce actif={format === null} onClick={() => setFormat(null)}>Tous</Puce>
