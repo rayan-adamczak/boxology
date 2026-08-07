@@ -5975,6 +5975,32 @@ qu'il filtre. La frappe au vol suffit.
 document : il attrape le clic sans qu'aucun composant n'ait à se demander si la
 cible est dedans ou dehors.
 
+**La bulle est en `--reel-surface`, pas en `--reel-surface-2`**, alors que
+c'est une surface surélevée. Le surlignage des lignes vaut justement
+`--reel-surface-2` : un panneau de cette teinte rendait **le survol invisible**,
+tout en laissant croire à la relecture qu'il n'existait pas. C'est aussi la
+couleur du menu du compte dans le bandeau, qui flotte de la même façon.
+
+**Le survol est peint en CSS, pas en état.** `onMouseEnter` reste, mais pour
+aligner le curseur clavier sur la souris ; un `hover:` ne dépend d'aucune
+synthèse d'événement, ne coûte pas un rendu par ligne survolée, et Tailwind le
+place derrière `@media (hover: hover)`, donc il ne colle pas au doigt après un
+appui sur téléphone. Il éclaircit **aussi le texte** : les options non choisies
+sont en gris discret, un changement de fond seul s'y remarque à peine.
+
+**Le survol ne s'éprouve pas dans le panneau d'aperçu**, et c'est un piège de
+plus à ranger à côté de ceux du §8 : `document.querySelector(':hover')` y rend
+**null**, le navigateur n'ayant aucun pointeur. Ni le `hover:` du CSS ni le
+`onMouseEnter` de React ne peuvent s'y déclencher, et les deux se lisent alors
+comme cassés. Ce qui se vérifie à la place : que la règle Tailwind existe bien
+dans la feuille servie, puis appliquer ses déclarations à la main pour juger le
+rendu.
+
+    panneau       rgb(24, 32, 44)     --reel-surface
+    survol        rgb(31, 40, 54)     --reel-surface-2
+    texte repos   rgb(138, 143, 152)  --reel-muted
+    texte survol  rgb(232, 232, 232)  --reel-text
+
 Éprouvé à 1 440 et 390 px : Origine, deux flèches, Fin, frappe « hor », Entrée,
 puis Échap qui ferme **sans changer la valeur**. La feuille mesure 607 px sur
 844, ancrée en bas, voile plein écran à 0,7.

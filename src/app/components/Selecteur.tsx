@@ -224,7 +224,16 @@ export function Selecteur({
           <div
             className="absolute left-0 top-full z-50 mt-1.5 max-h-[300px] min-w-full overflow-y-auto rounded-[12px] py-1 shadow-xl"
             style={{
-              backgroundColor: "var(--reel-surface-2)",
+              /*
+                **`--reel-surface` et non `--reel-surface-2`**, alors que c'est
+                une surface surélevée : le surlignage des lignes vaut justement
+                `--reel-surface-2`, donc un panneau de cette couleur rendait le
+                survol **invisible**, tout en laissant croire à la relecture
+                qu'il n'existait pas. C'est aussi la teinte du menu du compte
+                dans le bandeau, qui flotte de la même façon au-dessus de la
+                page.
+              */
+              backgroundColor: "var(--reel-surface)",
               border: "1px solid var(--reel-border)",
               /* Le menu ne se laisse pas rétrécir par la capsule : celle-ci est
                  volontairement courte, ce sont les options qui sont longues. */
@@ -352,15 +361,25 @@ function Rangee({
       aria-selected={choisie}
       onMouseDown={(e) => { e.preventDefault(); onChoisir(); }}
       onMouseEnter={onSurvol}
-      className={`flex cursor-pointer items-center gap-2 rounded-[8px] ${
+      /*
+        **Le survol est en CSS, pas en état.** `onMouseEnter` reste, mais pour
+        aligner le curseur clavier sur la souris, pas pour peindre : React
+        synthétise `mouseenter` à partir de `mouseover`, et cette synthèse est
+        un intermédiaire de plus entre le geste et le pixel. Un `hover:` ne
+        dépend de rien, ne coûte pas un rendu par ligne survolée, et Tailwind le
+        place derrière `@media (hover: hover)`, donc il ne colle pas au doigt
+        après un appui sur téléphone.
+
+        Le survol éclaircit **aussi le texte**, pas seulement le fond : les
+        options non choisies sont en gris discret, et un changement de fond seul
+        s'y remarque à peine.
+      */
+      className={`flex cursor-pointer items-center gap-2 rounded-[8px] transition-colors hover:bg-[var(--reel-surface-2)] hover:text-[var(--reel-text)] ${
         mobile ? "px-3 py-3" : "px-3 py-2"
+      } ${surlignee ? "bg-[var(--reel-surface-2)] text-[var(--reel-text)]" : ""} ${
+        choisie ? "font-semibold text-[var(--reel-text)]" : "text-[var(--reel-muted)]"
       }`}
-      style={{
-        fontSize: mobile ? "15px" : "14px",
-        fontWeight: choisie ? 600 : 400,
-        color: choisie ? "var(--reel-text)" : "var(--reel-muted)",
-        backgroundColor: surlignee ? "var(--reel-surface-2)" : "transparent",
-      }}
+      style={{ fontSize: mobile ? "15px" : "14px" }}
     >
       <span className="min-w-0 flex-1 truncate">{option.libelle}</span>
       {choisie && (
