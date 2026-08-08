@@ -882,6 +882,59 @@ de flux.
     select split_part(split_part(image_url, '//', 2), '/', 1), count(*)
     from offres group by 1 order by 2 desc
 
+#### L'audit complet des hôtes, le 8 août 2026, et quatre restent dehors
+
+La question a été posée une bonne fois sur **toutes** les colonnes affichées, et
+non sur `offres` seule : `films.affiche_url`, `backdrop_url`, les `photo` de
+`cast_principal`, `editions.image_url`, `images_secondaires`,
+`offres.image_url`, `profils.avatar_url`. Les colonnes `*_source` en sont
+exclues, elles gardent la provenance et ne sont jamais rendues.
+
+    image.tmdb.org           157 597    autorisé
+    img.jaquette.app          19 657    autorisé
+    images2.medimops.eu       10 834    autorisé
+    media.e.leclerc            6 982    autorisé
+    cdn.shopify.com            5 523    autorisé
+    fgellaobb.filerobot.com    1 370    autorisé   dont 934 en éditions
+    ------------------------------------------------------------------
+    www.coindemirecinema.com     191    BLOQUÉ
+    diaphana.fr                  142    BLOQUÉ
+    thejokers-shop.com            43    BLOQUÉ
+    www.solaris-distribution…      4    BLOQUÉ
+
+**Deux choses que le décompte par `offres` seule ne pouvait pas dire.** Filerobot
+porte 934 lignes de plus dans `editions.image_url`, donc l'ouverture de la CSP
+sert au-delà des 436 offres qui l'ont motivée ; et les quatre boutiques
+d'éditeur du 4 août sont bloquées **depuis leur import**, sans que rien ne l'ait
+signalé pendant quatre jours. C'est l'instantané du §3 pris en défaut une
+seconde fois, et cette fois sur une source de catalogue et non de prix.
+
+**Ce n'est pas du lien mort**, les quatre répondent 200. Mesuré à l'écran sur
+`/movies/adorables-creatures-1952/22239` : sonde `Image()` en `ECHEC`, et la
+ligne d'édition affiche le **SVG d'image cassée** en data: URI, pas l'affiche
+TMDB, le repli de `CarteEdition` ne jouant que sur une URL nulle.
+
+**Décision du 8 août 2026 : miroir R2 en septembre, pas d'ouverture de CSP.**
+Même arbitrage que pour Metaluna au §5, et pour la raison du §10, le site est
+sorti de toute dépendance à un tiers pour ses visuels et `cdn.shopify.com`
+traîne déjà cette dette sous l'étiquette « provisoire ». S'y ajoute une raison
+propre à ces quatre-là : **aucune n'a de grammaire de redimensionnement
+utilisable**, là où Leclerc honore `w` et `h`.
+
+    diaphana.fr             1 625 353 o   PNG, WordPress, aucun paramètre
+    thejokers-shop.com      2 583 205 o   PNG, Shopify, `width=` existe
+    coindemirecinema.com       48 260 o   Shopify, `_1024x` dans le nom
+    solaris-distribution.com   99 459 o   WordPress, aucun paramètre
+
+Ouvrir la directive telle quelle ferait donc tirer 2,5 Mo pour un cadre de
+56 × 84, soit le défaut que le §5 vient de refermer chez Leclerc. Le miroir
+règle les deux d'un coup, l'hôte et la taille.
+
+**Ce qui reste visible d'ici là** : 380 éditions montrent un glyphe d'image
+cassée. Le repli sur l'affiche du film à l'`onError` de la balise coûterait
+trois lignes et vaudrait mieux qu'un glyphe, mais il masquerait aussi les vrais
+404 : à décider avec le miroir, pas avant.
+
 **Le contrôle qui tranche est une sonde `Image()`, pas le Resource Timing**, et
 c'est la correction du 7 août poussée jusqu'au bout. Mesuré sur la fiche 15119
 en production : `transferSize 0, status 0` sur **les trois** hôtes de la page,
